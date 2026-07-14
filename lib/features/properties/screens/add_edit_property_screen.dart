@@ -157,7 +157,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       'super_builtup_area': double.tryParse(_superBuiltupController.text),
       'carpet_area': double.tryParse(_carpetController.text),
       'plot_area': double.tryParse(_plotController.text),
-      'price': double.parse(_priceController.text),
+      'price': double.tryParse(_priceController.text) ?? 0.0,
       'deposit': double.tryParse(_depositController.text) ?? 0.0,
       'maintenance': double.tryParse(_maintenanceController.text) ?? 0.0,
       'furnishing_type_id': _selectedFurnishing,

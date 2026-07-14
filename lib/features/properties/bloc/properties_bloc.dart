@@ -206,6 +206,7 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
       add(LoadPropertiesEvent(activeTab: event.activeTab));
     } catch (e) {
       emit(PropertiesError(e.toString()));
+      add(LoadPropertiesEvent(activeTab: event.activeTab));
     }
   }
 
@@ -219,6 +220,7 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
       add(LoadPropertiesEvent(activeTab: event.activeTab));
     } catch (e) {
       emit(PropertiesError(e.toString()));
+      add(LoadPropertiesEvent(activeTab: event.activeTab));
     }
   }
 
@@ -231,6 +233,7 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
       add(LoadPropertiesEvent(activeTab: event.activeTab));
     } catch (e) {
       emit(PropertiesError(e.toString()));
+      add(LoadPropertiesEvent(activeTab: event.activeTab));
     }
   }
 
@@ -244,6 +247,7 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
       add(LoadPropertiesEvent(activeTab: event.activeTab));
     } catch (e) {
       emit(PropertiesError(e.toString()));
+      add(LoadPropertiesEvent(activeTab: event.activeTab));
     }
   }
 
@@ -257,6 +261,7 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
       add(LoadPropertiesEvent(activeTab: event.activeTab));
     } catch (e) {
       emit(PropertiesError(e.toString()));
+      add(LoadPropertiesEvent(activeTab: event.activeTab));
     }
   }
 
@@ -275,6 +280,7 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
       add(LoadPropertiesEvent(activeTab: event.activeTab));
     } catch (e) {
       emit(PropertiesError(e.toString()));
+      add(LoadPropertiesEvent(activeTab: event.activeTab));
     }
   }
 }
