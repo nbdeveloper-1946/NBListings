@@ -104,9 +104,9 @@ class SplashScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.xl),
 
                     // Big Elegant Title Typography
-                    const Text(
+                    Text(
                       'Treasure of listed\nproperties in your area',
-                      style: AppTextStyles.display,
+                      style: AppTextStyles.display.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: AppSpacing.l),
 
