@@ -1,0 +1,118 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../models/requirement_model.dart';
+import '../repository/requirements_repository.dart';
+
+// --- Events ---
+abstract class RequirementsEvent {}
+
+class FetchRequirementsEvent extends RequirementsEvent {
+  final String? search;
+  final String? configurationId;
+  final String? status;
+  FetchRequirementsEvent({this.search, this.configurationId, this.status});
+}
+
+class CreateRequirementEvent extends RequirementsEvent {
+  final RequirementModel requirement;
+  CreateRequirementEvent(this.requirement);
+}
+
+class UpdateRequirementEvent extends RequirementsEvent {
+  final RequirementModel requirement;
+  UpdateRequirementEvent(this.requirement);
+}
+
+class DeleteRequirementEvent extends RequirementsEvent {
+  final String id;
+  DeleteRequirementEvent(this.id);
+}
+
+// --- States ---
+abstract class RequirementsState {}
+
+class RequirementsInitial extends RequirementsState {}
+
+class RequirementsLoading extends RequirementsState {}
+
+class RequirementsLoaded extends RequirementsState {
+  final List<RequirementModel> requirements;
+  RequirementsLoaded({required this.requirements});
+}
+
+class RequirementsError extends RequirementsState {
+  final String message;
+  RequirementsError(this.message);
+}
+
+class RequirementsSuccess extends RequirementsState {
+  final String message;
+  RequirementsSuccess(this.message);
+}
+
+// --- BLoC ---
+class RequirementsBloc extends Bloc<RequirementsEvent, RequirementsState> {
+  final RequirementsRepository requirementsRepository;
+
+  RequirementsBloc({required this.requirementsRepository}) : super(RequirementsInitial()) {
+    on<FetchRequirementsEvent>(_onFetchRequirements);
+    on<CreateRequirementEvent>(_onCreateRequirement);
+    on<UpdateRequirementEvent>(_onUpdateRequirement);
+    on<DeleteRequirementEvent>(_onDeleteRequirement);
+  }
+
+  Future<void> _onFetchRequirements(
+    FetchRequirementsEvent event,
+    Emitter<RequirementsState> emit,
+  ) async {
+    emit(RequirementsLoading());
+    try {
+      final list = await requirementsRepository.getRequirements(
+        search: event.search,
+        configurationId: event.configurationId,
+        status: event.status,
+      );
+      emit(RequirementsLoaded(requirements: list));
+    } catch (e) {
+      emit(RequirementsError(e.toString()));
+    }
+  }
+
+  Future<void> _onCreateRequirement(
+    CreateRequirementEvent event,
+    Emitter<RequirementsState> emit,
+  ) async {
+    emit(RequirementsLoading());
+    try {
+      await requirementsRepository.createRequirement(event.requirement);
+      emit(RequirementsSuccess("Requirement created successfully."));
+    } catch (e) {
+      emit(RequirementsError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateRequirement(
+    UpdateRequirementEvent event,
+    Emitter<RequirementsState> emit,
+  ) async {
+    emit(RequirementsLoading());
+    try {
+      await requirementsRepository.updateRequirement(event.requirement);
+      emit(RequirementsSuccess("Requirement updated successfully."));
+    } catch (e) {
+      emit(RequirementsError(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteRequirement(
+    DeleteRequirementEvent event,
+    Emitter<RequirementsState> emit,
+  ) async {
+    emit(RequirementsLoading());
+    try {
+      await requirementsRepository.deleteRequirement(event.id);
+      emit(RequirementsSuccess("Requirement deleted successfully."));
+    } catch (e) {
+      emit(RequirementsError(e.toString()));
+    }
+  }
+}

@@ -8,6 +8,8 @@ import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/properties/screens/properties_screen.dart';
 import '../../features/properties/bloc/properties_bloc.dart';
 import '../../features/users/screens/users_screen.dart';
+import '../../features/requirements/screens/requirements_screen.dart';
+import '../../features/clients/screens/clients_screen.dart';
 import '../../splash.dart';
 import '../design_system/widgets/app_shell.dart';
 import '../design_system/widgets/placeholder_screen.dart';
@@ -66,29 +68,11 @@ class AppRouter {
           ),
           GoRoute(
             path: '/requirements',
-            builder: (context, state) => const CRMPlaceholderScreen(
-              title: 'Requirements',
-              icon: Icons.assignment_rounded,
-              description: 'Manage property requirements, inquiries, and customer match pipelines.',
-              upcomingFeatures: [
-                'Automated listings matching engine',
-                'Lead requirement priority tracking',
-                'Interactive budget & sizing filter arrays',
-              ],
-            ),
+            builder: (context, state) => const RequirementsScreen(),
           ),
           GoRoute(
             path: '/clients',
-            builder: (context, state) => const CRMPlaceholderScreen(
-              title: 'Clients & Leads',
-              icon: Icons.people_rounded,
-              description: 'Follow up with potential buyers, tenants, and active contacts.',
-              upcomingFeatures: [
-                'Kanban sales pipeline board',
-                'Activity log & communication history tracking',
-                'Client segment profiling & label management',
-              ],
-            ),
+            builder: (context, state) => const ClientsScreen(),
           ),
           GoRoute(
             path: '/owners',
