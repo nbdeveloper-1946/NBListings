@@ -10,6 +10,8 @@ import '../../features/properties/bloc/properties_bloc.dart';
 import '../../features/users/screens/users_screen.dart';
 import '../../features/requirements/screens/requirements_screen.dart';
 import '../../features/clients/screens/clients_screen.dart';
+import '../../features/owners/screens/owners_screen.dart';
+import '../../features/builders/screens/builders_screen.dart';
 import '../../splash.dart';
 import '../design_system/widgets/app_shell.dart';
 import '../design_system/widgets/placeholder_screen.dart';
@@ -76,29 +78,11 @@ class AppRouter {
           ),
           GoRoute(
             path: '/owners',
-            builder: (context, state) => const CRMPlaceholderScreen(
-              title: 'Owners Directory',
-              icon: Icons.person_pin_rounded,
-              description: 'Direct landlord registry database and supply channel management.',
-              upcomingFeatures: [
-                'Direct-to-owner contact lookup logs',
-                'Verification audit trails for owner listings',
-                'Exclusive supply tagging & commission split templates',
-              ],
-            ),
+            builder: (context, state) => const OwnersScreen(),
           ),
           GoRoute(
             path: '/builders',
-            builder: (context, state) => const CRMPlaceholderScreen(
-              title: 'Builders & Projects',
-              icon: Icons.business_rounded,
-              description: 'Track developer projects, tower progress, and master layout schemes.',
-              upcomingFeatures: [
-                'Project-wise tower unit inventory boards',
-                'Builder profiles & past delivery metrics',
-                'Bulk pricing adjustment utility',
-              ],
-            ),
+            builder: (context, state) => const BuildersScreen(),
           ),
           GoRoute(
             path: '/finance',

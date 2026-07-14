@@ -6,10 +6,14 @@ import 'features/dashboard/repository/dashboard_repository.dart';
 import 'features/users/repository/users_repository.dart';
 import 'features/requirements/repository/requirements_repository.dart';
 import 'features/clients/repository/clients_repository.dart';
+import 'features/owners/repository/owners_repository.dart';
+import 'features/builders/repository/builders_repository.dart';
 import 'features/dashboard/bloc/dashboard_bloc.dart';
 import 'features/users/bloc/users_bloc.dart';
 import 'features/requirements/bloc/requirements_bloc.dart';
 import 'features/clients/bloc/clients_bloc.dart';
+import 'features/owners/bloc/owners_bloc.dart';
+import 'features/builders/bloc/builders_bloc.dart';
 import 'core/navigation/app_router.dart';
 import 'core/design_system/tokens/app_colors.dart';
 import 'core/design_system/tokens/app_typography.dart';
@@ -51,6 +55,8 @@ class _MyAppState extends State<MyApp> {
         RepositoryProvider(create: (context) => UsersRepository()),
         RepositoryProvider(create: (context) => RequirementsRepository()),
         RepositoryProvider(create: (context) => ClientsRepository()),
+        RepositoryProvider(create: (context) => OwnersRepository()),
+        RepositoryProvider(create: (context) => BuildersRepository()),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -73,6 +79,16 @@ class _MyAppState extends State<MyApp> {
           BlocProvider(
             create: (context) => ClientsBloc(
               clientsRepository: context.read<ClientsRepository>(),
+            ),
+          ),
+          BlocProvider(
+            create: (context) => OwnersBloc(
+              ownersRepository: context.read<OwnersRepository>(),
+            ),
+          ),
+          BlocProvider(
+            create: (context) => BuildersBloc(
+              buildersRepository: context.read<BuildersRepository>(),
             ),
           ),
         ],
