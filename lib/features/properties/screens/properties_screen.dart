@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/api/api_exception.dart';
+import '../../../core/design_system/tokens/app_colors.dart';
+import '../../../core/design_system/tokens/app_spacing.dart';
+import '../../../core/design_system/tokens/app_typography.dart';
+import '../../../core/design_system/widgets/cards.dart';
+import '../../../core/design_system/widgets/buttons.dart';
+import '../../../core/design_system/widgets/data_table.dart';
+import '../../../core/design_system/widgets/drawers.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
@@ -21,11 +27,21 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   String? _selectedArea;
   String? _selectedListingType;
   bool? _selectedVerification;
+  int _currentPage = 0;
+  int _pageSize = 10;
+
+  static const _pageSizeOptions = [10, 25, 50];
 
   @override
   void initState() {
     super.initState();
     _loadProperties();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _loadProperties() {
@@ -39,15 +55,6 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
         activeTab: _activeTab,
       ),
     );
-  }
-
-  String _formatPrice(double price) {
-    if (price >= 10000000) {
-      return '${(price / 10000000).toStringAsFixed(2)} Cr';
-    } else if (price >= 100000) {
-      return '${(price / 100000).toStringAsFixed(2)} Lacs';
-    }
-    return price.toStringAsFixed(0);
   }
 
   Future<void> _launchWhatsApp(PropertyModel property) async {
@@ -73,419 +80,485 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
       currentUserId = authState.user.id;
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text('Properties Panel'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.grey[800],
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadProperties,
-          ),
-        ],
-      ),
-      body: BlocConsumer<PropertiesBloc, PropertiesState>(
-        listener: (context, state) {
-          if (state is PropertiesError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: Colors.red[600]),
-            );
-          }
-        },
-        builder: (context, state) {
-          final isLoading = state is PropertiesLoading || state is PropertiesInitial;
-          List<PropertyModel> properties = [];
-          PropertyMetadataModel? metadata;
-          Set<String> bookmarkedIds = {};
+    return BlocConsumer<PropertiesBloc, PropertiesState>(
+      listener: (context, state) {
+        if (state is PropertiesError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: CRMColors.danger),
+          );
+        }
+      },
+      builder: (context, state) {
+        final isLoading = state is PropertiesLoading || state is PropertiesInitial;
+        List<PropertyModel> properties = [];
+        PropertyMetadataModel? metadata;
+        Set<String> bookmarkedIds = {};
 
-          if (state is PropertiesLoaded) {
-            properties = state.properties;
-            metadata = state.metadata;
-            bookmarkedIds = state.bookmarkedIds;
-          }
+        if (state is PropertiesLoaded) {
+          properties = state.properties;
+          metadata = state.metadata;
+          bookmarkedIds = state.bookmarkedIds;
+        }
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
+        final totalPages = properties.isEmpty ? 1 : (properties.length / _pageSize).ceil();
+        final safePage = _currentPage.clamp(0, totalPages - 1);
+        final pageStart = safePage * _pageSize;
+        final pageEnd = (pageStart + _pageSize).clamp(0, properties.length);
+        final pagedProperties = properties.isEmpty
+            ? properties
+            : properties.sublist(pageStart, pageEnd);
+
+        // 1. Header Layout
+        return Scaffold(
+          backgroundColor: CRMColors.background,
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(CRMSpacing.l),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top Search/Control Row
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        // Filters Dropdown Button
-                        PopupMenuButton<String>(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.filter_list, size: 18, color: Colors.grey[700]),
-                                const SizedBox(width: 8),
-                                Text('Filters', style: TextStyle(color: Colors.grey[700])),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_drop_down, size: 18),
-                              ],
-                            ),
-                          ),
-                          itemBuilder: (context) {
-                            return [
-                              PopupMenuItem(
-                                enabled: false,
-                                child: Text('Filter Categories', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo[800])),
-                              ),
-                              ...?(metadata?.categories.map((c) => PopupMenuItem(
-                                    value: 'category:${c.id}',
-                                    child: Text(c.name),
-                                  ))),
-                              PopupMenuItem(
-                                enabled: false,
-                                child: Text('Filter Listing Types', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo[800])),
-                              ),
-                              ...?(metadata?.listingTypes.map((l) => PopupMenuItem(
-                                    value: 'listing:${l.id}',
-                                    child: Text(l.name),
-                                  ))),
-                              const PopupMenuItem(
-                                value: 'clear',
-                                child: Text('Clear Filters', style: TextStyle(color: Colors.red)),
-                              ),
-                            ];
-                          },
-                          onSelected: (val) {
-                            if (val == 'clear') {
-                              setState(() {
-                                _selectedCategory = null;
-                                _selectedListingType = null;
-                              });
-                            } else if (val.startsWith('category:')) {
-                              setState(() {
-                                _selectedCategory = val.split(':')[1];
-                              });
-                            } else if (val.startsWith('listing:')) {
-                              setState(() {
-                                _selectedListingType = val.split(':')[1];
-                              });
-                            }
-                            _loadProperties();
-                          },
-                        ),
-                        const SizedBox(width: 12),
+                _buildPageHeader(metadata),
+                const SizedBox(height: CRMSpacing.l),
 
-                        // Search Bar
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Advanced Search (Title, Landmark, Code)...',
-                              prefixIcon: const Icon(Icons.search, size: 20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                            ),
-                            onSubmitted: (_) => _loadProperties(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
+                // 2. Statistics Cards
+                _buildStatisticsRow(properties),
+                const SizedBox(height: CRMSpacing.l),
 
-                        // Add Property Button
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            if (metadata == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Metadata lookups loading, please try again.')),
-                              );
-                              return;
-                            }
-                            final propertiesBloc = context.read<PropertiesBloc>();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BlocProvider.value(
-                                  value: propertiesBloc,
-                                  child: AddEditPropertyScreen(
-                                    metadata: metadata!,
-                                    activeTab: _activeTab,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Add property'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo[600],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
+                // 3. Search & 4. Advanced Filters
+                _buildSearchAndFilters(metadata),
+                const SizedBox(height: CRMSpacing.l),
 
-                // Selection Tabs
-                Row(
-                  children: [
-                    _buildTabButton('All'),
-                    _buildTabButton('My Active'),
-                    _buildTabButton('My Deleted'),
-                    _buildTabButton('Shortlisted'),
+                // 5. Action Toolbar
+                _buildActionToolbar(),
+                const SizedBox(height: CRMSpacing.m),
+
+                // 6. Property Table & 7. Pagination
+                CRMDataTable(
+                  isLoading: isLoading,
+                  emptyTitle: 'No Properties Found',
+                  emptyDescription: 'No records match your active search terms.',
+                  columns: const [
+                    DataColumn(label: Text('Shortlist')),
+                    DataColumn(label: Text('Actions')),
+                    DataColumn(label: Text('Verified')),
+                    DataColumn(label: Text('Code')),
+                    DataColumn(label: Text('Title')),
+                    DataColumn(label: Text('City')),
+                    DataColumn(label: Text('Area')),
+                    DataColumn(label: Text('Price')),
+                    DataColumn(label: Text('Status')),
                   ],
+                  rows: pagedProperties.map((p) {
+                    final isMine = p.createdBy == currentUserId;
+                    final isBookmarked = bookmarkedIds.contains(p.id);
+                    return DataRow(
+                      onSelectChanged: (_) => showCRMPropertyDrawer(context, p),
+                      cells: [
+                        DataCell(
+                          IconButton(
+                            icon: Icon(
+                              isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+                              color: isBookmarked ? CRMColors.warning : CRMColors.textMuted,
+                            ),
+                            onPressed: () {
+                              context.read<PropertiesBloc>().add(
+                                ToggleBookmarkEvent(p.id, activeTab: _activeTab),
+                              );
+                            },
+                          ),
+                        ),
+                        DataCell(
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isMine && _activeTab != 'My Deleted') ...[
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                                  onPressed: () {
+                                    if (metadata != null) {
+                                      final propertiesBloc = context.read<PropertiesBloc>();
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => BlocProvider.value(
+                                            value: propertiesBloc,
+                                            child: AddEditPropertyScreen(
+                                              metadata: metadata!,
+                                              property: p,
+                                              activeTab: _activeTab,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                                  onPressed: () {
+                                    context.read<PropertiesBloc>().add(
+                                      DeletePropertyEvent(p.id, activeTab: _activeTab),
+                                    );
+                                  },
+                                ),
+                              ] else if (isMine && _activeTab == 'My Deleted') ...[
+                                IconButton(
+                                  icon: const Icon(Icons.restore_rounded, color: CRMColors.success, size: 18),
+                                  onPressed: () {
+                                    context.read<PropertiesBloc>().add(
+                                      RestorePropertyEvent(p.id, activeTab: _activeTab),
+                                    );
+                                  },
+                                ),
+                              ],
+                              IconButton(
+                                icon: const Icon(Icons.share_outlined, color: CRMColors.success, size: 18),
+                                onPressed: () => _launchWhatsApp(p),
+                              ),
+                            ],
+                          ),
+                        ),
+                        DataCell(
+                          Switch(
+                            value: p.isVerified,
+                            activeColor: CRMColors.success,
+                            onChanged: (val) {
+                              context.read<PropertiesBloc>().add(
+                                ToggleVerificationEvent(p.id, val, activeTab: _activeTab),
+                              );
+                            },
+                          ),
+                        ),
+                        DataCell(Text(p.propertyCode, style: const TextStyle(fontWeight: FontWeight.bold))),
+                        DataCell(Text(p.title)),
+                        DataCell(Text(p.cityName)),
+                        DataCell(Text(p.areaName)),
+                        DataCell(Text('₹${p.price.toStringAsFixed(0)}')),
+                        DataCell(Text(p.propertyStatusName)),
+                      ],
+                    );
+                  }).toList(),
                 ),
-                const SizedBox(height: 16),
-
-                // Table / Grid Panel
-                Expanded(
-                  child: Card(
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : properties.isEmpty
-                              ? Center(
-                                  child: Text(
-                                    'No properties found.',
-                                    style: TextStyle(fontSize: 16, color: Colors.grey[500]),
-                                  ),
-                                )
-                              : _buildPropertiesTable(properties, bookmarkedIds, currentUserId),
-                    ),
-                  ),
-                ),
+                if (properties.isNotEmpty) ...[
+                  const SizedBox(height: CRMSpacing.m),
+                  _buildPagination(properties.length, totalPages, safePage),
+                ],
               ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildTabButton(String tab) {
-    final isSelected = _activeTab == tab;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: ChoiceChip(
-        label: Text(tab),
-        selected: isSelected,
-        onSelected: (selected) {
-          if (selected) {
-            setState(() {
-              _activeTab = tab;
-            });
-            _loadProperties();
-          }
-        },
-        selectedColor: Colors.indigo[50],
-        checkmarkColor: Colors.indigo[600],
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.indigo[800] : Colors.grey[600],
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-
-  Widget _buildPropertiesTable(
-    List<PropertyModel> list,
-    Set<String> bookmarks,
-    String? currentUserId,
-  ) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.grey[50]),
-          columns: const [
-            DataColumn(label: Text('ACTION')),
-            DataColumn(label: Text('VERIFIED')),
-            DataColumn(label: Text('PROPERTY #')),
-            DataColumn(label: Text('PROPERTY TYPE')),
-            DataColumn(label: Text('DATE')),
-            DataColumn(label: Text('BROKER')),
-            DataColumn(label: Text('ESTATE NAME & BROKER MOBILE')),
-            DataColumn(label: Text('SCHEME NAME')),
-            DataColumn(label: Text('LANDMARK')),
-            DataColumn(label: Text('LOCATION')),
-            DataColumn(label: Text('RENT/SELL PRICE')),
-            DataColumn(label: Text('AVAILABILITY')),
-            DataColumn(label: Text('CONDITION')),
-            DataColumn(label: Text('PROPERTY DESCRIPTION')),
-            DataColumn(label: Text('PROPERTY DETAILS')),
-            DataColumn(label: Text('SQFEET')),
-            DataColumn(label: Text('SOURCE')),
+  Widget _buildPageHeader(PropertyMetadataModel? metadata) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Workspace', style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
+            Text('Properties Operating System', style: CRMTypography.pageTitle.copyWith(color: CRMColors.text)),
           ],
-          rows: list.map((property) {
-            final isBookmarked = bookmarks.contains(property.id);
-            final isMine = property.createdBy == currentUserId;
+        ),
+        CRMButton(
+          label: 'Add Property',
+          prefixIcon: Icons.add_circle_outline_rounded,
+          onPressed: () {
+            if (metadata == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Metadata lookups loading, please try again.')),
+              );
+              return;
+            }
+            final propertiesBloc = context.read<PropertiesBloc>();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BlocProvider.value(
+                  value: propertiesBloc,
+                  child: AddEditPropertyScreen(
+                    metadata: metadata,
+                    activeTab: _activeTab,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
-            return DataRow(
-              cells: [
-                // ACTION
-                DataCell(
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Toggle Verification flag
-                      IconButton(
-                        icon: Icon(
-                          Icons.flag,
-                          color: property.isVerified ? Colors.orange : Colors.grey[400],
-                        ),
-                        tooltip: 'Toggle verification',
-                        onPressed: () {
-                          context.read<PropertiesBloc>().add(
-                                ToggleVerificationEvent(
-                                  property.id,
-                                  !property.isVerified,
-                                  activeTab: _activeTab,
-                                ),
-                              );
-                        },
-                      ),
-                      // Toggle Bookmark
-                      IconButton(
-                        icon: Icon(
-                          isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                          color: isBookmarked ? Colors.amber[700] : Colors.grey[600],
-                        ),
-                        tooltip: 'Shortlist',
-                        onPressed: () {
-                          context.read<PropertiesBloc>().add(
-                                ToggleBookmarkEvent(
-                                  property.id,
-                                  activeTab: _activeTab,
-                                ),
-                              );
-                        },
-                      ),
-                      // WhatsApp Redirect
-                      IconButton(
-                        icon: const Icon(Icons.chat, color: Colors.green),
-                        tooltip: 'Share on WhatsApp',
-                        onPressed: () => _launchWhatsApp(property),
-                      ),
-                      // Edit Button
-                      if (isMine && _activeTab != 'My Deleted')
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.indigo),
-                          tooltip: 'Edit details',
-                          onPressed: () {
-                            // Find metadata from current bloc state
-                            final state = context.read<PropertiesBloc>().state;
-                            if (state is PropertiesLoaded && state.metadata != null) {
-                              final propertiesBloc = context.read<PropertiesBloc>();
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => BlocProvider.value(
-                                    value: propertiesBloc,
-                                    child: AddEditPropertyScreen(
-                                      metadata: state.metadata!,
-                                      property: property,
-                                      activeTab: _activeTab,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      // Soft-Delete / Restore
-                      if (isMine)
-                        _activeTab == 'My Deleted'
-                            ? IconButton(
-                                icon: const Icon(Icons.restore, color: Colors.green),
-                                tooltip: 'Restore Listing',
-                                onPressed: () {
-                                  context.read<PropertiesBloc>().add(
-                                        RestorePropertyEvent(
-                                          property.id,
-                                          activeTab: _activeTab,
-                                        ),
-                                      );
-                                },
-                              )
-                            : IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                tooltip: 'Soft delete listing',
-                                onPressed: () {
-                                  context.read<PropertiesBloc>().add(
-                                        DeletePropertyEvent(
-                                          property.id,
-                                          activeTab: _activeTab,
-                                        ),
-                                      );
-                                },
-                              ),
-                    ],
+  Widget _buildStatisticsRow(List<PropertyModel> properties) {
+    final bookmarkedIds = (context.read<PropertiesBloc>().state is PropertiesLoaded)
+        ? (context.read<PropertiesBloc>().state as PropertiesLoaded).bookmarkedIds
+        : <String>{};
+
+    final total = properties.length;
+    final verified = properties.where((p) => p.isVerified).length;
+    final active = properties.where((p) => p.propertyStatusName == 'Available').length;
+    final shortlisted = properties.where((p) => bookmarkedIds.contains(p.id)).length;
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: MediaQuery.of(context).size.width >= 900 ? 4 : 2,
+      crossAxisSpacing: CRMSpacing.m,
+      mainAxisSpacing: CRMSpacing.m,
+      childAspectRatio: 2.2,
+      children: [
+        CRMKPICard(title: 'Properties Count', value: '$total', icon: Icons.inventory_2_outlined),
+        CRMKPICard(title: 'Verified listings', value: '$verified', icon: Icons.verified_user_outlined, iconColor: CRMColors.success),
+        CRMKPICard(title: 'Active listings', value: '$active', icon: Icons.bolt_rounded, iconColor: CRMColors.primary),
+        CRMKPICard(title: 'Shortlisted listings', value: '$shortlisted', icon: Icons.star_outline_rounded, iconColor: CRMColors.warning),
+      ],
+    );
+  }
+
+  Widget _buildSearchAndFilters(PropertyMetadataModel? metadata) {
+    final categories = metadata != null ? metadata.categories : <LookupItem>[];
+    final areas = metadata != null ? metadata.areas : <AreaLookup>[];
+    final listingTypes = metadata != null ? metadata.listingTypes : <LookupItem>[];
+
+    return CRMCard(
+      title: 'Advanced Search Filter Drawer',
+      subtitle: 'Perform refined lookup filters across listing records',
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  style: CRMTypography.body.copyWith(color: CRMColors.text),
+                  decoration: InputDecoration(
+                    hintText: 'Search property code, title, owner mobile...',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    filled: true,
+                    fillColor: CRMColors.background,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s), borderSide: BorderSide.none),
                   ),
+                  onChanged: (_) => _loadProperties(),
                 ),
-                // VERIFIED
-                DataCell(
-                  Icon(
-                    property.isVerified ? Icons.check_circle : Icons.cancel,
-                    color: property.isVerified ? Colors.green : Colors.red,
-                    size: 20,
+              ),
+              const SizedBox(width: CRMSpacing.s),
+              CRMButton(
+                label: 'Search',
+                onPressed: _loadProperties,
+              ),
+            ],
+          ),
+          const SizedBox(height: CRMSpacing.m),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 700;
+              return Wrap(
+                spacing: CRMSpacing.m,
+                runSpacing: CRMSpacing.s,
+                children: [
+                  _buildDropdown(
+                    label: 'Category',
+                    value: _selectedCategory,
+                    items: categories.map((c) => DropdownMenuItem<String>(value: c.id, child: Text(c.name))).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedCategory = val;
+                        _currentPage = 0;
+                      });
+                      _loadProperties();
+                    },
+                    width: isWide ? 180 : double.infinity,
                   ),
-                ),
-                // PROPERTY #
-                DataCell(Text(property.propertyCode)),
-                // PROPERTY TYPE
-                DataCell(Text('${property.listingTypeName} - ${property.propertyTypeName}')),
-                // DATE
-                DataCell(Text(property.createdAt.toLocal().toString().substring(0, 10))),
-                // BROKER
-                DataCell(Text(property.brokerName ?? 'N/A')),
-                // ESTATE NAME & BROKER MOBILE
-                DataCell(Text('${property.title} (${property.ownerMobile})')),
-                // SCHEME NAME
-                DataCell(Text(property.title)),
-                // LANDMARK
-                DataCell(Text(property.landmark ?? 'N/A')),
-                // LOCATION
-                DataCell(Text(property.areaName)),
-                // RENT/SELL PRICE
-                DataCell(Text(_formatPrice(property.price))),
-                // AVAILABILITY
-                DataCell(Text(
-                  property.configurationName != null
-                      ? '${property.configurationName} ${property.propertyTypeName}'
-                      : property.propertyTypeName,
-                )),
-                // CONDITION
-                DataCell(Text(property.furnishingTypeName ?? 'N/A')),
-                // PROPERTY DESCRIPTION
-                DataCell(Text(property.description ?? 'N/A')),
-                // PROPERTY DETAILS
-                DataCell(Text(property.remarks ?? 'N/A')),
-                // SQFEET
-                DataCell(Text(property.superBuiltupArea != null ? '${property.superBuiltupArea!.toStringAsFixed(0)} Sq.Ft.' : 'N/A')),
-                // SOURCE
-                DataCell(const Text('Whatsapp')),
-              ],
+                  _buildDropdown(
+                    label: 'Area',
+                    value: _selectedArea,
+                    items: areas.map((a) => DropdownMenuItem<String>(value: a.id, child: Text(a.name))).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedArea = val;
+                        _currentPage = 0;
+                      });
+                      _loadProperties();
+                    },
+                    width: isWide ? 180 : double.infinity,
+                  ),
+                  _buildDropdown(
+                    label: 'Listing Type',
+                    value: _selectedListingType,
+                    items: listingTypes.map((l) => DropdownMenuItem<String>(value: l.id, child: Text(l.name))).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedListingType = val;
+                        _currentPage = 0;
+                      });
+                      _loadProperties();
+                    },
+                    width: isWide ? 180 : double.infinity,
+                  ),
+                  _buildVerificationDropdown(isWide ? 180 : double.infinity),
+                  CRMButton(
+                    label: 'Clear Filters',
+                    variant: CRMButtonVariant.outline,
+                    onPressed: _clearFilters,
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _searchController.clear();
+      _selectedCategory = null;
+      _selectedArea = null;
+      _selectedListingType = null;
+      _selectedVerification = null;
+      _currentPage = 0;
+    });
+    _loadProperties();
+  }
+
+  Widget _buildVerificationDropdown(double width) {
+    return SizedBox(
+      width: width,
+      child: DropdownButtonFormField<bool?>(
+        value: _selectedVerification,
+        decoration: InputDecoration(
+          labelText: 'Verification',
+          filled: true,
+          fillColor: CRMColors.background,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s), borderSide: BorderSide.none),
+        ),
+        items: const [
+          DropdownMenuItem<bool?>(value: null, child: Text('All Verification')),
+          DropdownMenuItem<bool?>(value: true, child: Text('Verified')),
+          DropdownMenuItem<bool?>(value: false, child: Text('Unverified')),
+        ],
+        onChanged: (val) {
+          setState(() {
+            _selectedVerification = val;
+            _currentPage = 0;
+          });
+          _loadProperties();
+        },
+      ),
+    );
+  }
+
+  Widget _buildPagination(int totalItems, int totalPages, int currentPage) {
+    final from = currentPage * _pageSize + 1;
+    final to = ((currentPage + 1) * _pageSize).clamp(0, totalItems);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Showing $from–$to of $totalItems',
+          style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+        ),
+        Row(
+          children: [
+            Text('Rows:', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
+            const SizedBox(width: CRMSpacing.xs),
+            DropdownButton<int>(
+              value: _pageSize,
+              underline: const SizedBox.shrink(),
+              items: _pageSizeOptions
+                  .map((size) => DropdownMenuItem(value: size, child: Text('$size')))
+                  .toList(),
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() {
+                  _pageSize = val;
+                  _currentPage = 0;
+                });
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_left_rounded),
+              onPressed: currentPage > 0
+                  ? () => setState(() => _currentPage--)
+                  : null,
+            ),
+            Text(
+              '${currentPage + 1} / $totalPages',
+              style: CRMTypography.captionBold.copyWith(color: CRMColors.text),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right_rounded),
+              onPressed: currentPage < totalPages - 1
+                  ? () => setState(() => _currentPage++)
+                  : null,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<DropdownMenuItem<String>> items,
+    required ValueChanged<String?> onChanged,
+    required double width,
+  }) {
+    return SizedBox(
+      width: width,
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: CRMColors.background,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s), borderSide: BorderSide.none),
+        ),
+        items: [
+          DropdownMenuItem<String>(value: null, child: Text('All $label')),
+          ...items,
+        ],
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildActionToolbar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Tabs
+        Wrap(
+          spacing: CRMSpacing.s,
+          children: ['All', 'My Active', 'My Deleted', 'Shortlisted'].map((tab) {
+            final isSelected = _activeTab == tab;
+            return ChoiceChip(
+              label: Text(tab),
+              selected: isSelected,
+              selectedColor: CRMColors.primary.withOpacity(0.12),
+              labelStyle: TextStyle(color: isSelected ? CRMColors.primary : CRMColors.text, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+              onSelected: (val) {
+                if (val) {
+                  setState(() {
+                    _activeTab = tab;
+                    _currentPage = 0;
+                  });
+                  _loadProperties();
+                }
+              },
             );
           }).toList(),
         ),
-      ),
+        // Toolbar Refresh
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded, color: CRMColors.textSecondary),
+          onPressed: _loadProperties,
+        ),
+      ],
     );
   }
 }
