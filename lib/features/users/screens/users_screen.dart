@@ -3,6 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/users_bloc.dart';
 import '../models/user_model.dart';
 import '../../auth/bloc/auth_bloc.dart';
+import '../../../core/design_system/tokens/app_colors.dart';
+import '../../../core/design_system/tokens/app_spacing.dart';
+import '../../../core/design_system/tokens/app_typography.dart';
+import '../../../core/design_system/widgets/cards.dart';
+import '../../../core/design_system/widgets/buttons.dart';
+import '../../../core/design_system/widgets/data_table.dart';
+import '../../../core/design_system/widgets/inputs.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -46,141 +53,184 @@ class _UsersScreenState extends State<UsersScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        // We get roles from the state of UsersBloc
         final usersState = context.read<UsersBloc>().state;
         List<RoleModel> roles = [];
         if (usersState is UsersLoaded) {
           roles = usersState.roles;
         }
 
-        // Set default role if none selected
         if (localSelectedRoleId == null && roles.isNotEmpty) {
           localSelectedRoleId = roles.first.id;
         }
 
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF1E1B4B), // Indigo 950
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text(
-                isEditing ? "Edit User Account" : "Add User Account",
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+            return Dialog(
+              backgroundColor: CRMColors.cardBg,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(CRMBorderRadius.m),
               ),
-              content: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Full Name
-                      TextFormField(
-                        controller: nameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _buildInputDecoration("Full Name", Icons.person_rounded),
-                        validator: (val) => val == null || val.trim().isEmpty ? "Full name required" : null,
-                      ),
-                      const SizedBox(height: 16),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: Padding(
+                  padding: const EdgeInsets.all(CRMSpacing.l),
+                  child: Form(
+                    key: formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEditing ? "Edit User Account" : "Add User Account",
+                            style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
+                          ),
+                          const SizedBox(height: CRMSpacing.xs),
+                          Text(
+                            isEditing ? "Modify the system credentials and role permissions." : "Create new employee logins for the NB Realty system.",
+                            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                          ),
+                          const SizedBox(height: CRMSpacing.l),
+                          
+                          // Full Name Input
+                          CRMTextField(
+                            controller: nameController,
+                            labelText: 'Full Name *',
+                            hintText: 'Enter complete name',
+                            prefixIcon: Icons.person_rounded,
+                            validator: (val) => val == null || val.trim().isEmpty ? "Full name required" : null,
+                          ),
+                          const SizedBox(height: CRMSpacing.m),
 
-                      // Email Address
-                      TextFormField(
-                        controller: emailController,
-                        style: const TextStyle(color: Colors.white),
-                        enabled: !isEditing, // Disable email edits
-                        decoration: _buildInputDecoration("Email Address", Icons.email_rounded),
-                        validator: (val) => val == null || val.trim().isEmpty ? "Email required" : null,
-                      ),
-                      const SizedBox(height: 16),
+                          // Email Input
+                          CRMTextField(
+                            controller: emailController,
+                            labelText: 'Email Address *',
+                            hintText: 'user@nbrealty.com',
+                            prefixIcon: Icons.email_rounded,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (val) => val == null || val.trim().isEmpty ? "Email required" : null,
+                          ),
+                          const SizedBox(height: CRMSpacing.m),
 
-                      // Mobile Phone
-                      TextFormField(
-                        controller: mobileController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _buildInputDecoration("Phone Number", Icons.phone_rounded),
-                      ),
-                      const SizedBox(height: 16),
+                          // Mobile Phone
+                          CRMTextField(
+                            controller: mobileController,
+                            labelText: 'Phone Number',
+                            hintText: '+91 XXXXX XXXXX',
+                            prefixIcon: Icons.phone_rounded,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: CRMSpacing.m),
 
-                      // Password (required for add, optional for edit)
-                      TextFormField(
-                        controller: passwordController,
-                        style: const TextStyle(color: Colors.white),
-                        obscureText: true,
-                        decoration: _buildInputDecoration(
-                          isEditing ? "New Password (Optional)" : "Password",
-                          Icons.lock_rounded,
-                        ),
-                        validator: (val) {
-                          if (!isEditing && (val == null || val.isEmpty)) {
-                            return "Password required";
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
+                          // Password
+                          CRMTextField(
+                            controller: passwordController,
+                            labelText: isEditing ? "New Password (Optional)" : "Password *",
+                            hintText: 'Min 6 characters',
+                            prefixIcon: Icons.lock_rounded,
+                            obscureText: true,
+                            validator: (val) {
+                              if (!isEditing && (val == null || val.isEmpty)) {
+                                return "Password required";
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: CRMSpacing.m),
 
-                      // Role Select Dropdown
-                      if (roles.isNotEmpty)
-                        DropdownButtonFormField<String>(
-                          value: localSelectedRoleId,
-                          dropdownColor: const Color(0xFF1E1B4B),
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _buildInputDecoration("System Role", Icons.admin_panel_settings_rounded),
-                          items: roles.map((r) {
-                            return DropdownMenuItem<String>(
-                              value: r.id,
-                              child: Text(r.name),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            setState(() {
-                              localSelectedRoleId = val;
-                            });
-                          },
-                        ),
-                    ],
+                          // Role Selector
+                          if (roles.isNotEmpty) ...[
+                            Text(
+                              'System Role *',
+                              style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary),
+                            ),
+                            const SizedBox(height: CRMSpacing.xs),
+                            DropdownButtonFormField<String>(
+                              value: localSelectedRoleId,
+                              dropdownColor: CRMColors.cardBg,
+                              style: CRMTypography.body.copyWith(color: CRMColors.text),
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.admin_panel_settings_rounded, color: CRMColors.textMuted),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: CRMSpacing.m,
+                                  vertical: CRMSpacing.s,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                                  borderSide: const BorderSide(color: CRMColors.border),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                                  borderSide: const BorderSide(color: CRMColors.border),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                                  borderSide: const BorderSide(color: CRMColors.primary, width: 1.5),
+                                ),
+                              ),
+                              items: roles.map((r) {
+                                return DropdownMenuItem<String>(
+                                  value: r.id,
+                                  child: Text(r.name),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  localSelectedRoleId = val;
+                                });
+                              },
+                            ),
+                          ],
+                          const SizedBox(height: CRMSpacing.xl),
+                          
+                          // Action Buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              CRMButton(
+                                label: 'Cancel',
+                                variant: CRMButtonVariant.outline,
+                                onPressed: () => Navigator.pop(dialogContext),
+                              ),
+                              const SizedBox(width: CRMSpacing.s),
+                              CRMButton(
+                                label: isEditing ? 'Save Changes' : 'Create Account',
+                                onPressed: () {
+                                  if (formKey.currentState?.validate() ?? false) {
+                                    final userData = {
+                                      'full_name': nameController.text.trim(),
+                                      'email': emailController.text.trim(),
+                                      'mobile': mobileController.text.trim(),
+                                      'role_id': localSelectedRoleId,
+                                    };
+
+                                    if (passwordController.text.isNotEmpty) {
+                                      userData['password'] = passwordController.text;
+                                    }
+
+                                    if (isEditing) {
+                                      context.read<UsersBloc>().add(
+                                            UpdateUserRequested(id: user.id, userData: userData),
+                                          );
+                                    } else {
+                                      context.read<UsersBloc>().add(
+                                            CreateUserRequested(userData: userData),
+                                          );
+                                    }
+
+                                    Navigator.pop(dialogContext);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text("Cancel", style: TextStyle(color: Color(0xFF94A3B8))),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (formKey.currentState?.validate() ?? false) {
-                      final userData = {
-                        'full_name': nameController.text.trim(),
-                        'email': emailController.text.trim(),
-                        'mobile': mobileController.text.trim(),
-                        'role_id': localSelectedRoleId,
-                      };
-
-                      if (passwordController.text.isNotEmpty) {
-                        userData['password'] = passwordController.text;
-                      }
-
-                      if (isEditing) {
-                        context.read<UsersBloc>().add(
-                              UpdateUserRequested(id: user.id, userData: userData),
-                            );
-                      } else {
-                        context.read<UsersBloc>().add(
-                              CreateUserRequested(userData: userData),
-                            );
-                      }
-
-                      Navigator.pop(dialogContext);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigoAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: Text(isEditing ? "Save Changes" : "Create Account"),
-                ),
-              ],
             );
           },
         );
@@ -193,51 +243,36 @@ class _UsersScreenState extends State<UsersScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1B4B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("Confirm Deletion", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: CRMColors.cardBg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+          ),
+          title: Text(
+            "Confirm Deletion",
+            style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
+          ),
           content: Text(
             "Are you sure you want to delete ${user.fullName}? This operation will perform a soft delete.",
-            style: const TextStyle(color: Color(0xFFCBD5E1)),
+            style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
           ),
           actions: [
-            TextButton(
+            CRMButton(
+              label: "Cancel",
+              variant: CRMButtonVariant.outline,
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Cancel", style: TextStyle(color: Color(0xFF94A3B8))),
             ),
-            ElevatedButton(
+            const SizedBox(width: CRMSpacing.xs),
+            CRMButton(
+              label: "Delete",
+              variant: CRMButtonVariant.danger,
               onPressed: () {
                 context.read<UsersBloc>().add(DeleteUserRequested(id: user.id));
                 Navigator.pop(dialogContext);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text("Delete"),
             ),
           ],
         );
       },
-    );
-  }
-
-  InputDecoration _buildInputDecoration(String hint, IconData icon) {
-    return InputDecoration(
-      labelText: hint,
-      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
-      prefixIcon: Icon(icon, color: Colors.indigoAccent),
-      filled: true,
-      fillColor: Colors.white.withOpacity(0.04),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.06)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.indigoAccent, width: 1.5),
-      ),
     );
   }
 
@@ -251,45 +286,28 @@ class _UsersScreenState extends State<UsersScreen> {
 
     if (!hasAccess) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text("Access Denied"),
-          backgroundColor: const Color(0xFF0F172A),
-          elevation: 0,
-        ),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF0F172A), Color(0xFF1E1B4B)],
-            ),
-          ),
-          child: Center(
+        backgroundColor: CRMColors.background,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(CRMSpacing.xl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.gpp_bad_rounded, color: Colors.redAccent, size: 72),
-                const SizedBox(height: 20),
-                const Text(
+                const Icon(Icons.gpp_bad_rounded, color: CRMColors.danger, size: 72),
+                const SizedBox(height: CRMSpacing.m),
+                Text(
                   "403 - Forbidden",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: CRMTypography.pageTitle.copyWith(color: CRMColors.text),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                const SizedBox(height: CRMSpacing.xs),
+                Text(
                   "You do not have permission to view this page.",
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 16),
+                  style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  label: const Text("Back to Dashboard"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigoAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  ),
+                const SizedBox(height: CRMSpacing.xl),
+                CRMButton(
+                  label: "Back to Dashboard",
+                  onPressed: () => Navigator.maybePop(context),
                 ),
               ],
             ),
@@ -299,327 +317,381 @@ class _UsersScreenState extends State<UsersScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "User Management",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E1B4B),
-            ],
-          ),
-        ),
-        child: BlocListener<UsersBloc, UsersState>(
-          listener: (context, state) {
-            if (state is UsersOperationSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.teal.shade800,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-              _triggerFetch(); // Reload users after success operations
-            } else if (state is UsersError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Error: ${state.message}"),
-                  backgroundColor: Colors.red.shade800,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            }
-          },
+      backgroundColor: CRMColors.background,
+      body: BlocListener<UsersBloc, UsersState>(
+        listener: (context, state) {
+          if (state is UsersOperationSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: CRMColors.success,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            _triggerFetch();
+          } else if (state is UsersError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Error: ${state.message}"),
+                backgroundColor: CRMColors.danger,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(CRMSpacing.l),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Search and Filter Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Search by name, email, or phone...',
-                        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.indigoAccent),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.clear_rounded, color: Color(0xFF94A3B8)),
-                          onPressed: () {
-                            _searchController.clear();
-                            _triggerFetch();
-                          },
-                        ),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.06),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Colors.indigoAccent, width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onChanged: (val) => _triggerFetch(),
-                    ),
-                    const SizedBox(height: 12),
+              // 1. Header Row
+              _buildPageHeader(),
+              const SizedBox(height: CRMSpacing.l),
 
-                    // Filter chips row
-                    BlocBuilder<UsersBloc, UsersState>(
-                      builder: (context, state) {
-                        List<RoleModel> roles = [];
-                        if (state is UsersLoaded) {
-                          roles = state.roles;
-                        }
+              // 2. Statistics Overview Cards
+              _buildStatisticsRow(),
+              const SizedBox(height: CRMSpacing.l),
 
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              // Role Dropdown Filter
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.04),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.white.withOpacity(0.1)),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String?>(
-                                    value: _selectedRoleId,
-                                    hint: const Text("Filter by Role", style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13)),
-                                    dropdownColor: const Color(0xFF1E1B4B),
-                                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                                    items: [
-                                      const DropdownMenuItem<String?>(
-                                        value: null,
-                                        child: Text("All Roles"),
-                                      ),
-                                      ...roles.map((r) {
-                                        return DropdownMenuItem<String?>(
-                                          value: r.id,
-                                          child: Text(r.name),
-                                        );
-                                      }),
-                                    ],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _selectedRoleId = val;
-                                      });
-                                      _triggerFetch();
-                                    },
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
+              // 3. Search and Filters Card
+              _buildSearchAndFiltersCard(),
+              const SizedBox(height: CRMSpacing.l),
 
-                              // Status chips
-                              ...["All", "Active", "Inactive"].map((status) {
-                                final isSelected = _selectedStatus == status;
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 6.0),
-                                  child: FilterChip(
-                                    label: Text(status, style: const TextStyle(fontSize: 12)),
-                                    selected: isSelected,
-                                    selectedColor: Colors.indigoAccent.withOpacity(0.2),
-                                    checkmarkColor: Colors.indigoAccent,
-                                    backgroundColor: Colors.white.withOpacity(0.03),
-                                    labelStyle: TextStyle(
-                                      color: isSelected ? Colors.white : const Color(0xFFCBD5E1),
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    ),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    side: BorderSide(
-                                      color: isSelected ? Colors.indigoAccent : Colors.white.withOpacity(0.08),
-                                    ),
-                                    onSelected: (selected) {
-                                      setState(() {
-                                        _selectedStatus = status;
-                                      });
-                                      _triggerFetch();
-                                    },
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              // Users List Display
-              Expanded(
-                child: BlocBuilder<UsersBloc, UsersState>(
-                  builder: (context, state) {
-                    if (state is UsersLoading) {
-                      return const Center(child: CircularProgressIndicator());
-                    } else if (state is UsersError) {
-                      return _buildErrorState(state.message);
-                    } else if (state is UsersLoaded) {
-                      final users = state.users;
-                      if (users.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            "No users found matching query.",
-                            style: TextStyle(color: Color(0xFF94A3B8)),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        itemCount: users.length,
-                        itemBuilder: (context, index) {
-                          final user = users[index];
-                          final isAdmin = user.roleName.toLowerCase() == 'admin';
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            color: Colors.white.withOpacity(0.04),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(color: Colors.white.withOpacity(0.06)),
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              leading: CircleAvatar(
-                                backgroundColor: isAdmin ? Colors.blueAccent.withOpacity(0.2) : Colors.orangeAccent.withOpacity(0.2),
-                                radius: 24,
-                                child: Icon(
-                                  isAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded,
-                                  color: isAdmin ? Colors.blueAccent : Colors.orangeAccent,
-                                ),
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      user.fullName,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: isAdmin ? Colors.blueAccent.withOpacity(0.12) : Colors.orangeAccent.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      user.roleName,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: isAdmin ? Colors.blueAccent : Colors.orangeAccent,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.email_rounded, size: 13, color: Color(0xFF94A3B8)),
-                                      const SizedBox(width: 6),
-                                      Text(user.email, style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1))),
-                                    ],
-                                  ),
-                                  if (user.mobile != null && user.mobile!.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.phone_rounded, size: 13, color: Color(0xFF94A3B8)),
-                                        const SizedBox(width: 6),
-                                        Text(user.mobile!, style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1))),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Active Switch
-                                  Switch(
-                                    value: user.isActive,
-                                    activeColor: Colors.indigoAccent,
-                                    onChanged: (val) {
-                                      context.read<UsersBloc>().add(
-                                            ToggleUserStatusRequested(id: user.id, isActive: val),
-                                          );
-                                    },
-                                  ),
-                                  // Edit Button
-                                  IconButton(
-                                    icon: const Icon(Icons.edit_rounded, color: Colors.indigoAccent, size: 20),
-                                    onPressed: () => _showAddEditUserDialog(user),
-                                  ),
-                                  // Delete Button
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
-                                    onPressed: () => _showDeleteConfirmDialog(user),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ),
+              // 4. Employees Data Table
+              _buildEmployeesTable(),
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddEditUserDialog(),
-        backgroundColor: Colors.indigoAccent,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Icon(Icons.add_rounded),
       ),
     );
   }
 
-  Widget _buildErrorState(String message) {
-    return Center(
+  Widget _buildPageHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "User Management",
+              style: CRMTypography.pageTitle.copyWith(color: CRMColors.text),
+            ),
+            const SizedBox(height: 4.0),
+            Text(
+              "Configure workspace permissions, logins, and enterprise roles",
+              style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
+            ),
+          ],
+        ),
+        CRMButton(
+          label: "Add Employee",
+          prefixIcon: Icons.add_rounded,
+          onPressed: () => _showAddEditUserDialog(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatisticsRow() {
+    return BlocBuilder<UsersBloc, UsersState>(
+      builder: (context, state) {
+        int total = 0;
+        int active = 0;
+        int admins = 0;
+
+        if (state is UsersLoaded) {
+          total = state.users.length;
+          active = state.users.where((u) => u.isActive).length;
+          admins = state.users.where((u) => u.roleName.toLowerCase() == 'admin').length;
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 700;
+            return GridView.count(
+              crossAxisCount: isWide ? 3 : 1,
+              crossAxisSpacing: CRMSpacing.m,
+              mainAxisSpacing: CRMSpacing.m,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: isWide ? 2.5 : 4,
+              children: [
+                CRMKPICard(
+                  title: "TOTAL EMPLOYEES",
+                  value: total.toString(),
+                  icon: Icons.people_rounded,
+                  iconColor: CRMColors.primary,
+                ),
+                CRMKPICard(
+                  title: "ACTIVE SYSTEM USERS",
+                  value: active.toString(),
+                  icon: Icons.check_circle_outline_rounded,
+                  iconColor: CRMColors.success,
+                ),
+                CRMKPICard(
+                  title: "ADMINISTRATORS",
+                  value: admins.toString(),
+                  icon: Icons.admin_panel_settings_rounded,
+                  iconColor: CRMColors.info,
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchAndFiltersCard() {
+    return CRMCard(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-          const SizedBox(height: 12),
-          const Text("Error Loading Users", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(message, style: const TextStyle(color: Color(0xFF94A3B8)), textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _triggerFetch,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.indigoAccent),
-            child: const Text("Retry"),
+          Row(
+            children: [
+              // Search input
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  style: CRMTypography.body.copyWith(color: CRMColors.text),
+                  decoration: InputDecoration(
+                    hintText: 'Search by employee name, email, phone number...',
+                    hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
+                    prefixIcon: const Icon(Icons.search_rounded, color: CRMColors.textMuted),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, color: CRMColors.textMuted),
+                            onPressed: () {
+                              _searchController.clear();
+                              _triggerFetch();
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: CRMColors.background,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: CRMSpacing.m,
+                      vertical: CRMSpacing.s,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                      borderSide: const BorderSide(color: CRMColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                      borderSide: const BorderSide(color: CRMColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                      borderSide: const BorderSide(color: CRMColors.primary, width: 1.5),
+                    ),
+                  ),
+                  onChanged: (val) => _triggerFetch(),
+                ),
+              ),
+              const SizedBox(width: CRMSpacing.s),
+              CRMButton(
+                label: "Search",
+                onPressed: _triggerFetch,
+              ),
+            ],
+          ),
+          const SizedBox(height: CRMSpacing.m),
+          
+          // Role & Status Dropdown Row
+          BlocBuilder<UsersBloc, UsersState>(
+            builder: (context, state) {
+              List<RoleModel> roles = [];
+              if (state is UsersLoaded) {
+                roles = state.roles;
+              }
+
+              return Wrap(
+                spacing: CRMSpacing.m,
+                runSpacing: CRMSpacing.s,
+                children: [
+                  // Role Filter
+                  _buildDropdown(
+                    label: 'Filter by Role',
+                    value: _selectedRoleId,
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text("All Roles"),
+                      ),
+                      ...roles.map((r) => DropdownMenuItem<String?>(
+                            value: r.id,
+                            child: Text(r.name),
+                          )),
+                    ],
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedRoleId = val;
+                      });
+                      _triggerFetch();
+                    },
+                  ),
+                  
+                  // Status Filter
+                  _buildDropdown(
+                    label: 'Filter by Status',
+                    value: _selectedStatus,
+                    items: ["All", "Active", "Inactive"].map((status) {
+                      return DropdownMenuItem<String>(
+                        value: status,
+                        child: Text(status),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedStatus = val ?? "All";
+                      });
+                      _triggerFetch();
+                    },
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required String label,
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return SizedBox(
+      width: 200,
+      height: 44,
+      child: DropdownButtonFormField<T>(
+        value: value,
+        dropdownColor: CRMColors.cardBg,
+        style: CRMTypography.body.copyWith(color: CRMColors.text),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: CRMSpacing.m,
+            vertical: 4,
+          ),
+          filled: true,
+          fillColor: CRMColors.background,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+            borderSide: const BorderSide(color: CRMColors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+            borderSide: const BorderSide(color: CRMColors.border),
+          ),
+        ),
+        items: items,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildEmployeesTable() {
+    return BlocBuilder<UsersBloc, UsersState>(
+      builder: (context, state) {
+        final isLoading = state is UsersLoading || state is UsersInitial;
+        List<UserModel> users = [];
+
+        if (state is UsersLoaded) {
+          users = state.users;
+        }
+
+        return CRMDataTable(
+          isLoading: isLoading,
+          emptyTitle: 'No Employees Found',
+          emptyDescription: 'Try adjusting your filters or add a new employee profile.',
+          columns: const [
+            DataColumn(label: Text('Full Name')),
+            DataColumn(label: Text('Role')),
+            DataColumn(label: Text('Email Address')),
+            DataColumn(label: Text('Mobile')),
+            DataColumn(label: Text('Active Logins')),
+            DataColumn(label: Text('Actions')),
+          ],
+          rows: users.map((user) {
+            final isAdmin = user.roleName.toLowerCase() == 'admin';
+
+            return DataRow(
+              cells: [
+                DataCell(
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: isAdmin
+                            ? CRMColors.info.withOpacity(0.1)
+                            : CRMColors.primary.withOpacity(0.1),
+                        radius: 16,
+                        child: Icon(
+                          isAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded,
+                          color: isAdmin ? CRMColors.info : CRMColors.primary,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: CRMSpacing.s),
+                      Text(
+                        user.fullName,
+                        style: CRMTypography.bodyMedium.copyWith(color: CRMColors.text),
+                      ),
+                    ],
+                  ),
+                ),
+                DataCell(
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: CRMSpacing.xxs),
+                    decoration: BoxDecoration(
+                      color: isAdmin ? CRMColors.info.withOpacity(0.12) : CRMColors.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.round),
+                    ),
+                    child: Text(
+                      user.roleName,
+                      style: CRMTypography.captionBold.copyWith(
+                        color: isAdmin ? CRMColors.info : CRMColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                DataCell(Text(user.email, style: CRMTypography.body.copyWith(color: CRMColors.textSecondary))),
+                DataCell(Text(user.mobile ?? '-', style: CRMTypography.body.copyWith(color: CRMColors.textSecondary))),
+                DataCell(
+                  Switch(
+                    value: user.isActive,
+                    activeColor: CRMColors.primary,
+                    onChanged: (val) {
+                      context.read<UsersBloc>().add(
+                            ToggleUserStatusRequested(id: user.id, isActive: val),
+                          );
+                    },
+                  ),
+                ),
+                DataCell(
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                        onPressed: () => _showAddEditUserDialog(user),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                        onPressed: () => _showDeleteConfirmDialog(user),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }

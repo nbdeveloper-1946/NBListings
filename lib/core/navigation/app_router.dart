@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
@@ -10,6 +10,7 @@ import '../../features/properties/bloc/properties_bloc.dart';
 import '../../features/users/screens/users_screen.dart';
 import '../../splash.dart';
 import '../design_system/widgets/app_shell.dart';
+import '../design_system/widgets/placeholder_screen.dart';
 
 class GoRouterRefreshStream extends ChangeNotifier {
   late final StreamSubscription<dynamic> _subscription;
@@ -62,6 +63,97 @@ class AppRouter {
           GoRoute(
             path: '/users',
             builder: (context, state) => const UsersScreen(),
+          ),
+          GoRoute(
+            path: '/requirements',
+            builder: (context, state) => const CRMPlaceholderScreen(
+              title: 'Requirements',
+              icon: Icons.assignment_rounded,
+              description: 'Manage property requirements, inquiries, and customer match pipelines.',
+              upcomingFeatures: [
+                'Automated listings matching engine',
+                'Lead requirement priority tracking',
+                'Interactive budget & sizing filter arrays',
+              ],
+            ),
+          ),
+          GoRoute(
+            path: '/clients',
+            builder: (context, state) => const CRMPlaceholderScreen(
+              title: 'Clients & Leads',
+              icon: Icons.people_rounded,
+              description: 'Follow up with potential buyers, tenants, and active contacts.',
+              upcomingFeatures: [
+                'Kanban sales pipeline board',
+                'Activity log & communication history tracking',
+                'Client segment profiling & label management',
+              ],
+            ),
+          ),
+          GoRoute(
+            path: '/owners',
+            builder: (context, state) => const CRMPlaceholderScreen(
+              title: 'Owners Directory',
+              icon: Icons.person_pin_rounded,
+              description: 'Direct landlord registry database and supply channel management.',
+              upcomingFeatures: [
+                'Direct-to-owner contact lookup logs',
+                'Verification audit trails for owner listings',
+                'Exclusive supply tagging & commission split templates',
+              ],
+            ),
+          ),
+          GoRoute(
+            path: '/builders',
+            builder: (context, state) => const CRMPlaceholderScreen(
+              title: 'Builders & Projects',
+              icon: Icons.business_rounded,
+              description: 'Track developer projects, tower progress, and master layout schemes.',
+              upcomingFeatures: [
+                'Project-wise tower unit inventory boards',
+                'Builder profiles & past delivery metrics',
+                'Bulk pricing adjustment utility',
+              ],
+            ),
+          ),
+          GoRoute(
+            path: '/finance',
+            builder: (context, state) => const CRMPlaceholderScreen(
+              title: 'Finance & Invoices',
+              icon: Icons.monetization_on_rounded,
+              description: 'Track agency commissions, invoice ledger systems, and split transactions.',
+              upcomingFeatures: [
+                'Automated broker brokerage invoices generator',
+                'Split fee schedules and agency payouts ledger',
+                'GST tax billing audits and audit history export',
+              ],
+            ),
+          ),
+          GoRoute(
+            path: '/reports',
+            builder: (context, state) => const CRMPlaceholderScreen(
+              title: 'Reports & Analytics',
+              icon: Icons.analytics_rounded,
+              description: 'Analyze broker productivity, property demand trends, and transaction history.',
+              upcomingFeatures: [
+                'PDF executive summary report builder',
+                'Property type market trend dashboards',
+                'Audit logs & modification timelines explorer',
+              ],
+            ),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const CRMPlaceholderScreen(
+              title: 'Settings & Configs',
+              icon: Icons.settings_rounded,
+              description: 'Configure corporate metadata, custom fields, and API access tokens.',
+              upcomingFeatures: [
+                'Custom drop-down options builder',
+                'System API keys & webhook integration console',
+                'Branded invoice layouts & email templates designer',
+              ],
+            ),
           ),
         ],
       ),
