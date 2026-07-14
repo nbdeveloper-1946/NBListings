@@ -36,7 +36,9 @@ class _CRMAppShellState extends State<CRMAppShell> {
 
     return Scaffold(
       backgroundColor: CRMColors.background,
-      drawer: isMobile ? Drawer(child: _buildSidebarContent(location, isMobile: true)) : null,
+      drawer: isMobile
+          ? Drawer(child: _buildSidebarContent(location, isMobile: true))
+          : null,
       body: Row(
         children: [
           if (showSidebar)
@@ -46,7 +48,9 @@ class _CRMAppShellState extends State<CRMAppShell> {
               child: Container(
                 decoration: const BoxDecoration(
                   color: CRMColors.sidebarBg,
-                  border: Border(right: BorderSide(color: CRMColors.border, width: 1.5)),
+                  border: Border(
+                    right: BorderSide(color: CRMColors.border, width: 1.5),
+                  ),
                 ),
                 child: _buildSidebarContent(location),
               ),
@@ -55,9 +59,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
             child: Column(
               children: [
                 _buildTopBar(context, isMobile),
-                Expanded(
-                  child: widget.child,
-                ),
+                Expanded(child: widget.child),
               ],
             ),
           ),
@@ -79,14 +81,19 @@ class _CRMAppShellState extends State<CRMAppShell> {
           if (isMobile)
             Builder(
               builder: (context) => IconButton(
-                icon: const Icon(Icons.menu_rounded, color: CRMColors.textSecondary),
+                icon: const Icon(
+                  Icons.menu_rounded,
+                  color: CRMColors.textSecondary,
+                ),
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
             )
           else
             IconButton(
               icon: Icon(
-                _isSidebarExpanded ? Icons.menu_open_rounded : Icons.menu_rounded,
+                _isSidebarExpanded
+                    ? Icons.menu_open_rounded
+                    : Icons.menu_rounded,
                 color: CRMColors.textSecondary,
               ),
               onPressed: () {
@@ -105,12 +112,22 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   controller: _searchController,
                   style: CRMTypography.body.copyWith(color: CRMColors.text),
                   decoration: InputDecoration(
-                    hintText: 'Search CRM (Properties, Clients, Code)...',
-                    hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-                    prefixIcon: const Icon(Icons.search_rounded, color: CRMColors.textMuted, size: 20),
+                    hintText:
+                        'Search in Listings (Properties, Clients, Code)...',
+                    hintStyle: CRMTypography.body.copyWith(
+                      color: CRMColors.textMuted,
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: CRMColors.textMuted,
+                      size: 20,
+                    ),
                     filled: true,
                     fillColor: CRMColors.background,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.xs),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: CRMSpacing.m,
+                      vertical: CRMSpacing.xs,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                       borderSide: BorderSide.none,
@@ -122,17 +139,26 @@ class _CRMAppShellState extends State<CRMAppShell> {
           ),
           const SizedBox(width: CRMSpacing.m),
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: CRMColors.textSecondary),
+            icon: const Icon(
+              Icons.notifications_none_rounded,
+              color: CRMColors.textSecondary,
+            ),
             onPressed: () {},
           ),
           const SizedBox(width: CRMSpacing.s),
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+            icon: const Icon(
+              Icons.add_circle_outline_rounded,
+              color: CRMColors.primary,
+            ),
             onPressed: () {},
           ),
           const SizedBox(width: CRMSpacing.s),
           IconButton(
-            icon: const Icon(Icons.light_mode_outlined, color: CRMColors.textMuted),
+            icon: const Icon(
+              Icons.light_mode_outlined,
+              color: CRMColors.textMuted,
+            ),
             onPressed: () {},
           ),
         ],
@@ -144,7 +170,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
     final userState = context.read<AuthBloc>().state;
     String userEmail = 'broker@nbrealty.com';
     String userRole = 'Agent';
-    
+
     if (userState is Authenticated) {
       userEmail = userState.user.email;
       userRole = userState.user.role;
@@ -159,7 +185,9 @@ class _CRMAppShellState extends State<CRMAppShell> {
           Padding(
             padding: const EdgeInsets.all(CRMSpacing.l),
             child: Row(
-              mainAxisAlignment: (_isSidebarExpanded || isMobile) ? MainAxisAlignment.start : MainAxisAlignment.center,
+              mainAxisAlignment: (_isSidebarExpanded || isMobile)
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.all(CRMSpacing.xs),
@@ -167,12 +195,16 @@ class _CRMAppShellState extends State<CRMAppShell> {
                     color: CRMColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                   ),
-                  child: const Icon(Icons.blur_on_rounded, color: CRMColors.primary, size: 28),
+                  child: const Icon(
+                    Icons.blur_on_rounded,
+                    color: CRMColors.primary,
+                    size: 28,
+                  ),
                 ),
                 if (_isSidebarExpanded || isMobile) ...[
                   const SizedBox(width: CRMSpacing.s),
                   Text(
-                    'NB CRM',
+                    'NB Listings',
                     style: CRMTypography.sectionTitle.copyWith(
                       fontWeight: FontWeight.w900,
                       color: CRMColors.text,
@@ -185,18 +217,91 @@ class _CRMAppShellState extends State<CRMAppShell> {
           const Divider(color: CRMColors.border, height: 1),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: CRMSpacing.m, horizontal: CRMSpacing.s),
+              padding: const EdgeInsets.symmetric(
+                vertical: CRMSpacing.m,
+                horizontal: CRMSpacing.s,
+              ),
               children: [
-                _buildSidebarItem(context, Icons.dashboard_rounded, 'Dashboard', '/dashboard', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.home_work_rounded, 'Properties', '/properties', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.assignment_rounded, 'Requirements', '/requirements', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.people_rounded, 'Clients', '/clients', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.person_pin_rounded, 'Owners', '/owners', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.business_rounded, 'Builders', '/builders', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.people_outline_rounded, 'Employees', '/users', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.monetization_on_rounded, 'Finance', '/finance', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.analytics_rounded, 'Reports', '/reports', currentPath, isMobile),
-                _buildSidebarItem(context, Icons.settings_rounded, 'Settings', '/settings', currentPath, isMobile),
+                _buildSidebarItem(
+                  context,
+                  Icons.dashboard_rounded,
+                  'Dashboard',
+                  '/dashboard',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.home_work_rounded,
+                  'Properties',
+                  '/properties',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.assignment_rounded,
+                  'Requirements',
+                  '/requirements',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.people_rounded,
+                  'Clients',
+                  '/clients',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.person_pin_rounded,
+                  'Owners',
+                  '/owners',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.business_rounded,
+                  'Builders',
+                  '/builders',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.people_outline_rounded,
+                  'Employees',
+                  '/users',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.monetization_on_rounded,
+                  'Finance',
+                  '/finance',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.analytics_rounded,
+                  'Reports',
+                  '/reports',
+                  currentPath,
+                  isMobile,
+                ),
+                _buildSidebarItem(
+                  context,
+                  Icons.settings_rounded,
+                  'Settings',
+                  '/settings',
+                  currentPath,
+                  isMobile,
+                ),
               ],
             ),
           ),
@@ -204,11 +309,16 @@ class _CRMAppShellState extends State<CRMAppShell> {
           Padding(
             padding: const EdgeInsets.all(CRMSpacing.m),
             child: Row(
-              mainAxisAlignment: (_isSidebarExpanded || isMobile) ? MainAxisAlignment.start : MainAxisAlignment.center,
+              mainAxisAlignment: (_isSidebarExpanded || isMobile)
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.center,
               children: [
                 CircleAvatar(
                   backgroundColor: CRMColors.primary.withOpacity(0.1),
-                  child: const Icon(Icons.person_outline_rounded, color: CRMColors.primary),
+                  child: const Icon(
+                    Icons.person_outline_rounded,
+                    color: CRMColors.primary,
+                  ),
                 ),
                 if (_isSidebarExpanded || isMobile) ...[
                   const SizedBox(width: CRMSpacing.m),
@@ -218,18 +328,25 @@ class _CRMAppShellState extends State<CRMAppShell> {
                       children: [
                         Text(
                           displayEmail,
-                          style: CRMTypography.captionBold.copyWith(color: CRMColors.text),
+                          style: CRMTypography.captionBold.copyWith(
+                            color: CRMColors.text,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           displayRole,
-                          style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                          style: CRMTypography.caption.copyWith(
+                            color: CRMColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.logout_rounded, color: CRMColors.danger),
+                    icon: const Icon(
+                      Icons.logout_rounded,
+                      color: CRMColors.danger,
+                    ),
                     onPressed: _handleLogout,
                   ),
                 ],
@@ -271,11 +388,15 @@ class _CRMAppShellState extends State<CRMAppShell> {
             vertical: CRMSpacing.s,
           ),
           decoration: BoxDecoration(
-            color: isSelected ? CRMColors.primary.withOpacity(0.08) : Colors.transparent,
+            color: isSelected
+                ? CRMColors.primary.withOpacity(0.08)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
           ),
           child: Row(
-            mainAxisAlignment: isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+            mainAxisAlignment: isExpanded
+                ? MainAxisAlignment.start
+                : MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
