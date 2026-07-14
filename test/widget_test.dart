@@ -25,11 +25,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify that our app title is shown.
-    expect(find.text('NB LISTINGS'), findsOneWidget);
+    expect(find.text('Go ahead to your account'), findsOneWidget);
 
     // Verify that the form elements exist on the screen.
     expect(find.text('Email Address'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
-    expect(find.text('Remember Me'), findsOneWidget);
+    expect(find.text('Remember me'), findsOneWidget);
   });
 }

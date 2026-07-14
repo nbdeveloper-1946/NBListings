@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/repository/auth_repository.dart';
-import 'features/auth/login_screen.dart';
-import 'features/dashboard/bloc/dashboard_bloc.dart';
 import 'features/dashboard/repository/dashboard_repository.dart';
-import 'features/dashboard/screens/dashboard_screen.dart';
-import 'features/users/bloc/users_bloc.dart';
 import 'features/users/repository/users_repository.dart';
-import 'splash.dart';
+import 'features/dashboard/bloc/dashboard_bloc.dart';
+import 'features/users/bloc/users_bloc.dart';
+import 'core/navigation/app_router.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,24 +16,37 @@ void main() {
   runApp(MyApp(authRepository: authRepository));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final AuthRepository authRepository;
 
   const MyApp({super.key, required this.authRepository});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final AppRouter _appRouter;
+  late final AuthBloc _authBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _authBloc = AuthBloc(authRepository: widget.authRepository)..add(AuthCheckStatus());
+    _appRouter = AppRouter(_authBloc);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
-        RepositoryProvider.value(value: authRepository),
+        RepositoryProvider.value(value: widget.authRepository),
         RepositoryProvider(create: (context) => DashboardRepository()),
         RepositoryProvider(create: (context) => UsersRepository()),
       ],
       child: MultiBlocProvider(
         providers: [
-          BlocProvider(
-            create: (context) => AuthBloc(authRepository: authRepository)..add(AuthCheckStatus()),
-          ),
+          BlocProvider.value(value: _authBloc),
           BlocProvider(
             create: (context) => DashboardBloc(
               dashboardRepository: context.read<DashboardRepository>(),
@@ -47,8 +58,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ],
-
-        child: MaterialApp(
+        child: MaterialApp.router(
           debugShowCheckedModeBanner: false,
           title: 'NB Listings',
           theme: ThemeData(
@@ -60,18 +70,7 @@ class MyApp extends StatelessWidget {
             ),
             scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
           ),
-
-          home: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              if (state is AuthInitial || (state is AuthLoading && state is! Authenticated)) {
-                return const SplashScreen();
-              }
-              if (state is Authenticated) {
-                return const DashboardScreen();
-              }
-              return const SplashScreen();
-            },
-          ),
+          routerConfig: _appRouter.router,
         ),
       ),
     );

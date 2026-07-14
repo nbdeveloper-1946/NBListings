@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'features/auth/login_screen.dart';
+import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -125,13 +125,7 @@ class SplashScreen extends StatelessWidget {
                     PremiumButton(
                       label: 'Get Started',
                       width: 220,
-                      onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
-                      },
+                      onPressed: () => context.go('/login'),
                     ),
                   ],
                 ),
@@ -246,13 +240,7 @@ class SplashScreen extends StatelessWidget {
                     // Unified Premium Design System Button
                     PremiumButton(
                       label: 'Get Started',
-                      onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
-                      },
+                      onPressed: () => context.go('/login'),
                     ),
                     const SizedBox(height: AppSpacing.s),
                   ],

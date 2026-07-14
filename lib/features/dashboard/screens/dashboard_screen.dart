@@ -7,9 +7,7 @@ import '../widgets/activity_tile.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/statistic_card.dart';
-import '../../users/screens/users_screen.dart';
-import '../../properties/bloc/properties_bloc.dart';
-import '../../properties/screens/properties_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -221,15 +219,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (isDrawer) {
             Navigator.pop(context);
           }
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => BlocProvider(
-                create: (context) => PropertiesBloc(),
-                child: const PropertiesScreen(),
-              ),
-            ),
-          );
+          context.push('/properties');
         }),
         _buildSidebarTile(Icons.assignment_turned_in_rounded, "Requirements", onTap: () => _showActionSnackbar("Requirements")),
         if (permissions.contains("users.read"))
@@ -237,10 +227,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (isDrawer) {
               Navigator.pop(context);
             }
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const UsersScreen()),
-            );
+            context.push('/users');
           }),
         _buildSidebarTile(Icons.settings_rounded, "Settings", onTap: () => _showActionSnackbar("Settings")),
         const Divider(color: Colors.white10, height: 40),
@@ -381,15 +368,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   icon: Icons.add_business_rounded,
                   color: Colors.cyanAccent,
                   onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => BlocProvider(
-                          create: (context) => PropertiesBloc(),
-                          child: const PropertiesScreen(),
-                        ),
-                      ),
-                    );
+                    context.push('/properties');
                   },
                 ),
                 QuickActionCard(
