@@ -137,8 +137,6 @@ class RequirementModel {
       'configuration_id': configurationId,
       'budget_from': minBudget,
       'budget_to': maxBudget,
-      'min_area': minArea,
-      'max_area': maxArea,
       'area_id': areaIds.isNotEmpty ? areaIds.first : null,
       'remarks': remarks,
       'status': status,
