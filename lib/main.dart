@@ -8,10 +8,11 @@ import 'features/dashboard/repository/dashboard_repository.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/users/bloc/users_bloc.dart';
 import 'features/users/repository/users_repository.dart';
+import 'splash.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   final authRepository = AuthRepository();
 
   runApp(MyApp(authRepository: authRepository));
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ],
+
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'NB Listings',
@@ -58,19 +60,16 @@ class MyApp extends StatelessWidget {
             ),
             scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
           ),
+
           home: BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               if (state is AuthInitial || (state is AuthLoading && state is! Authenticated)) {
-                return const Scaffold(
-                  body: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                );
+                return const SplashScreen();
               }
               if (state is Authenticated) {
                 return const DashboardScreen();
               }
-              return const LoginScreen();
+              return const SplashScreen();
             },
           ),
         ),

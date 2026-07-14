@@ -20,6 +20,10 @@ void main() {
     // Wait for the BLoC status check to resolve and transition to Unauthenticated
     await tester.pump(const Duration(milliseconds: 100));
 
+    // Tap "Get Started" on splash screen to navigate to Login Screen
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+
     // Verify that our app title is shown.
     expect(find.text('NB LISTINGS'), findsOneWidget);
 

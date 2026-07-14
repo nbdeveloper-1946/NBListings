@@ -8,6 +8,8 @@ import '../widgets/dashboard_header.dart';
 import '../widgets/quick_action_card.dart';
 import '../widgets/statistic_card.dart';
 import '../../users/screens/users_screen.dart';
+import '../../properties/bloc/properties_bloc.dart';
+import '../../properties/screens/properties_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -215,7 +217,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         _buildSidebarTile(Icons.dashboard_rounded, "Dashboard", isSelected: true),
-        _buildSidebarTile(Icons.home_work_rounded, "Properties", onTap: () => _showActionSnackbar("Properties list")),
+        _buildSidebarTile(Icons.home_work_rounded, "Properties", onTap: () {
+          if (isDrawer) {
+            Navigator.pop(context);
+          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BlocProvider(
+                create: (context) => PropertiesBloc(),
+                child: const PropertiesScreen(),
+              ),
+            ),
+          );
+        }),
         _buildSidebarTile(Icons.assignment_turned_in_rounded, "Requirements", onTap: () => _showActionSnackbar("Requirements")),
         if (permissions.contains("users.read"))
           _buildSidebarTile(Icons.people_rounded, "Users", onTap: () {
@@ -365,7 +380,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   label: "Property",
                   icon: Icons.add_business_rounded,
                   color: Colors.cyanAccent,
-                  onTap: () => _showActionSnackbar("Add Property"),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BlocProvider(
+                          create: (context) => PropertiesBloc(),
+                          child: const PropertiesScreen(),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 QuickActionCard(
                   label: "Requirement",

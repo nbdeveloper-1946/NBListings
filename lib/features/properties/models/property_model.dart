@@ -1,0 +1,311 @@
+class PropertyModel {
+  final String id;
+  final String propertyCode;
+  final String title;
+  final String? description;
+  final String categoryId;
+  final String categoryName;
+  final String propertyTypeId;
+  final String propertyTypeName;
+  final String? configurationId;
+  final String? configurationName;
+  final String listingTypeId;
+  final String listingTypeName;
+  final String propertyStatusId;
+  final String propertyStatusName;
+  final String cityId;
+  final String cityName;
+  final String areaId;
+  final String areaName;
+  final String pincode;
+  final String address;
+  final String? landmark;
+  final double? latitude;
+  final double? longitude;
+  final double? superBuiltupArea;
+  final double? carpetArea;
+  final double? plotArea;
+  final double price;
+  final double deposit;
+  final double maintenance;
+  final String? furnishingTypeId;
+  final String? furnishingTypeName;
+  final String? facingTypeId;
+  final String? facingTypeName;
+  final String? ownershipTypeId;
+  final String? ownershipTypeName;
+  final int bedrooms;
+  final int bathrooms;
+  final int balconies;
+  final int parking;
+  final int? floorNo;
+  final int? totalFloor;
+  final int? ageOfProperty;
+  final DateTime? possessionDate;
+  final String ownerName;
+  final String ownerMobile;
+  final String? brokerName;
+  final String? remarks;
+  final bool isVerified;
+  final String createdBy;
+  final String createdByName;
+  final DateTime createdAt;
+  final List<String> images;
+  final List<String> amenities;
+
+  PropertyModel({
+    required this.id,
+    required this.propertyCode,
+    required this.title,
+    this.description,
+    required this.categoryId,
+    required this.categoryName,
+    required this.propertyTypeId,
+    required this.propertyTypeName,
+    this.configurationId,
+    this.configurationName,
+    required this.listingTypeId,
+    required this.listingTypeName,
+    required this.propertyStatusId,
+    required this.propertyStatusName,
+    required this.cityId,
+    required this.cityName,
+    required this.areaId,
+    required this.areaName,
+    required this.pincode,
+    required this.address,
+    this.landmark,
+    this.latitude,
+    this.longitude,
+    this.superBuiltupArea,
+    this.carpetArea,
+    this.plotArea,
+    required this.price,
+    required this.deposit,
+    required this.maintenance,
+    this.furnishingTypeId,
+    this.furnishingTypeName,
+    this.facingTypeId,
+    this.facingTypeName,
+    this.ownershipTypeId,
+    this.ownershipTypeName,
+    required this.bedrooms,
+    required this.bathrooms,
+    required this.balconies,
+    required this.parking,
+    this.floorNo,
+    this.totalFloor,
+    this.ageOfProperty,
+    this.possessionDate,
+    required this.ownerName,
+    required this.ownerMobile,
+    this.brokerName,
+    this.remarks,
+    required this.isVerified,
+    required this.createdBy,
+    required this.createdByName,
+    required this.createdAt,
+    required this.images,
+    required this.amenities,
+  });
+
+  factory PropertyModel.fromJson(Map<String, dynamic> json) {
+    final category = json['category'] as Map<String, dynamic>?;
+    final propType = json['property_type'] as Map<String, dynamic>?;
+    final config = json['configuration'] as Map<String, dynamic>?;
+    final listing = json['listing_type'] as Map<String, dynamic>?;
+    final status = json['property_status'] as Map<String, dynamic>?;
+    final city = json['city'] as Map<String, dynamic>?;
+    final area = json['area'] as Map<String, dynamic>?;
+    final furnishing = json['furnishing_type'] as Map<String, dynamic>?;
+    final facing = json['facing_type'] as Map<String, dynamic>?;
+    final ownership = json['ownership_type'] as Map<String, dynamic>?;
+    final creator = json['creator'] as Map<String, dynamic>?;
+
+    final rawImages = json['property_images'] as List<dynamic>? ?? [];
+    final List<String> imageList = rawImages
+        .map((img) => img['image_url'] as String)
+        .toList();
+
+    final rawAmenities = json['property_amenities'] as List<dynamic>? ?? [];
+    final List<String> amenityList = rawAmenities
+        .map((am) => ((am['amenity'] as Map<String, dynamic>?)?['name'] as String?) ?? '')
+        .where((name) => name.isNotEmpty)
+        .toList();
+
+    return PropertyModel(
+      id: json['id'] as String,
+      propertyCode: json['property_code'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String?,
+      categoryId: json['category_id'] as String,
+      categoryName: category != null ? category['name'] as String : 'N/A',
+      propertyTypeId: json['property_type_id'] as String,
+      propertyTypeName: propType != null ? propType['name'] as String : 'N/A',
+      configurationId: json['configuration_id'] as String?,
+      configurationName: config != null ? config['name'] as String : null,
+      listingTypeId: json['listing_type_id'] as String,
+      listingTypeName: listing != null ? listing['name'] as String : 'N/A',
+      propertyStatusId: json['property_status_id'] as String,
+      propertyStatusName: status != null ? status['name'] as String : 'N/A',
+      cityId: json['city_id'] as String,
+      cityName: city != null ? city['city_name'] as String : 'N/A',
+      areaId: json['area_id'] as String,
+      areaName: area != null ? area['area_name'] as String : 'N/A',
+      pincode: area != null ? area['pincode'] as String : 'N/A',
+      address: json['address'] as String,
+      landmark: json['landmark'] as String?,
+      latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
+      longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
+      superBuiltupArea: json['super_builtup_area'] != null ? double.tryParse(json['super_builtup_area'].toString()) : null,
+      carpetArea: json['carpet_area'] != null ? double.tryParse(json['carpet_area'].toString()) : null,
+      plotArea: json['plot_area'] != null ? double.tryParse(json['plot_area'].toString()) : null,
+      price: double.tryParse(json['price'].toString()) ?? 0.0,
+      deposit: double.tryParse(json['deposit'].toString()) ?? 0.0,
+      maintenance: double.tryParse(json['maintenance'].toString()) ?? 0.0,
+      furnishingTypeId: json['furnishing_type_id'] as String?,
+      furnishingTypeName: furnishing != null ? furnishing['name'] as String : null,
+      facingTypeId: json['facing_type_id'] as String?,
+      facingTypeName: facing != null ? facing['name'] as String : null,
+      ownershipTypeId: json['ownership_type_id'] as String?,
+      ownershipTypeName: ownership != null ? ownership['name'] as String : null,
+      bedrooms: json['bedrooms'] as int? ?? 0,
+      bathrooms: json['bathrooms'] as int? ?? 0,
+      balconies: json['balconies'] as int? ?? 0,
+      parking: json['parking'] as int? ?? 0,
+      floorNo: json['floor_no'] as int?,
+      totalFloor: json['total_floor'] as int?,
+      ageOfProperty: json['age_of_property'] as int?,
+      possessionDate: json['possession_date'] != null ? DateTime.tryParse(json['possession_date'] as String) : null,
+      ownerName: json['owner_name'] as String,
+      ownerMobile: json['owner_mobile'] as String,
+      brokerName: json['broker_name'] as String?,
+      remarks: json['remarks'] as String?,
+      isVerified: json['is_verified'] as bool? ?? false,
+      createdBy: json['created_by'] as String,
+      createdByName: creator != null ? creator['full_name'] as String : 'N/A',
+      createdAt: DateTime.parse(json['created_at'] as String),
+      images: imageList,
+      amenities: amenityList,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'description': description,
+      'category_id': categoryId,
+      'property_type_id': propertyTypeId,
+      'configuration_id': configurationId,
+      'listing_type_id': listingTypeId,
+      'property_status_id': propertyStatusId,
+      'city_id': cityId,
+      'area_id': areaId,
+      'address': address,
+      'landmark': landmark,
+      'latitude': latitude,
+      'longitude': longitude,
+      'super_builtup_area': superBuiltupArea,
+      'carpet_area': carpetArea,
+      'plot_area': plotArea,
+      'price': price,
+      'deposit': deposit,
+      'maintenance': maintenance,
+      'furnishing_type_id': furnishingTypeId,
+      'facing_type_id': facingTypeId,
+      'ownership_type_id': ownershipTypeId,
+      'bedrooms': bedrooms,
+      'bathrooms': bathrooms,
+      'balconies': balconies,
+      'parking': parking,
+      'floor_no': floorNo,
+      'total_floor': totalFloor,
+      'age_of_property': ageOfProperty,
+      'possession_date': possessionDate?.toIso8601String().substring(0, 10),
+      'owner_name': ownerName,
+      'owner_mobile': ownerMobile,
+      'broker_name': brokerName,
+      'remarks': remarks,
+      'amenities': amenities,
+      'images': images,
+    };
+  }
+}
+
+class LookupItem {
+  final String id;
+  final String name;
+  LookupItem({required this.id, required this.name});
+  factory LookupItem.fromJson(Map<String, dynamic> json) {
+    return LookupItem(
+      id: json['id'] as String,
+      name: (json['name'] ?? json['city_name'] ?? json['area_name'] ?? '') as String,
+    );
+  }
+}
+
+class AreaLookup extends LookupItem {
+  final String cityId;
+  final String pincode;
+  AreaLookup({required String id, required String name, required this.cityId, required this.pincode})
+      : super(id: id, name: name);
+  factory AreaLookup.fromJson(Map<String, dynamic> json) {
+    return AreaLookup(
+      id: json['id'] as String,
+      name: json['area_name'] as String,
+      cityId: json['city_id'] as String,
+      pincode: json['pincode'] as String,
+    );
+  }
+}
+
+class PropertyMetadataModel {
+  final List<LookupItem> cities;
+  final List<AreaLookup> areas;
+  final List<LookupItem> categories;
+  final List<LookupItem> types;
+  final List<LookupItem> configurations;
+  final List<LookupItem> listingTypes;
+  final List<LookupItem> statuses;
+  final List<LookupItem> furnishings;
+  final List<LookupItem> facings;
+  final List<LookupItem> ownerships;
+  final List<LookupItem> amenities;
+
+  PropertyMetadataModel({
+    required this.cities,
+    required this.areas,
+    required this.categories,
+    required this.types,
+    required this.configurations,
+    required this.listingTypes,
+    required this.statuses,
+    required this.furnishings,
+    required this.facings,
+    required this.ownerships,
+    required this.amenities,
+  });
+
+  factory PropertyMetadataModel.fromJson(Map<String, dynamic> json) {
+    final meta = json['metadata'] as Map<String, dynamic>? ?? json;
+    
+    List<T> parseList<T>(dynamic raw, T Function(Map<String, dynamic>) parser) {
+      if (raw == null) return [];
+      return (raw as List<dynamic>).map((item) => parser(item as Map<String, dynamic>)).toList();
+    }
+
+    return PropertyMetadataModel(
+      cities: parseList(meta['cities'], (j) => LookupItem(id: j['id'], name: j['city_name'])),
+      areas: parseList(meta['areas'], AreaLookup.fromJson),
+      categories: parseList(meta['categories'], LookupItem.fromJson),
+      types: parseList(meta['types'], LookupItem.fromJson),
+      configurations: parseList(meta['configurations'], LookupItem.fromJson),
+      listingTypes: parseList(meta['listingTypes'], LookupItem.fromJson),
+      statuses: parseList(meta['statuses'], LookupItem.fromJson),
+      furnishings: parseList(meta['furnishings'], LookupItem.fromJson),
+      facings: parseList(meta['facings'], LookupItem.fromJson),
+      ownerships: parseList(meta['ownerships'], LookupItem.fromJson),
+      amenities: parseList(meta['amenities'], LookupItem.fromJson),
+    );
+  }
+}
