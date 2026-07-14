@@ -209,12 +209,16 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                               );
                               return;
                             }
+                            final propertiesBloc = context.read<PropertiesBloc>();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => AddEditPropertyScreen(
-                                  metadata: metadata!,
-                                  activeTab: _activeTab,
+                                builder: (_) => BlocProvider.value(
+                                  value: propertiesBloc,
+                                  child: AddEditPropertyScreen(
+                                    metadata: metadata!,
+                                    activeTab: _activeTab,
+                                  ),
                                 ),
                               ),
                             );
@@ -388,13 +392,17 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                             // Find metadata from current bloc state
                             final state = context.read<PropertiesBloc>().state;
                             if (state is PropertiesLoaded && state.metadata != null) {
+                              final propertiesBloc = context.read<PropertiesBloc>();
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => AddEditPropertyScreen(
-                                    metadata: state.metadata!,
-                                    property: property,
-                                    activeTab: _activeTab,
+                                  builder: (_) => BlocProvider.value(
+                                    value: propertiesBloc,
+                                    child: AddEditPropertyScreen(
+                                      metadata: state.metadata!,
+                                      property: property,
+                                      activeTab: _activeTab,
+                                    ),
                                   ),
                                 ),
                               );
