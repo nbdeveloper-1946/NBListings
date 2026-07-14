@@ -9,6 +9,7 @@ import '../../features/properties/screens/properties_screen.dart';
 import '../../features/properties/bloc/properties_bloc.dart';
 import '../../features/users/screens/users_screen.dart';
 import '../../splash.dart';
+import '../design_system/widgets/app_shell.dart';
 
 class GoRouterRefreshStream extends ChangeNotifier {
   late final StreamSubscription<dynamic> _subscription;
@@ -44,20 +45,25 @@ class AppRouter {
         path: '/login',
         builder: (context, state) => const LoginScreen(),
       ),
-      GoRoute(
-        path: '/dashboard',
-        builder: (context, state) => const DashboardScreen(),
-      ),
-      GoRoute(
-        path: '/properties',
-        builder: (context, state) => BlocProvider(
-          create: (context) => PropertiesBloc(),
-          child: const PropertiesScreen(),
-        ),
-      ),
-      GoRoute(
-        path: '/users',
-        builder: (context, state) => const UsersScreen(),
+      ShellRoute(
+        builder: (context, state, child) => CRMAppShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            builder: (context, state) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: '/properties',
+            builder: (context, state) => BlocProvider(
+              create: (context) => PropertiesBloc(),
+              child: const PropertiesScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/users',
+            builder: (context, state) => const UsersScreen(),
+          ),
+        ],
       ),
     ],
     redirect: (context, state) {
