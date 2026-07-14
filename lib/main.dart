@@ -7,6 +7,8 @@ import 'features/users/repository/users_repository.dart';
 import 'features/dashboard/bloc/dashboard_bloc.dart';
 import 'features/users/bloc/users_bloc.dart';
 import 'core/navigation/app_router.dart';
+import 'core/design_system/tokens/app_colors.dart';
+import 'core/design_system/tokens/app_typography.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,12 +65,13 @@ class _MyAppState extends State<MyApp> {
           title: 'NB Listings',
           theme: ThemeData(
             useMaterial3: true,
-            brightness: Brightness.dark,
+            brightness: Brightness.light,
+            fontFamily: CRMTypography.fontFamily,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF6366F1), // Indigo 500
-              brightness: Brightness.dark,
+              seedColor: CRMColors.primary,
+              brightness: Brightness.light,
             ),
-            scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
+            scaffoldBackgroundColor: CRMColors.background,
           ),
           routerConfig: _appRouter.router,
         ),
