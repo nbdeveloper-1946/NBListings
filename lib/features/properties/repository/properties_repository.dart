@@ -33,6 +33,25 @@ class PropertiesRepository {
     return PropertyMetadataModel.fromJson(data['metadata'] ?? {});
   }
 
+  Future<LookupItem> createCity(String name) async {
+    final response = await _propertiesService.createCity(name);
+    final data = response['data'] as Map<String, dynamic>? ?? {};
+    final city = data['city'] as Map<String, dynamic>? ?? {};
+    return LookupItem(id: city['id'], name: city['city_name']);
+  }
+
+  Future<AreaLookup> createArea(String cityId, String name, String pincode) async {
+    final response = await _propertiesService.createArea(cityId, name, pincode);
+    final data = response['data'] as Map<String, dynamic>? ?? {};
+    final area = data['area'] as Map<String, dynamic>? ?? {};
+    return AreaLookup(
+      id: area['id'] ?? '',
+      name: area['area_name'] ?? '',
+      cityId: area['city_id'] ?? '',
+      pincode: area['pincode'] ?? '',
+    );
+  }
+
   Future<PropertyModel> createProperty(Map<String, dynamic> propertyData) async {
     final response = await _propertiesService.createProperty(propertyData);
     final data = response['data'] as Map<String, dynamic>? ?? {};

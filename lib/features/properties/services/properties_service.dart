@@ -139,4 +139,36 @@ class PropertiesService {
       throw ApiException(message: e.toString());
     }
   }
+
+  Future<Map<String, dynamic>> createCity(String name) async {
+    try {
+      final response = await _apiClient.post('/properties/cities', {'city_name': name});
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw ApiException(message: "Invalid response format from server.");
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> createArea(String cityId, String name, String pincode) async {
+    try {
+      final response = await _apiClient.post('/properties/areas', {
+        'city_id': cityId,
+        'area_name': name,
+        'pincode': pincode,
+      });
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw ApiException(message: "Invalid response format from server.");
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
 }

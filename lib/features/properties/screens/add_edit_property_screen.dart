@@ -7,6 +7,7 @@ import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
+import '../services/properties_service.dart';
 
 class AddEditPropertyScreen extends StatefulWidget {
   final PropertyMetadataModel metadata;
@@ -63,6 +64,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
 
   final List<String> _selectedAmenities = [];
   List<AreaLookup> _filteredAreas = [];
+  List<LookupItem> _cities = [];
+  List<AreaLookup> _areas = [];
 
   @override
   void initState() {
@@ -97,12 +100,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   void _initializeForm() {
+    _cities = List.from(widget.metadata.cities);
+    _areas = List.from(widget.metadata.areas);
+
     if (widget.metadata.categories.isNotEmpty) _selectedCategory = widget.metadata.categories.first.id;
     if (widget.metadata.types.isNotEmpty) _selectedType = widget.metadata.types.first.id;
     if (widget.metadata.listingTypes.isNotEmpty) _selectedListingType = widget.metadata.listingTypes.first.id;
     if (widget.metadata.statuses.isNotEmpty) _selectedStatus = widget.metadata.statuses.first.id;
-    if (widget.metadata.cities.isNotEmpty) {
-      _selectedCity = widget.metadata.cities.first.id;
+    if (_cities.isNotEmpty) {
+      _selectedCity = _cities.first.id;
       _updateAreasForCity(_selectedCity!);
     }
 
@@ -153,9 +159,116 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     }
   }
 
+
+  void _showAddCityDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New City'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'City Name'),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          TextButton(
+            child: const Text('Add'),
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                try {
+                  final service = PropertiesService();
+                  final result = await service.createCity(name);
+                  final LookupItem newCity = LookupItem(
+                    id: result['data']['city']['id'],
+                    name: result['data']['city']['city_name'],
+                  );
+                  setState(() {
+                    _cities.add(newCity);
+                    _selectedCity = newCity.id;
+                  });
+                  _updateAreasForCity(newCity.id);
+                  if (mounted) Navigator.pop(ctx);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to add city: $e')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddAreaDialog() {
+    final nameController = TextEditingController();
+    final pincodeController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New Area'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Area Name'),
+            ),
+            TextField(
+              controller: pincodeController,
+              decoration: const InputDecoration(labelText: 'Pincode'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          TextButton(
+            child: const Text('Add'),
+            onPressed: () async {
+              final name = nameController.text.trim();
+              final pincode = pincodeController.text.trim();
+              if (name.isNotEmpty && pincode.isNotEmpty && _selectedCity != null) {
+                try {
+                  final service = PropertiesService();
+                  final result = await service.createArea(_selectedCity!, name, pincode);
+                  final AreaLookup newArea = AreaLookup(
+                    id: result['data']['area']['id'],
+                    name: result['data']['area']['area_name'],
+                    cityId: result['data']['area']['city_id'],
+                    pincode: result['data']['area']['pincode'],
+                  );
+                  setState(() {
+                    _areas.add(newArea);
+                    _filteredAreas.add(newArea);
+                    _selectedArea = newArea.id;
+                  });
+                  if (mounted) Navigator.pop(ctx);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to add area: $e')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _updateAreasForCity(String cityId) {
     setState(() {
-      _filteredAreas = widget.metadata.areas.where((a) => a.cityId == cityId).toList();
+      _filteredAreas = _areas.where((a) => a.cityId == cityId).toList();
       if (_filteredAreas.isNotEmpty) {
         _selectedArea = _filteredAreas.first.id;
       } else {
@@ -223,7 +336,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(isEdit ? 'Edit CRM Listing' : 'Publish New Property', style: CRMTypography.sectionTitle),
+        title: Text(isEdit ? 'Edit CRM Listing' : 'Add New Property', style: CRMTypography.sectionTitle),
         backgroundColor: CRMColors.cardBg,
         elevation: 0,
       ),
@@ -419,29 +532,51 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedCity,
-                  decoration: InputDecoration(
-                    labelText: 'City *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: widget.metadata.cities.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                  onChanged: (v) {
-                    setState(() => _selectedCity = v);
-                    if (v != null) _updateAreasForCity(v);
-                  },
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedCity,
+                        decoration: InputDecoration(
+                          labelText: 'City *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                        ),
+                        items: _cities.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                        onChanged: (v) {
+                          setState(() => _selectedCity = v);
+                          if (v != null) _updateAreasForCity(v);
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                      onPressed: _showAddCityDialog,
+                      tooltip: 'Add New City',
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: CRMSpacing.s),
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedArea,
-                  decoration: InputDecoration(
-                    labelText: 'Area *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: _filteredAreas.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
-                  onChanged: (v) => setState(() => _selectedArea = v),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedArea,
+                        decoration: InputDecoration(
+                          labelText: 'Area *',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                        ),
+                        items: _filteredAreas.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
+                        onChanged: (v) => setState(() => _selectedArea = v),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                      onPressed: _selectedCity == null ? null : _showAddAreaDialog,
+                      tooltip: 'Add New Area',
+                    ),
+                  ],
                 ),
               ),
             ],

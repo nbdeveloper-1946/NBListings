@@ -179,20 +179,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                   icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
                                   onPressed: () {
                                     if (metadata != null) {
-                                      final propertiesBloc = context.read<PropertiesBloc>();
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => BlocProvider.value(
-                                            value: propertiesBloc,
-                                            child: AddEditPropertyScreen(
-                                              metadata: metadata!,
-                                              property: p,
-                                              activeTab: _activeTab,
-                                            ),
-                                          ),
-                                        ),
-                                      );
+                                      _showAddEditPropertyDialog(context, metadata!, p);
                                     }
                                   },
                                 ),
@@ -304,19 +291,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           );
           return;
         }
-        final propertiesBloc = context.read<PropertiesBloc>();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BlocProvider.value(
-              value: propertiesBloc,
-              child: AddEditPropertyScreen(
-                metadata: metadata,
-                activeTab: _activeTab,
-              ),
-            ),
-          ),
-        );
+        _showAddEditPropertyDialog(context, metadata!);
       },
     );
 
@@ -723,6 +698,35 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
         Expanded(child: chipsList),
         refreshButton,
       ],
+    );
+  }
+
+  void _showAddEditPropertyDialog(BuildContext context, PropertyMetadataModel metadata, [PropertyModel? property]) {
+    final propertiesBloc = context.read<PropertiesBloc>();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: CRMColors.cardBg,
+            borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+          ),
+          width: MediaQuery.of(context).size.width * 0.95,
+          height: MediaQuery.of(context).size.height * 0.95,
+          constraints: const BoxConstraints(maxWidth: 800, maxHeight: 750),
+          clipBehavior: Clip.antiAlias,
+          child: BlocProvider.value(
+            value: propertiesBloc,
+            child: AddEditPropertyScreen(
+              metadata: metadata,
+              property: property,
+              activeTab: _activeTab,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
