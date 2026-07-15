@@ -95,11 +95,15 @@ class DashboardData {
   final DashboardSummary summary;
   final List<RecentActivity> activity;
   final List<RecentProperty> recentProperties;
+  final List<ChecklistItem> checklist;
+  final List<DashboardFollowup> followups;
 
   const DashboardData({
     required this.summary,
     required this.activity,
     required this.recentProperties,
+    required this.checklist,
+    required this.followups,
   });
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
@@ -113,6 +117,77 @@ class DashboardData {
               ?.map((item) => RecentProperty.fromJson(item))
               .toList() ??
           [],
+      checklist: (json['checklist'] as List?)
+              ?.map((item) => ChecklistItem.fromJson(item))
+              .toList() ??
+          [],
+      followups: (json['followups'] as List?)
+              ?.map((item) => DashboardFollowup.fromJson(item))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class ChecklistItem {
+  final String id;
+  final String title;
+  final bool isCompleted;
+  final String dueDate;
+
+  const ChecklistItem({
+    required this.id,
+    required this.title,
+    required this.isCompleted,
+    required this.dueDate,
+  });
+
+  factory ChecklistItem.fromJson(Map<String, dynamic> json) {
+    return ChecklistItem(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      isCompleted: json['is_completed'] ?? false,
+      dueDate: json['due_date'] ?? '',
+    );
+  }
+}
+
+class DashboardFollowup {
+  final String id;
+  final String clientName;
+  final String mobile;
+  final String followupDate;
+  final String? notes;
+  final String status;
+  final String? propertyCode;
+  final String? propertyTitle;
+  final String? requirementCustomerName;
+
+  const DashboardFollowup({
+    required this.id,
+    required this.clientName,
+    required this.mobile,
+    required this.followupDate,
+    this.notes,
+    required this.status,
+    this.propertyCode,
+    this.propertyTitle,
+    this.requirementCustomerName,
+  });
+
+  factory DashboardFollowup.fromJson(Map<String, dynamic> json) {
+    final property = json['property'] as Map<String, dynamic>?;
+    final requirement = json['requirement'] as Map<String, dynamic>?;
+    return DashboardFollowup(
+      id: json['id'] ?? '',
+      clientName: json['client_name'] ?? '',
+      mobile: json['mobile'] ?? '',
+      followupDate: json['followup_date'] ?? '',
+      notes: json['notes'],
+      status: json['status'] ?? 'Pending',
+      propertyCode: property?['property_code'],
+      propertyTitle: property?['title'],
+      requirementCustomerName: requirement?['customer_name'],
     );
   }
 }

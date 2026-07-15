@@ -11,6 +11,7 @@ import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/data_table.dart';
+import '../../../core/utils/budget_formatter.dart';
 
 class OwnersScreen extends StatefulWidget {
   const OwnersScreen({super.key});
@@ -444,8 +445,8 @@ class _CRMOwnerPropertiesDrawerState extends State<_CRMOwnerPropertiesDrawer> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(p.title, style: CRMTypography.bodyMedium),
-                          Text(
-                            '₹${(p.price / 100000).toStringAsFixed(1)}L',
+                           Text(
+                            '₹${BudgetFormatter.format(p.price)}',
                             style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary),
                           ),
                         ],

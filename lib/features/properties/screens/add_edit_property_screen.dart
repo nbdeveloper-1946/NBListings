@@ -8,6 +8,8 @@ import '../../../core/design_system/widgets/buttons.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
 import '../services/properties_service.dart';
+import '../repository/properties_repository.dart';
+import '../../../core/utils/budget_formatter.dart';
 
 class AddEditPropertyScreen extends StatefulWidget {
   final PropertyMetadataModel metadata;
@@ -66,6 +68,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   List<AreaLookup> _filteredAreas = [];
   List<LookupItem> _cities = [];
   List<AreaLookup> _areas = [];
+  List<LookupItem> _localAmenities = [];
 
   @override
   void initState() {
@@ -102,6 +105,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   void _initializeForm() {
     _cities = List.from(widget.metadata.cities);
     _areas = List.from(widget.metadata.areas);
+    _localAmenities = List.from(widget.metadata.amenities);
 
     if (widget.metadata.categories.isNotEmpty) _selectedCategory = widget.metadata.categories.first.id;
     if (widget.metadata.types.isNotEmpty) _selectedType = widget.metadata.types.first.id;
@@ -129,7 +133,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _superBuiltupController.text = p.superBuiltupArea?.toStringAsFixed(0) ?? '';
       _carpetController.text = p.carpetArea?.toStringAsFixed(0) ?? '';
       _plotController.text = p.plotArea?.toStringAsFixed(0) ?? '';
-      _priceController.text = p.price.toStringAsFixed(0);
+      _priceController.text = BudgetFormatter.format(p.price);
       _depositController.text = p.deposit.toStringAsFixed(0);
       _maintenanceController.text = p.maintenance.toStringAsFixed(0);
       _selectedFurnishing = p.furnishingTypeId;
@@ -295,7 +299,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       'super_builtup_area': double.tryParse(_superBuiltupController.text),
       'carpet_area': double.tryParse(_carpetController.text),
       'plot_area': double.tryParse(_plotController.text),
-      'price': double.tryParse(_priceController.text) ?? 0.0,
+      'price': BudgetFormatter.parse(_priceController.text),
       'deposit': double.tryParse(_depositController.text) ?? 0.0,
       'maintenance': double.tryParse(_maintenanceController.text) ?? 0.0,
       'furnishing_type_id': _selectedFurnishing,
@@ -794,33 +798,94 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               ),
             ],
           ),
-          if (widget.metadata.amenities.isNotEmpty) ...[
-            const SizedBox(height: CRMSpacing.l),
-            Text('Amenities', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
-            const SizedBox(height: CRMSpacing.s),
-            Wrap(
-              spacing: CRMSpacing.s,
-              runSpacing: CRMSpacing.xs,
-              children: widget.metadata.amenities.map((amenity) {
-                final isSelected = _selectedAmenities.contains(amenity.id);
-                return FilterChip(
-                  label: Text(amenity.name),
-                  selected: isSelected,
-                  selectedColor: CRMColors.primary.withOpacity(0.12),
-                  checkmarkColor: CRMColors.primary,
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedAmenities.add(amenity.id);
-                      } else {
-                        _selectedAmenities.remove(amenity.id);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ],
+          const SizedBox(height: CRMSpacing.l),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Amenities', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
+              TextButton.icon(
+                onPressed: _showAddAmenityDialog,
+                icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                label: const Text('Add Custom Amenity'),
+                style: TextButton.styleFrom(
+                  foregroundColor: CRMColors.primary,
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: CRMSpacing.s),
+          Wrap(
+            spacing: CRMSpacing.s,
+            runSpacing: CRMSpacing.xs,
+            children: _localAmenities.map((amenity) {
+              final isSelected = _selectedAmenities.contains(amenity.id);
+              return FilterChip(
+                label: Text(amenity.name),
+                selected: isSelected,
+                selectedColor: CRMColors.primary.withOpacity(0.12),
+                checkmarkColor: CRMColors.primary,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedAmenities.add(amenity.id);
+                    } else {
+                      _selectedAmenities.remove(amenity.id);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAddAmenityDialog() async {
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: CRMColors.cardBg,
+        title: Text('Add Custom Amenity', style: TextStyle(color: CRMColors.textOf(context))),
+        content: TextField(
+          controller: controller,
+          style: TextStyle(color: CRMColors.textOf(context)),
+          decoration: const InputDecoration(
+            hintText: 'Enter amenity name (e.g. Solar Panels)',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                try {
+                  final newAmenity = await PropertiesRepository().createAmenity(name);
+                  setState(() {
+                    _localAmenities.add(newAmenity);
+                    _selectedAmenities.add(newAmenity.id);
+                  });
+                  if (context.mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to add amenity: $e'), backgroundColor: CRMColors.danger),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Add'),
+          ),
         ],
       ),
     );

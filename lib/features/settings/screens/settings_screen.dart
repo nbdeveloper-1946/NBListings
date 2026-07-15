@@ -34,8 +34,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadLocationMetadata() async {
     setState(() => _isLoading = true);
     try {
-      final metadataResponse = await _propertiesService.getPropertyMetadata();
-      final meta = PropertyMetadataModel.fromJson(metadataResponse['data']['metadata'] ?? {});
+      final response = await _propertiesService.getPropertyMetadata();
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final meta = PropertyMetadataModel.fromJson(data['metadata'] ?? {});
       setState(() {
         _cities = meta.cities;
         _areas = meta.areas;

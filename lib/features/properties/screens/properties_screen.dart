@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
@@ -23,6 +24,7 @@ class PropertiesScreen extends StatefulWidget {
 class _PropertiesScreenState extends State<PropertiesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _activeTab = 'All';
+  bool _hasAutoOpenedAdd = false;
   String? _selectedCategory;
   String? _selectedArea;
   String? _selectedListingType;
@@ -100,6 +102,14 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
             properties = state.properties;
             metadata = state.metadata;
             bookmarkedIds = state.bookmarkedIds;
+
+            final action = GoRouterState.of(context).uri.queryParameters['action'];
+            if (action == 'add' && !_hasAutoOpenedAdd && state.metadata != null) {
+              _hasAutoOpenedAdd = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _showAddEditPropertyDialog(context, state.metadata!);
+              });
+            }
           }
 
           final totalPages = properties.isEmpty ? 1 : (properties.length / _pageSize).ceil();
@@ -202,8 +212,9 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                 ),
                               ],
                               IconButton(
-                                icon: Icon(Icons.share_outlined, color: CRMColors.success, size: 18),
-                                  onPressed: () => _launchWhatsApp(p),
+                                icon: Icon(Icons.chat_bubble_outline_rounded, color: CRMColors.success, size: 18),
+                                onPressed: () => _launchWhatsApp(p),
+                                tooltip: 'Contact on WhatsApp',
                               ),
                             ],
                           ),
@@ -618,10 +629,13 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     required ValueChanged<String?> onChanged,
     required double width,
   }) {
+    final bool hasValue = value == null || items.any((item) => item.value == value);
+    final String? safeValue = hasValue ? value : null;
+
     return SizedBox(
       width: width,
       child: DropdownButtonFormField<String>(
-        value: value,
+        value: safeValue,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,

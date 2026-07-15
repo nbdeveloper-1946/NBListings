@@ -12,6 +12,7 @@ import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/data_table.dart';
+import '../../../core/utils/budget_formatter.dart';
 
 class RequirementsScreen extends StatefulWidget {
   const RequirementsScreen({super.key});
@@ -24,21 +25,50 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String? _selectedConfigId;
   String _selectedStatus = "All";
+  final PropertiesRepository _propertiesRepository = PropertiesRepository();
+  PropertyMetadataModel? _metadata;
+  bool _isLoadingMetadata = true;
+  bool _hasAutoOpenedAdd = false;
 
   @override
   void initState() {
     super.initState();
+    _loadMetadata();
     _triggerFetch();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final action = GoRouterState.of(context).uri.queryParameters['action'];
+        if (action == 'add' && !_hasAutoOpenedAdd) {
+          _hasAutoOpenedAdd = true;
+          _showAddEditDialog();
+        }
+      }
+    });
+  }
+
+  Future<void> _loadMetadata() async {
+    try {
+      final meta = await _propertiesRepository.getPropertyMetadata();
+      setState(() {
+        _metadata = meta;
+        _isLoadingMetadata = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingMetadata = false;
+      });
+    }
   }
 
   void _triggerFetch() {
     context.read<RequirementsBloc>().add(
-          FetchRequirementsEvent(
-            search: _searchController.text.trim(),
-            configurationId: _selectedConfigId,
-            status: _selectedStatus,
-          ),
-        );
+      FetchRequirementsEvent(
+        search: _searchController.text.trim(),
+        configurationId: _selectedConfigId,
+        status: _selectedStatus,
+      ),
+    );
   }
 
   void _clearFilters() {
@@ -158,29 +188,62 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   }
 
   Widget _buildPageHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        if (isMobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Requirements Tracker",
+                style: CRMTypography.pageTitle.copyWith(color: CRMColors.text),
+              ),
+              const SizedBox(height: 4.0),
+              Text(
+                "Manage buyer requirements and run listing match iterations",
+                style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
+              ),
+              const SizedBox(height: CRMSpacing.m),
+              SizedBox(
+                width: double.infinity,
+                child: CRMButton(
+                  label: "Add Requirement",
+                  prefixIcon: Icons.add_rounded,
+                  onPressed: () => _showAddEditDialog(),
+                ),
+              ),
+            ],
+          );
+        }
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "Requirements Tracker",
-              style: CRMTypography.pageTitle.copyWith(color: CRMColors.text),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Requirements Tracker",
+                    style: CRMTypography.pageTitle.copyWith(color: CRMColors.text),
+                  ),
+                  const SizedBox(height: 4.0),
+                  Text(
+                    "Manage buyer requirements and run listing match iterations",
+                    style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 4.0),
-            Text(
-              "Manage buyer requirements and run listing match iterations",
-              style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
+            const SizedBox(width: CRMSpacing.m),
+            CRMButton(
+              label: "Add Requirement",
+              prefixIcon: Icons.add_rounded,
+              onPressed: () => _showAddEditDialog(),
             ),
           ],
-        ),
-        CRMButton(
-          label: "Add Requirement",
-          prefixIcon: Icons.add_rounded,
-          onPressed: () => _showAddEditDialog(),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -197,36 +260,45 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
           closed = state.requirements.where((r) => r.status == 'Closed').length;
         }
 
+        final cards = [
+          CRMKPICard(
+            title: "TOTAL INQUIRIES",
+            value: total.toString(),
+            icon: Icons.assignment_rounded,
+            iconColor: CRMColors.primary,
+          ),
+          CRMKPICard(
+            title: "ACTIVE SEARCHES",
+            value: active.toString(),
+            icon: Icons.hourglass_empty_rounded,
+            iconColor: CRMColors.warning,
+          ),
+          CRMKPICard(
+            title: "MATCHED & CLOSED",
+            value: closed.toString(),
+            icon: Icons.check_circle_outline_rounded,
+            iconColor: CRMColors.success,
+          ),
+        ];
+
         return LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 700;
-            return GridView.count(
-              crossAxisCount: isWide ? 3 : 1,
-              crossAxisSpacing: CRMSpacing.m,
-              mainAxisSpacing: CRMSpacing.m,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: isWide ? 2.5 : 4,
-              children: [
-                CRMKPICard(
-                  title: "TOTAL INQUIRIES",
-                  value: total.toString(),
-                  icon: Icons.assignment_rounded,
-                  iconColor: CRMColors.primary,
+            if (!isWide) {
+              return Column(
+                children: cards.map((card) => Padding(
+                  padding: const EdgeInsets.only(bottom: CRMSpacing.s),
+                  child: card,
+                )).toList(),
+              );
+            }
+            return Row(
+              children: cards.map((card) => Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.xs),
+                  child: card,
                 ),
-                CRMKPICard(
-                  title: "ACTIVE SEARCHES",
-                  value: active.toString(),
-                  icon: Icons.hourglass_empty_rounded,
-                  iconColor: CRMColors.warning,
-                ),
-                CRMKPICard(
-                  title: "MATCHED & CLOSED",
-                  value: closed.toString(),
-                  icon: Icons.check_circle_outline_rounded,
-                  iconColor: CRMColors.success,
-                ),
-              ],
+              )).toList(),
             );
           },
         );
@@ -272,15 +344,12 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             spacing: CRMSpacing.m,
             runSpacing: CRMSpacing.s,
             children: [
-              _buildDropdownFilter(
+              _buildDropdownFilter<String?>(
                 label: 'Configuration',
                 value: _selectedConfigId,
                 items: [
                   const DropdownMenuItem(value: null, child: Text("All Configurations")),
-                  const DropdownMenuItem(value: '1bhk', child: Text("1 BHK")),
-                  const DropdownMenuItem(value: '2bhk', child: Text("2 BHK")),
-                  const DropdownMenuItem(value: '3bhk', child: Text("3 BHK")),
-                  const DropdownMenuItem(value: '4bhk', child: Text("4 BHK")),
+                  ...?_metadata?.configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
                 ],
                 onChanged: (val) {
                   setState(() => _selectedConfigId = val);
@@ -316,11 +385,14 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
   }) {
+    final bool hasValue = value == null || items.any((item) => item.value == value);
+    final T? safeValue = hasValue ? value : null;
+
     return SizedBox(
       width: 200,
       height: 44,
       child: DropdownButtonFormField<T>(
-        value: value,
+        value: safeValue,
         dropdownColor: CRMColors.cardBg,
         style: CRMTypography.body.copyWith(color: CRMColors.text),
         decoration: InputDecoration(
@@ -354,96 +426,267 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
           requirements = state.requirements;
         }
 
-        return CRMDataTable(
-          isLoading: isLoading,
-          emptyTitle: 'No Requirements Found',
-          emptyDescription: 'Try adjusting filters or create a new requirement pipeline.',
-          columns: const [
-            DataColumn(label: Text('Client')),
-            DataColumn(label: Text('Category')),
-            DataColumn(label: Text('Specs / Config')),
-            DataColumn(label: Text('Budget Range')),
-            DataColumn(label: Text('Target Area(s)')),
-            DataColumn(label: Text('Status')),
-            DataColumn(label: Text('Matches')),
-            DataColumn(label: Text('Actions')),
-          ],
-          rows: requirements.map((req) {
-            final isActive = req.status == 'Active';
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 700;
 
-            return DataRow(
-              cells: [
-                DataCell(
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(req.clientName, style: CRMTypography.bodyMedium.copyWith(color: CRMColors.text)),
-                      Text(req.clientMobile, style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
-                    ],
-                  ),
-                ),
-                DataCell(Text(req.categoryName, style: CRMTypography.body.copyWith(color: CRMColors.textSecondary))),
-                DataCell(Text('${req.propertyTypeName} (${req.configurationName ?? "-"})', style: CRMTypography.body.copyWith(color: CRMColors.text))),
-                DataCell(
-                  Text(
-                    '${(req.minBudget / 100000).toStringAsFixed(0)}L - ${(req.maxBudget / 100000).toStringAsFixed(0)}L',
-                    style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary),
-                  ),
-                ),
-                DataCell(
-                  Tooltip(
-                    message: req.areaNames.join(', '),
-                    child: Text(
-                      req.areaNames.join(', '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
-                    ),
-                  ),
-                ),
-                DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: CRMSpacing.xxs),
-                    decoration: BoxDecoration(
-                      color: isActive ? CRMColors.success.withOpacity(0.12) : CRMColors.textMuted.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(CRMBorderRadius.round),
-                    ),
-                    child: Text(
-                      req.status,
-                      style: CRMTypography.captionBold.copyWith(
-                        color: isActive ? CRMColors.success : CRMColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-                DataCell(
-                  CRMButton(
-                    label: "Run Matches",
-                    prefixIcon: Icons.bolt_rounded,
-                    onPressed: () => _showMatchesDrawer(req),
-                  ),
-                ),
-                DataCell(
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
-                        onPressed: () => _showAddEditDialog(req),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
-                        onPressed: () => _showDeleteConfirmDialog(req),
-                      ),
-                    ],
-                  ),
-                ),
+            if (isMobile) {
+              return _buildRequirementCards(requirements, isLoading);
+            }
+
+            return CRMDataTable(
+              isLoading: isLoading,
+              emptyTitle: 'No Requirements Found',
+              emptyDescription: 'Try adjusting filters or create a new requirement pipeline.',
+              columns: const [
+                DataColumn(label: Text('Client')),
+                DataColumn(label: Text('Category')),
+                DataColumn(label: Text('Specs / Config')),
+                DataColumn(label: Text('Budget Range')),
+                DataColumn(label: Text('Target Area(s)')),
+                DataColumn(label: Text('Status')),
+                DataColumn(label: Text('Matches')),
+                DataColumn(label: Text('Actions')),
               ],
+              rows: requirements.map((req) {
+                final isActive = req.status == 'Active';
+
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(req.clientName, style: CRMTypography.bodyMedium.copyWith(color: CRMColors.text)),
+                          Text(req.clientMobile, style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
+                        ],
+                      ),
+                    ),
+                    DataCell(Text(req.categoryName, style: CRMTypography.body.copyWith(color: CRMColors.textSecondary))),
+                    DataCell(Text('${req.propertyTypeName} (${req.configurationName ?? "-"})', style: CRMTypography.body.copyWith(color: CRMColors.text))),
+                    DataCell(
+                      Text(
+                        '${BudgetFormatter.format(req.minBudget)} - ${BudgetFormatter.format(req.maxBudget)}',
+                        style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary),
+                      ),
+                    ),
+                    DataCell(
+                      Tooltip(
+                        message: req.areaNames.join(', '),
+                        child: Text(
+                          req.areaNames.join(', '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: CRMSpacing.xxs),
+                        decoration: BoxDecoration(
+                          color: isActive ? CRMColors.success.withValues(alpha: 0.12) : CRMColors.textMuted.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(CRMBorderRadius.round),
+                        ),
+                        child: Text(
+                          req.status,
+                          style: CRMTypography.captionBold.copyWith(
+                            color: isActive ? CRMColors.success : CRMColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    DataCell(
+                      CRMButton(
+                        label: "Run Matches",
+                        prefixIcon: Icons.bolt_rounded,
+                        onPressed: () => _showMatchesDrawer(req),
+                      ),
+                    ),
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                            onPressed: () => _showAddEditDialog(req),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                            onPressed: () => _showDeleteConfirmDialog(req),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
             );
-          }).toList(),
+          },
         );
       },
+    );
+  }
+
+  Widget _buildRequirementCards(List<RequirementModel> requirements, bool isLoading) {
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(CRMSpacing.m),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (requirements.isEmpty) {
+      return CRMCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: CRMSpacing.xl),
+          child: Column(
+            children: [
+              Icon(Icons.folder_open_rounded, size: 48, color: CRMColors.textMuted),
+              const SizedBox(height: CRMSpacing.s),
+              Text('No Requirements Found', style: CRMTypography.cardTitle.copyWith(color: CRMColors.text)),
+              const SizedBox(height: CRMSpacing.xxs),
+              Text(
+                'Try adjusting filters or create a new requirement pipeline.',
+                style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: requirements.map((req) {
+        final isActive = req.status == 'Active';
+        final budget = '₹${BudgetFormatter.format(req.minBudget)} - ₹${BudgetFormatter.format(req.maxBudget)}';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: CRMSpacing.m),
+          decoration: BoxDecoration(
+            color: CRMColors.cardBg,
+            borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+            border: Border.all(color: CRMColors.border, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Client header with status
+              Padding(
+                padding: const EdgeInsets.fromLTRB(CRMSpacing.m, CRMSpacing.m, CRMSpacing.m, CRMSpacing.s),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: CRMColors.primary.withValues(alpha: 0.1),
+                      child: Text(
+                        req.clientName.isNotEmpty ? req.clientName[0].toUpperCase() : '?',
+                        style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(width: CRMSpacing.s),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            req.clientName,
+                            style: CRMTypography.bodyMedium.copyWith(color: CRMColors.text, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            req.clientMobile,
+                            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: CRMSpacing.xxs),
+                      decoration: BoxDecoration(
+                        color: isActive ? CRMColors.success.withValues(alpha: 0.12) : CRMColors.textMuted.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(CRMBorderRadius.round),
+                      ),
+                      child: Text(
+                        req.status,
+                        style: CRMTypography.captionBold.copyWith(
+                          color: isActive ? CRMColors.success : CRMColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(color: CRMColors.border, height: 1),
+              // Details grid
+              Padding(
+                padding: const EdgeInsets.all(CRMSpacing.m),
+                child: Wrap(
+                  spacing: CRMSpacing.m,
+                  runSpacing: CRMSpacing.s,
+                  children: [
+                    _buildDetailChip(Icons.category_rounded, 'Category', req.categoryName),
+                    _buildDetailChip(Icons.apartment_rounded, 'Type', '${req.propertyTypeName} (${req.configurationName ?? "-"})'),
+                    _buildDetailChip(Icons.currency_rupee_rounded, 'Budget', budget),
+                    _buildDetailChip(Icons.location_on_rounded, 'Area', req.areaNames.join(', ')),
+                  ],
+                ),
+              ),
+              // Action buttons
+              Divider(color: CRMColors.border, height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: CRMSpacing.xs),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton.icon(
+                        icon: Icon(Icons.bolt_rounded, size: 18, color: CRMColors.primary),
+                        label: Text('Matches', style: CRMTypography.captionBold.copyWith(color: CRMColors.primary)),
+                        onPressed: () => _showMatchesDrawer(req),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                      onPressed: () => _showAddEditDialog(req),
+                      tooltip: 'Edit',
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                      onPressed: () => _showDeleteConfirmDialog(req),
+                      tooltip: 'Delete',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDetailChip(IconData icon, String label, String value) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: CRMColors.textMuted),
+        const SizedBox(width: 4),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: CRMTypography.caption.copyWith(color: CRMColors.textMuted, fontSize: 10)),
+            Text(
+              value,
+              style: CRMTypography.captionBold.copyWith(color: CRMColors.text),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -476,10 +719,10 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
       final matches = properties.where((p) {
         // 1. Category Check
         final catMatch = p.categoryId == req.categoryId;
-        
+
         // 2. Property Type Check
         final typeMatch = p.propertyTypeId == req.propertyTypeId;
-        
+
         // 3. Configuration Check
         final configMatch = req.configurationId == null || p.configurationId == req.configurationId;
 
@@ -536,7 +779,7 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
             style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
           ),
           const Divider(height: CRMSpacing.xl),
-          
+
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40.0),
@@ -578,7 +821,7 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
                         children: [
                           Text(p.title, style: CRMTypography.bodyMedium),
                           Text(
-                            '₹${(p.price / 100000).toStringAsFixed(1)}L',
+                            '₹${BudgetFormatter.format(p.price)}',
                             style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary),
                           ),
                         ],

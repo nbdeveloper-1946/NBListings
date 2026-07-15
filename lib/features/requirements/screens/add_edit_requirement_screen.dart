@@ -9,6 +9,7 @@ import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/inputs.dart';
+import '../../../core/utils/budget_formatter.dart';
 
 class AddEditRequirementScreen extends StatefulWidget {
   final RequirementModel? requirement;
@@ -82,8 +83,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
           final req = widget.requirement!;
           _nameController.text = req.clientName;
           _mobileController.text = req.clientMobile;
-          _minBudgetController.text = req.minBudget.toStringAsFixed(0);
-          _maxBudgetController.text = req.maxBudget.toStringAsFixed(0);
+          _minBudgetController.text = BudgetFormatter.format(req.minBudget);
+          _maxBudgetController.text = BudgetFormatter.format(req.maxBudget);
           _minAreaController.text = req.minArea?.toStringAsFixed(0) ?? '';
           _maxAreaController.text = req.maxArea?.toStringAsFixed(0) ?? '';
           _remarksController.text = req.remarks ?? '';
@@ -134,8 +135,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       propertyTypeName: type.name,
       configurationId: _selectedConfigId,
       configurationName: config.id.isNotEmpty ? config.name : null,
-      minBudget: double.tryParse(_minBudgetController.text) ?? 0.0,
-      maxBudget: double.tryParse(_maxBudgetController.text) ?? 0.0,
+      minBudget: BudgetFormatter.parse(_minBudgetController.text),
+      maxBudget: BudgetFormatter.parse(_maxBudgetController.text),
       minArea: double.tryParse(_minAreaController.text),
       maxArea: double.tryParse(_maxAreaController.text),
       areaIds: _selectedAreaIds,
