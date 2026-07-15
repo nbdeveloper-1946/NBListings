@@ -35,15 +35,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 17) return 'Good Afternoon,';
+    return 'Good Evening,';
+  }
+
+  String _getFormattedDate() {
+    final now = DateTime.now();
+    final months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return '${now.day} ${months[now.month - 1]} ${now.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
     String userEmail = 'admin@nbdeveloper.com';
+    bool isAdmin = false;
     if (authState is Authenticated) {
       userEmail = authState.user.email;
+      isAdmin = authState.user.role == 'Admin';
     }
 
-    final dateString = "14 July 2026";
+    final dateString = _getFormattedDate();
+    final greeting = _getGreeting();
 
     return BlocBuilder<DashboardBloc, DashboardState>(
       builder: (context, state) {
@@ -69,14 +88,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // 1. Welcome Header
-                  _buildWelcomeHeader(userEmail, dateString),
+                  _buildWelcomeHeader(userEmail, dateString, greeting),
                   const SizedBox(height: CRMSpacing.l),
 
                   // 2. Quick Actions
                   _buildQuickActions(),
                   const SizedBox(height: CRMSpacing.l),
 
-                  // 3. Property KPI Cards & 4. Requirement KPI Cards
+                  // 3. Property KPI Cards
                   _buildKPIGrids(data.summary),
                   const SizedBox(height: CRMSpacing.l),
 
@@ -105,7 +124,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 children: [
                                   _buildTodayWork(),
                                   const SizedBox(height: CRMSpacing.l),
-                                  _buildRecentActivities(data.activity),
+                                  if (isAdmin) ...[
+                                    _buildRecentActivities(data.activity),
+                                  ],
                                 ],
                               ),
                             ),
@@ -120,7 +141,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: CRMSpacing.l),
                             _buildRecentProperties(data.recentProperties),
                             const SizedBox(height: CRMSpacing.l),
-                            _buildRecentActivities(data.activity),
+                            if (isAdmin) ...[
+                              _buildRecentActivities(data.activity),
+                              const SizedBox(height: CRMSpacing.l),
+                            ],
                           ],
                         );
                       }
@@ -140,7 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildWelcomeHeader(String email, String dateString) {
+  Widget _buildWelcomeHeader(String email, String dateString, String greeting) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -148,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Good Morning,',
+              greeting,
               style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
             ),
             Text(
@@ -185,13 +209,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           CRMButton(
             label: 'Add Property',
             prefixIcon: Icons.add_business_rounded,
-            onPressed: () => context.push('/properties'),
+            onPressed: () => context.go('/properties'),
           ),
           CRMButton(
             label: 'Add Requirement',
             prefixIcon: Icons.add_task_rounded,
             variant: CRMButtonVariant.secondary,
-            onPressed: () => _showActionSnackbar('Add Requirement'),
+            onPressed: () => context.go('/requirements'),
           ),
           CRMButton(
             label: 'Import Excel',
@@ -219,7 +243,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: MediaQuery.of(context).size.width >= 1100 ? 5 : (MediaQuery.of(context).size.width >= 700 ? 3 : 1),
+          // Use 2 columns on mobile/small screens for proper responsiveness
+          crossAxisCount: MediaQuery.of(context).size.width >= 1100 ? 5 : (MediaQuery.of(context).size.width >= 700 ? 3 : 2),
           crossAxisSpacing: CRMSpacing.m,
           mainAxisSpacing: CRMSpacing.m,
           childAspectRatio: 1.5,
@@ -314,7 +339,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildAnalyticsChart() {
     return CRMCard(
       title: 'Properties & Requirements Analytics',
-      subtitle: 'System entries volume registered month-over-month',
+      subtitle: 'System entries volume registered month-over-month (Mock)',
       child: SizedBox(
         height: 220,
         child: Row(
