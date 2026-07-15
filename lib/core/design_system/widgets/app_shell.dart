@@ -50,7 +50,11 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   color: CRMColors.sidebarBg,
                   border: Border(right: BorderSide(color: CRMColors.border, width: 1.5)),
                 ),
-                child: _buildSidebarContent(location),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return _buildSidebarContent(location, sidebarWidth: constraints.maxWidth);
+                  },
+                ),
               ),
             ),
           Expanded(
@@ -178,7 +182,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
     );
   }
 
-  Widget _buildSidebarContent(String currentPath, {bool isMobile = false}) {
+  Widget _buildSidebarContent(String currentPath, {bool isMobile = false, double? sidebarWidth}) {
     final userState = context.read<AuthBloc>().state;
     String userEmail = 'broker@nbrealty.com';
     String userRole = 'Agent';
@@ -188,16 +192,20 @@ class _CRMAppShellState extends State<CRMAppShell> {
       userRole = userState.user.role;
     }
 
-    final displayEmail = _isSidebarExpanded || isMobile ? userEmail : '';
-    final displayRole = _isSidebarExpanded || isMobile ? userRole : '';
+    final isExpanded = isMobile || (sidebarWidth == null ? _isSidebarExpanded : sidebarWidth > 200.0);
+    final displayEmail = isExpanded ? userEmail : '';
+    final displayRole = isExpanded ? userRole : '';
 
     return SafeArea(
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(CRMSpacing.l),
+            padding: EdgeInsets.symmetric(
+              vertical: CRMSpacing.l,
+              horizontal: isExpanded ? CRMSpacing.l : CRMSpacing.xs,
+            ),
             child: Row(
-              mainAxisAlignment: (_isSidebarExpanded || isMobile) ? MainAxisAlignment.start : MainAxisAlignment.center,
+              mainAxisAlignment: isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.all(CRMSpacing.xs),
@@ -207,13 +215,18 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   ),
                   child: Icon(Icons.blur_on_rounded, color: CRMColors.primary, size: 28),
                 ),
-                if (_isSidebarExpanded || isMobile) ...[
+                if (isExpanded) ...[
                   const SizedBox(width: CRMSpacing.s),
-                  Text(
-                    'NB Listings',
-                    style: CRMTypography.sectionTitle.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: CRMColors.textOf(context),
+                  Flexible(
+                    child: Text(
+                      'NB Listings',
+                      style: CRMTypography.sectionTitle.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: CRMColors.textOf(context),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.clip,
+                      softWrap: false,
                     ),
                   ),
                 ],
@@ -225,28 +238,31 @@ class _CRMAppShellState extends State<CRMAppShell> {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: CRMSpacing.m, horizontal: CRMSpacing.s),
               children: [
-                _buildSidebarItem(Icons.dashboard_rounded, 'Dashboard', '/dashboard', currentPath, isMobile),
-                _buildSidebarItem(Icons.home_work_rounded, 'Properties', '/properties', currentPath, isMobile),
-                _buildSidebarItem(Icons.assignment_rounded, 'Requirements', '/requirements', currentPath, isMobile),
+                _buildSidebarItem(Icons.dashboard_rounded, 'Dashboard', '/dashboard', currentPath, isMobile, isExpanded),
+                _buildSidebarItem(Icons.home_work_rounded, 'Properties', '/properties', currentPath, isMobile, isExpanded),
+                _buildSidebarItem(Icons.assignment_rounded, 'Requirements', '/requirements', currentPath, isMobile, isExpanded),
                 if (userRole == 'Admin')
-                  _buildSidebarItem(Icons.people_outline_rounded, 'Employees', '/users', currentPath, isMobile),
-                _buildSidebarItem(Icons.monetization_on_rounded, 'Finance', '/finance', currentPath, isMobile),
-                _buildSidebarItem(Icons.analytics_rounded, 'Reports', '/reports', currentPath, isMobile),
-                _buildSidebarItem(Icons.settings_rounded, 'Settings', '/settings', currentPath, isMobile),
+                  _buildSidebarItem(Icons.people_outline_rounded, 'Employees', '/users', currentPath, isMobile, isExpanded),
+                _buildSidebarItem(Icons.monetization_on_rounded, 'Finance', '/finance', currentPath, isMobile, isExpanded),
+                _buildSidebarItem(Icons.analytics_rounded, 'Reports', '/reports', currentPath, isMobile, isExpanded),
+                _buildSidebarItem(Icons.settings_rounded, 'Settings', '/settings', currentPath, isMobile, isExpanded),
               ],
             ),
           ),
           Divider(color: CRMColors.border, height: 1),
           Padding(
-            padding: const EdgeInsets.all(CRMSpacing.m),
+            padding: EdgeInsets.symmetric(
+              vertical: CRMSpacing.m,
+              horizontal: isExpanded ? CRMSpacing.m : CRMSpacing.xs,
+            ),
             child: Row(
-              mainAxisAlignment: (_isSidebarExpanded || isMobile) ? MainAxisAlignment.start : MainAxisAlignment.center,
+              mainAxisAlignment: isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
               children: [
                 CircleAvatar(
                   backgroundColor: CRMColors.primary.withValues(alpha: 0.1),
                   child: Icon(Icons.person_outline_rounded, color: CRMColors.primary),
                 ),
-                if (_isSidebarExpanded || isMobile) ...[
+                if (isExpanded) ...[
                   const SizedBox(width: CRMSpacing.m),
                   Expanded(
                     child: Column(
@@ -263,7 +279,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                         ),
                       ],
                     ),
-                  ),
+                      ),
                   IconButton(
                     icon: Icon(Icons.logout_rounded, color: CRMColors.danger),
                     onPressed: _handleLogout,
@@ -283,6 +299,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
     String route,
     String currentPath,
     bool isMobile,
+    bool isExpanded,
   ) {
     return _SidebarItem(
       icon: icon,
@@ -290,7 +307,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
       route: route,
       currentPath: currentPath,
       isMobile: isMobile,
-      isSidebarExpanded: _isSidebarExpanded,
+      isSidebarExpanded: isExpanded,
       onTap: () {
         if (isMobile) {
           Navigator.pop(context);
