@@ -228,16 +228,16 @@ class _BuildersScreenState extends State<BuildersScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search by developer company, contact person, project names...',
                     hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-                    prefixIcon: const Icon(Icons.search_rounded, color: CRMColors.textMuted),
+                    prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted),
                     filled: true,
                     fillColor: CRMColors.background,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.border),
+                      borderSide: BorderSide(color: CRMColors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.border),
+                      borderSide: BorderSide(color: CRMColors.border),
                     ),
                   ),
                   onChanged: (val) => _triggerFetch(),
@@ -296,11 +296,11 @@ class _BuildersScreenState extends State<BuildersScreen> {
           fillColor: CRMColors.background,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            borderSide: const BorderSide(color: CRMColors.border),
+            borderSide: BorderSide(color: CRMColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            borderSide: const BorderSide(color: CRMColors.border),
+            borderSide: BorderSide(color: CRMColors.border),
           ),
         ),
         items: items,
@@ -371,11 +371,11 @@ class _BuildersScreenState extends State<BuildersScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
                         onPressed: () => _showAddEditDialog(bld),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
                         onPressed: () => _showDeleteConfirmDialog(bld),
                       ),
                     ],

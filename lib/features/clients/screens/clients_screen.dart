@@ -96,7 +96,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CRMColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: BlocListener<ClientsBloc, ClientsState>(
         listener: (context, state) {
           if (state is ClientsSuccess) {
@@ -235,16 +235,16 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search by client name, email, mobile, comments...',
                     hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-                    prefixIcon: const Icon(Icons.search_rounded, color: CRMColors.textMuted),
+                    prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted),
                     filled: true,
                     fillColor: CRMColors.background,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.border),
+                      borderSide: BorderSide(color: CRMColors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.border),
+                      borderSide: BorderSide(color: CRMColors.border),
                     ),
                   ),
                   onChanged: (val) => _triggerFetch(),
@@ -356,11 +356,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
           fillColor: CRMColors.background,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            borderSide: const BorderSide(color: CRMColors.border),
+            borderSide: BorderSide(color: CRMColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            borderSide: const BorderSide(color: CRMColors.border),
+            borderSide: BorderSide(color: CRMColors.border),
           ),
         ),
         items: items,
@@ -436,7 +436,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                 margin: const EdgeInsets.only(bottom: CRMSpacing.xs),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                                  side: const BorderSide(color: CRMColors.border),
+                                  side: BorderSide(color: CRMColors.border),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(CRMSpacing.m),
@@ -454,7 +454,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                             ),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.edit_outlined, size: 16, color: CRMColors.primary),
+                                            icon: Icon(Icons.edit_outlined, size: 16, color: CRMColors.primary),
                                             onPressed: () => _showAddEditDialog(c),
                                             padding: EdgeInsets.zero,
                                             constraints: const BoxConstraints(),
@@ -507,7 +507,16 @@ class _ClientsScreenState extends State<ClientsScreen> {
             );
 
             return isWide
-                ? SingleChildScrollView(scrollDirection: Axis.horizontal, child: ConstrainedBox(constraints: BoxConstraints(minWidth: constraints.maxWidth, maxWidth: 1200), child: boardBody))
+                ? SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: 1200,
+                        maxWidth: constraints.maxWidth > 1200 ? constraints.maxWidth : 1200,
+                      ),
+                      child: boardBody,
+                    ),
+                  )
                 : SingleChildScrollView(child: Column(children: stages.map((st) {
                     final stageClients = clients.where((c) => c.stage == st).toList();
                     return Container(
@@ -585,11 +594,11 @@ class _ClientsScreenState extends State<ClientsScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
                         onPressed: () => _showAddEditDialog(c),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
                         onPressed: () => _showDeleteConfirmDialog(c),
                       ),
                     ],

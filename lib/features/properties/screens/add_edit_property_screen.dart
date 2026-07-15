@@ -221,7 +221,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     final isEdit = widget.property != null;
 
     return Scaffold(
-      backgroundColor: CRMColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(isEdit ? 'Edit CRM Listing' : 'Publish New Property', style: CRMTypography.sectionTitle),
         backgroundColor: CRMColors.cardBg,
@@ -291,7 +291,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   Widget _buildStepDivider() {
-    return const Expanded(
+    return Expanded(
       child: Divider(color: CRMColors.border, thickness: 1.5, indent: 8, endIndent: 8),
     );
   }
@@ -764,7 +764,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   Widget _buildWizardActions(bool isEdit) {
     return Container(
       padding: const EdgeInsets.all(CRMSpacing.m),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: CRMColors.cardBg,
         border: Border(top: BorderSide(color: CRMColors.border)),
       ),

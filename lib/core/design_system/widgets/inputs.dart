@@ -59,23 +59,23 @@ class CRMTextField extends StatelessWidget {
             fillColor: CRMColors.cardBg,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: const BorderSide(color: CRMColors.border, width: 1),
+              borderSide: BorderSide(color: CRMColors.border, width: 1),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: const BorderSide(color: CRMColors.border, width: 1),
+              borderSide: BorderSide(color: CRMColors.border, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: const BorderSide(color: CRMColors.primary, width: 1.5),
+              borderSide: BorderSide(color: CRMColors.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: const BorderSide(color: CRMColors.danger, width: 1),
+              borderSide: BorderSide(color: CRMColors.danger, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: const BorderSide(color: CRMColors.danger, width: 1.5),
+              borderSide: BorderSide(color: CRMColors.danger, width: 1.5),
             ),
           ),
           validator: validator,

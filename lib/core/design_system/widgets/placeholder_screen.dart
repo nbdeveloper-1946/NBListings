@@ -96,7 +96,7 @@ class CRMPlaceholderScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: CRMSpacing.m),
-                      const Divider(color: CRMColors.border, height: 1),
+                      Divider(color: CRMColors.border, height: 1),
                       const SizedBox(height: CRMSpacing.m),
                       ...upcomingFeatures.map((feature) => Padding(
                             padding: const EdgeInsets.only(bottom: CRMSpacing.s),

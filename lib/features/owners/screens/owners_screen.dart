@@ -229,16 +229,16 @@ class _OwnersScreenState extends State<OwnersScreen> {
               decoration: InputDecoration(
                 hintText: 'Search by owner name, phone number, address details...',
                 hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-                prefixIcon: const Icon(Icons.search_rounded, color: CRMColors.textMuted),
+                prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted),
                 filled: true,
                 fillColor: CRMColors.background,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                  borderSide: const BorderSide(color: CRMColors.border),
+                  borderSide: BorderSide(color: CRMColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                  borderSide: const BorderSide(color: CRMColors.border),
+                  borderSide: BorderSide(color: CRMColors.border),
                 ),
               ),
               onChanged: (val) => _triggerFetch(),
@@ -308,11 +308,11 @@ class _OwnersScreenState extends State<OwnersScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
                         onPressed: () => _showAddEditDialog(owner),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
                         onPressed: () => _showDeleteConfirmDialog(owner),
                       ),
                     ],
@@ -373,7 +373,7 @@ class _CRMOwnerPropertiesDrawerState extends State<_CRMOwnerPropertiesDrawer> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: CRMColors.cardBg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.l)),
       ),
@@ -414,7 +414,7 @@ class _CRMOwnerPropertiesDrawerState extends State<_CRMOwnerPropertiesDrawer> {
               padding: const EdgeInsets.symmetric(vertical: 40.0),
               child: Column(
                 children: [
-                  const Icon(Icons.home_work_rounded, size: 48, color: CRMColors.textMuted),
+                  Icon(Icons.home_work_rounded, size: 48, color: CRMColors.textMuted),
                   const SizedBox(height: CRMSpacing.s),
                   Text("No Listings Registered Yet", style: CRMTypography.cardTitle),
                   const SizedBox(height: 4),
@@ -436,7 +436,7 @@ class _CRMOwnerPropertiesDrawerState extends State<_CRMOwnerPropertiesDrawer> {
                     margin: const EdgeInsets.only(bottom: CRMSpacing.s),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      side: const BorderSide(color: CRMColors.border),
+                      side: BorderSide(color: CRMColors.border),
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(CRMSpacing.m),
@@ -456,7 +456,7 @@ class _CRMOwnerPropertiesDrawerState extends State<_CRMOwnerPropertiesDrawer> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.location_on_rounded, size: 14, color: CRMColors.textSecondary),
+                              Icon(Icons.location_on_rounded, size: 14, color: CRMColors.textSecondary),
                               const SizedBox(width: 4),
                               Text('${p.areaName}, ${p.cityName}', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
                             ],
@@ -464,7 +464,7 @@ class _CRMOwnerPropertiesDrawerState extends State<_CRMOwnerPropertiesDrawer> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.square_foot_rounded, size: 14, color: CRMColors.textSecondary),
+                              Icon(Icons.square_foot_rounded, size: 14, color: CRMColors.textSecondary),
                               const SizedBox(width: 4),
                               Text('${p.superBuiltupArea ?? "-"} sq ft', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
                             ],

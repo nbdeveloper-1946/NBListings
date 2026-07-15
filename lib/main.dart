@@ -17,6 +17,7 @@ import 'features/builders/bloc/builders_bloc.dart';
 import 'core/navigation/app_router.dart';
 import 'core/design_system/tokens/app_colors.dart';
 import 'core/design_system/tokens/app_typography.dart';
+import 'core/theme/theme_manager.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -92,20 +93,37 @@ class _MyAppState extends State<MyApp> {
             ),
           ),
         ],
-        child: MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          title: 'NB Listings',
-          theme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.light,
-            fontFamily: CRMTypography.fontFamily,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: CRMColors.primary,
-              brightness: Brightness.light,
-            ),
-            scaffoldBackgroundColor: CRMColors.background,
-          ),
-          routerConfig: _appRouter.router,
+        child: ListenableBuilder(
+          listenable: ThemeManager(),
+          builder: (context, _) {
+            final isDark = ThemeManager().isDarkMode;
+            return MaterialApp.router(
+              debugShowCheckedModeBanner: false,
+              title: 'NB Listings',
+              themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+              theme: ThemeData(
+                useMaterial3: true,
+                brightness: Brightness.light,
+                fontFamily: CRMTypography.fontFamily,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: CRMColors.primary,
+                  brightness: Brightness.light,
+                ),
+                scaffoldBackgroundColor: CRMColors.background,
+              ),
+              darkTheme: ThemeData(
+                useMaterial3: true,
+                brightness: Brightness.dark,
+                fontFamily: CRMTypography.fontFamily,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: CRMColors.primary,
+                  brightness: Brightness.dark,
+                ),
+                scaffoldBackgroundColor: CRMColors.background,
+              ),
+              routerConfig: _appRouter.router,
+            );
+          },
         ),
       ),
     );

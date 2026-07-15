@@ -20,7 +20,7 @@ void showCRMPropertyDrawer(BuildContext context, PropertyModel property) {
           child: Container(
             width: 480,
             height: double.infinity,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: CRMColors.cardBg,
               border: Border(left: BorderSide(color: CRMColors.border, width: 1.5)),
             ),
@@ -51,13 +51,13 @@ void showCRMPropertyDrawer(BuildContext context, PropertyModel property) {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, color: CRMColors.textSecondary),
+                          icon: Icon(Icons.close_rounded, color: CRMColors.textSecondary),
                           onPressed: () => Navigator.pop(context),
                         ),
                       ],
                     ),
                   ),
-                  const Divider(color: CRMColors.border, height: 1),
+                  Divider(color: CRMColors.border, height: 1),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(CRMSpacing.m),
@@ -72,7 +72,7 @@ void showCRMPropertyDrawer(BuildContext context, PropertyModel property) {
                               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                               border: Border.all(color: CRMColors.border),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.image_outlined,
                               color: CRMColors.textMuted,
                               size: 48,
@@ -89,14 +89,14 @@ void showCRMPropertyDrawer(BuildContext context, PropertyModel property) {
                           _buildDetailRow('Verification', property.isVerified ? 'Verified' : 'Pending Verification'),
                           _buildDetailRow('Status', property.propertyStatusName),
                           const SizedBox(height: CRMSpacing.m),
-                          const Divider(color: CRMColors.border),
+                          Divider(color: CRMColors.border),
                           const SizedBox(height: CRMSpacing.s),
                           Text('Owner Details', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
                           const SizedBox(height: CRMSpacing.xs),
                           _buildDetailRow('Name', property.ownerName),
                           _buildDetailRow('Mobile', property.ownerMobile),
                           const SizedBox(height: CRMSpacing.m),
-                          const Divider(color: CRMColors.border),
+                          Divider(color: CRMColors.border),
                           const SizedBox(height: CRMSpacing.s),
                           Text('Broker Details', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
                           const SizedBox(height: CRMSpacing.xs),
@@ -105,7 +105,7 @@ void showCRMPropertyDrawer(BuildContext context, PropertyModel property) {
                       ),
                     ),
                   ),
-                  const Divider(color: CRMColors.border, height: 1),
+                  Divider(color: CRMColors.border, height: 1),
                   Padding(
                     padding: const EdgeInsets.all(CRMSpacing.m),
                     child: Row(

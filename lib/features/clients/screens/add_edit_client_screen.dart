@@ -235,11 +235,11 @@ class _AddEditClientScreenState extends State<AddEditClientScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.s),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: const BorderSide(color: CRMColors.border),
+              borderSide: BorderSide(color: CRMColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: const BorderSide(color: CRMColors.border),
+              borderSide: BorderSide(color: CRMColors.border),
             ),
           ),
           items: items,

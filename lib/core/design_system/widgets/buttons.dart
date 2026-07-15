@@ -41,7 +41,7 @@ class CRMButton extends StatelessWidget {
       case CRMButtonVariant.outline:
         bgColor = Colors.transparent;
         fgColor = CRMColors.textSecondary;
-        borderSide = const BorderSide(color: CRMColors.border, width: 1.5);
+        borderSide = BorderSide(color: CRMColors.border, width: 1.5);
         break;
       case CRMButtonVariant.danger:
         bgColor = CRMColors.danger;

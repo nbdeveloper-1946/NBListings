@@ -109,7 +109,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CRMColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: BlocListener<RequirementsBloc, RequirementsState>(
         listener: (context, state) {
           if (state is RequirementsSuccess) {
@@ -248,16 +248,16 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search by client name, mobile, specs, remarks...',
                     hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-                    prefixIcon: const Icon(Icons.search_rounded, color: CRMColors.textMuted),
+                    prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted),
                     filled: true,
                     fillColor: CRMColors.background,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.border),
+                      borderSide: BorderSide(color: CRMColors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.border),
+                      borderSide: BorderSide(color: CRMColors.border),
                     ),
                   ),
                   onChanged: (val) => _triggerFetch(),
@@ -331,11 +331,11 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
           fillColor: CRMColors.background,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            borderSide: const BorderSide(color: CRMColors.border),
+            borderSide: BorderSide(color: CRMColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            borderSide: const BorderSide(color: CRMColors.border),
+            borderSide: BorderSide(color: CRMColors.border),
           ),
         ),
         items: items,
@@ -429,11 +429,11 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
                         onPressed: () => _showAddEditDialog(req),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
                         onPressed: () => _showDeleteConfirmDialog(req),
                       ),
                     ],
@@ -506,9 +506,9 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: CRMColors.cardBg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.l)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.l)),
       ),
       padding: const EdgeInsets.all(CRMSpacing.l),
       child: Column(
@@ -547,7 +547,7 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
               padding: const EdgeInsets.symmetric(vertical: 40.0),
               child: Column(
                 children: [
-                  const Icon(Icons.search_off_rounded, size: 48, color: CRMColors.textMuted),
+                  Icon(Icons.search_off_rounded, size: 48, color: CRMColors.textMuted),
                   const SizedBox(height: CRMSpacing.s),
                   Text("No Active Matches Found", style: CRMTypography.cardTitle),
                   const SizedBox(height: 4),
@@ -569,7 +569,7 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
                     margin: const EdgeInsets.only(bottom: CRMSpacing.s),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      side: const BorderSide(color: CRMColors.border),
+                      side: BorderSide(color: CRMColors.border),
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(CRMSpacing.m),
@@ -589,7 +589,7 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.location_on_rounded, size: 14, color: CRMColors.textSecondary),
+                              Icon(Icons.location_on_rounded, size: 14, color: CRMColors.textSecondary),
                               const SizedBox(width: 4),
                               Text('${p.areaName}, ${p.cityName}', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
                             ],
@@ -597,11 +597,11 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.square_foot_rounded, size: 14, color: CRMColors.textSecondary),
+                              Icon(Icons.square_foot_rounded, size: 14, color: CRMColors.textSecondary),
                               const SizedBox(width: 4),
                               Text('${p.superBuiltupArea ?? "-"} sq ft', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
                               const SizedBox(width: CRMSpacing.m),
-                              const Icon(Icons.phone_iphone_rounded, size: 14, color: CRMColors.textSecondary),
+                              Icon(Icons.phone_iphone_rounded, size: 14, color: CRMColors.textSecondary),
                               const SizedBox(width: 4),
                               Text('${p.ownerName} (${p.ownerMobile})', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
                             ],

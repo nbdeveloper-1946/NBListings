@@ -151,22 +151,22 @@ class _UsersScreenState extends State<UsersScreen> {
                               dropdownColor: CRMColors.cardBg,
                               style: CRMTypography.body.copyWith(color: CRMColors.text),
                               decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.admin_panel_settings_rounded, color: CRMColors.textMuted),
+                                prefixIcon: Icon(Icons.admin_panel_settings_rounded, color: CRMColors.textMuted),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: CRMSpacing.m,
                                   vertical: CRMSpacing.s,
                                 ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                                  borderSide: const BorderSide(color: CRMColors.border),
+                                  borderSide: BorderSide(color: CRMColors.border),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                                  borderSide: const BorderSide(color: CRMColors.border),
+                                  borderSide: BorderSide(color: CRMColors.border),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                                  borderSide: const BorderSide(color: CRMColors.primary, width: 1.5),
+                                  borderSide: BorderSide(color: CRMColors.primary, width: 1.5),
                                 ),
                               ),
                               items: roles.map((r) {
@@ -286,7 +286,7 @@ class _UsersScreenState extends State<UsersScreen> {
 
     if (!hasAccess) {
       return Scaffold(
-        backgroundColor: CRMColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(CRMSpacing.xl),
@@ -317,7 +317,7 @@ class _UsersScreenState extends State<UsersScreen> {
     }
 
     return Scaffold(
-      backgroundColor: CRMColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: BlocListener<UsersBloc, UsersState>(
         listener: (context, state) {
           if (state is UsersOperationSuccess) {
@@ -457,10 +457,10 @@ class _UsersScreenState extends State<UsersScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search by employee name, email, phone number...',
                     hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-                    prefixIcon: const Icon(Icons.search_rounded, color: CRMColors.textMuted),
+                    prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, color: CRMColors.textMuted),
+                            icon: Icon(Icons.clear_rounded, color: CRMColors.textMuted),
                             onPressed: () {
                               _searchController.clear();
                               _triggerFetch();
@@ -475,15 +475,15 @@ class _UsersScreenState extends State<UsersScreen> {
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.border),
+                      borderSide: BorderSide(color: CRMColors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.border),
+                      borderSide: BorderSide(color: CRMColors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: const BorderSide(color: CRMColors.primary, width: 1.5),
+                      borderSide: BorderSide(color: CRMColors.primary, width: 1.5),
                     ),
                   ),
                   onChanged: (val) => _triggerFetch(),
@@ -582,11 +582,11 @@ class _UsersScreenState extends State<UsersScreen> {
           fillColor: CRMColors.background,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            borderSide: const BorderSide(color: CRMColors.border),
+            borderSide: BorderSide(color: CRMColors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            borderSide: const BorderSide(color: CRMColors.border),
+            borderSide: BorderSide(color: CRMColors.border),
           ),
         ),
         items: items,
@@ -677,11 +677,11 @@ class _UsersScreenState extends State<UsersScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
                         onPressed: () => _showAddEditUserDialog(user),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
                         onPressed: () => _showDeleteConfirmDialog(user),
                       ),
                     ],

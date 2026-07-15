@@ -68,14 +68,14 @@ class CRMCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Divider(color: CRMColors.border, height: 1),
+            Divider(color: CRMColors.border, height: 1),
           ],
           Padding(
             padding: padding,
             child: child,
           ),
           if (footer != null) ...[
-            const Divider(color: CRMColors.border, height: 1),
+            Divider(color: CRMColors.border, height: 1),
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: CRMSpacing.m,
@@ -94,7 +94,7 @@ class CRMKPICard extends StatelessWidget {
   final String title;
   final String value;
   final IconData icon;
-  final Color iconColor;
+  final Color? iconColor;
   final double? growthPercent;
   final String? lastUpdated;
 
@@ -103,7 +103,7 @@ class CRMKPICard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.icon,
-    this.iconColor = CRMColors.primary,
+    this.iconColor,
     this.growthPercent,
     this.lastUpdated,
   });
@@ -112,6 +112,7 @@ class CRMKPICard extends StatelessWidget {
   Widget build(BuildContext context) {
     final showGrowth = growthPercent != null;
     final isPositive = (growthPercent ?? 0.0) >= 0;
+    final activeIconColor = iconColor ?? CRMColors.primary;
 
     return CRMCard(
       padding: const EdgeInsets.all(CRMSpacing.m),
@@ -128,10 +129,10 @@ class CRMKPICard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(CRMSpacing.xxs),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.08),
+                  color: activeIconColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                 ),
-                child: Icon(icon, color: iconColor, size: 18),
+                child: Icon(icon, color: activeIconColor, size: 18),
               ),
             ],
           ),
