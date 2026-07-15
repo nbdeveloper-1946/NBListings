@@ -35,16 +35,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 17) return 'Good Afternoon,';
+    return 'Good Evening,';
+  }
+
+  String _getFormattedDate() {
+    final now = DateTime.now();
+    final months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return '${now.day} ${months[now.month - 1]} ${now.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     Theme.of(context); // Register theme dependency to rebuild on toggle
     final authState = context.watch<AuthBloc>().state;
     String userEmail = 'admin@nbdeveloper.com';
+    bool isAdmin = false;
     if (authState is Authenticated) {
       userEmail = authState.user.email;
+      isAdmin = authState.user.role == 'Admin';
     }
 
-    final dateString = "14 July 2026";
+    final dateString = _getFormattedDate();
+    final greeting = _getGreeting();
 
     return BlocBuilder<DashboardBloc, DashboardState>(
       builder: (context, state) {
@@ -74,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // 1. Welcome Header
-                  _buildWelcomeHeader(userEmail, dateString),
+                  _buildWelcomeHeader(userEmail, dateString, greeting),
                   const SizedBox(height: CRMSpacing.l),
 
                   // 2. Quick Actions
@@ -109,8 +128,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: Column(
                                 children: [
                                   _buildTodayWork(),
-                                  const SizedBox(height: CRMSpacing.l),
-                                  _buildRecentActivities(data.activity),
+                                  if (isAdmin) ...[
+                                    const SizedBox(height: CRMSpacing.l),
+                                    _buildRecentActivities(data.activity),
+                                  ],
                                 ],
                               ),
                             ),
@@ -124,8 +145,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             _buildTodayWork(),
                             const SizedBox(height: CRMSpacing.l),
                             _buildRecentProperties(data.recentProperties),
-                            const SizedBox(height: CRMSpacing.l),
-                            _buildRecentActivities(data.activity),
+                            if (isAdmin) ...[
+                              const SizedBox(height: CRMSpacing.l),
+                              _buildRecentActivities(data.activity),
+                            ],
                           ],
                         );
                       }
@@ -145,7 +168,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildWelcomeHeader(String email, String dateString) {
+  Widget _buildWelcomeHeader(String email, String dateString, String greeting) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
 
@@ -153,7 +176,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Good Morning,',
+          greeting,
           style: CRMTypography.body.copyWith(
             color: CRMColors.textSecondaryOf(context),
             fontSize: isMobile ? 14 : 16,
@@ -179,10 +202,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             color: CRMColors.primary,
             fontWeight: FontWeight.w600,
           ),
-        ),
-        Text(
-          'Branch: Head Office',
-          style: CRMTypography.caption.copyWith(color: CRMColors.textMutedOf(context)),
         ),
       ],
     );
@@ -221,13 +240,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             CRMButton(
               label: 'Add Property',
               prefixIcon: Icons.add_business_rounded,
-              onPressed: () => context.push('/properties'),
+              onPressed: () => context.go('/properties'),
             ),
             CRMButton(
               label: 'Add Requirement',
               prefixIcon: Icons.add_task_rounded,
               variant: CRMButtonVariant.secondary,
-              onPressed: () => _showActionSnackbar('Add Requirement'),
+              onPressed: () => context.go('/requirements'),
             ),
             CRMButton(
               label: 'Import Excel',
@@ -286,42 +305,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ];
 
-    // MOBILE VIEW MEIN OVERFLOW FIX KARNE KE LIYE HORIZONTAL LIST BANAYI HAI
-    if (screenWidth < 600) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: CRMSpacing.xs, bottom: CRMSpacing.s),
-            child: Text(
-              'Property Metrics', 
-              style: CRMTypography.sectionTitle.copyWith(
-                color: CRMColors.textOf(context),
-                fontWeight: FontWeight.bold,
-              )
-            ),
-          ),
-          SizedBox(
-            height: 140, // Custom CRMKPICard ki internal height ke hisab se ideal height
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: cards.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  width: screenWidth * 0.44, // Ek bar me screen par do cards perfectly dikhenge 
-                  margin: const EdgeInsets.only(right: CRMSpacing.m),
-                  child: cards[index],
-                );
-              },
-            ),
-          ),
-        ],
-      );
-    }
-
-    // DESKTOP/TABLET KE LIYE GRID LAYOUT (BINA LOGIC CHANGE)
-    int crossAxisCount = screenWidth >= 1440 ? 5 : 3;
+    final int crossAxisCount = screenWidth >= 1100
+        ? 5
+        : (screenWidth >= 700 ? 3 : 2);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,7 +329,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: CRMSpacing.m,
             mainAxisSpacing: CRMSpacing.m,
-            childAspectRatio: 1.4,
+            childAspectRatio: screenWidth < 700 ? 1.3 : 1.4,
           ),
           itemCount: cards.length,
           itemBuilder: (context, index) {

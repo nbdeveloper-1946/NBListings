@@ -108,7 +108,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   controller: _searchController,
                   style: CRMTypography.body.copyWith(color: CRMColors.text),
                   decoration: InputDecoration(
-                    hintText: 'Search CRM (Properties, Clients, Code)...',
+                    hintText: 'Search in NB Listings (Properties, Clients, Code)...',
                     hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
                     prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted, size: 20),
                     filled: true,
@@ -129,9 +129,38 @@ class _CRMAppShellState extends State<CRMAppShell> {
             onPressed: () {},
           ),
           const SizedBox(width: CRMSpacing.s),
-          IconButton(
+          PopupMenuButton<String>(
             icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
-            onPressed: () {},
+            tooltip: 'Quick Actions',
+            onSelected: (value) {
+              if (value == 'property') {
+                context.go('/properties');
+              } else if (value == 'requirement') {
+                context.go('/requirements');
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'property',
+                child: Row(
+                  children: [
+                    Icon(Icons.add_business_rounded, color: CRMColors.primary, size: 20),
+                    const SizedBox(width: CRMSpacing.s),
+                    Text('Add Property', style: TextStyle(color: CRMColors.textOf(context))),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'requirement',
+                child: Row(
+                  children: [
+                    Icon(Icons.add_task_rounded, color: CRMColors.primary, size: 20),
+                    const SizedBox(width: CRMSpacing.s),
+                    Text('Add Requirement', style: TextStyle(color: CRMColors.textOf(context))),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: CRMSpacing.s),
           IconButton(
@@ -199,10 +228,8 @@ class _CRMAppShellState extends State<CRMAppShell> {
                 _buildSidebarItem(Icons.dashboard_rounded, 'Dashboard', '/dashboard', currentPath, isMobile),
                 _buildSidebarItem(Icons.home_work_rounded, 'Properties', '/properties', currentPath, isMobile),
                 _buildSidebarItem(Icons.assignment_rounded, 'Requirements', '/requirements', currentPath, isMobile),
-                _buildSidebarItem(Icons.people_rounded, 'Clients', '/clients', currentPath, isMobile),
-                _buildSidebarItem(Icons.person_pin_rounded, 'Owners', '/owners', currentPath, isMobile),
-                _buildSidebarItem(Icons.business_rounded, 'Builders', '/builders', currentPath, isMobile),
-                _buildSidebarItem(Icons.people_outline_rounded, 'Employees', '/users', currentPath, isMobile),
+                if (userRole == 'Admin')
+                  _buildSidebarItem(Icons.people_outline_rounded, 'Employees', '/users', currentPath, isMobile),
                 _buildSidebarItem(Icons.monetization_on_rounded, 'Finance', '/finance', currentPath, isMobile),
                 _buildSidebarItem(Icons.analytics_rounded, 'Reports', '/reports', currentPath, isMobile),
                 _buildSidebarItem(Icons.settings_rounded, 'Settings', '/settings', currentPath, isMobile),
