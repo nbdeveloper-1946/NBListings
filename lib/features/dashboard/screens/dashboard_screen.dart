@@ -12,6 +12,10 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../models/dashboard_summary.dart';
 import '../../../core/api/dio_client.dart';
+import 'package:dio/dio.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -61,7 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     bool isAdmin = false;
     if (authState is Authenticated) {
       userEmail = authState.user.email;
-      isAdmin = authState.user.role == 'Admin';
+      isAdmin = authState.user.role == 'Admin' || authState.user.role == 'Super Admin';
     }
 
     final dateString = _getFormattedDate();
@@ -590,6 +594,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String uploadStatusMessage = "Ready for upload";
     double progressValue = 0.0;
     
+    PlatformFile? pickedFile;
     Map<String, dynamic> previewData = {};
     String selectedResolution = "skip"; // skip, import_all, update
     
@@ -604,105 +609,94 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             
-            // Helper function to simulate/trigger template download
+            // Helper function to trigger authenticated template download
             Future<void> downloadTemplate() async {
               try {
-                final url = Uri.parse('${DioClient.dio.options.baseUrl}/properties/import/template');
-                await launchUrl(url, mode: LaunchMode.externalApplication);
+                final response = await DioClient.dio.get<List<int>>(
+                  '/properties/import/template',
+                  options: Options(responseType: ResponseType.bytes),
+                );
+
+                final String tempPath = Directory.systemTemp.path;
+                final File file = File('$tempPath/properties_import_template.xlsx');
+                await file.writeAsBytes(response.data!);
+
+                final XFile xFile = XFile(file.path);
+                await Share.shareXFiles([xFile], text: 'Properties Import Template');
               } catch (_) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(ctx).showSnackBar(
                   const SnackBar(content: Text('Failed to download template. Ensure server is running.')),
                 );
               }
             }
 
-            // Stage 2 & 4: Progress simulation
+            // File selection trigger
+            Future<void> pickFile() async {
+              try {
+                final result = await FilePicker.platform.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: ['xlsx', 'xls', 'xlsm', 'xlsb', 'csv'],
+                );
+                if (result != null && result.files.isNotEmpty) {
+                  setModalState(() {
+                    pickedFile = result.files.first;
+                  });
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text('Error selecting file: $e')),
+                );
+              }
+            }
+
+            // Stage 2: Progress simulation & server preview upload
             Future<void> runPreviewAnalysis() async {
+              if (pickedFile == null || pickedFile!.path == null) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Please select an Excel or CSV file first.')),
+                );
+                return;
+              }
+
               setModalState(() {
                 currentStep = 2;
                 uploadStatusMessage = "Reading file buffer...";
                 progressValue = 0.2;
               });
-              await Future.delayed(const Duration(milliseconds: 500));
+              await Future.delayed(const Duration(milliseconds: 300));
 
               setModalState(() {
-                uploadStatusMessage = "Resolving city and area lookups...";
+                uploadStatusMessage = "Uploading file to server...";
                 progressValue = 0.5;
               });
-              await Future.delayed(const Duration(milliseconds: 500));
-
-              setModalState(() {
-                uploadStatusMessage = "Validating constraints and owner mobiles...";
-                progressValue = 0.8;
-              });
-              await Future.delayed(const Duration(milliseconds: 400));
 
               try {
-                // We send a mock/sample Excel file payload to the backend to get a real parsed preview report
-                // Since picking arbitrary Excel files without a file picker is tricky, we can trigger the import
-                // backend with a pre-seeded mock dataset to show a perfect validation analysis preview!
+                final formData = FormData.fromMap({
+                  'file': await MultipartFile.fromFile(
+                    pickedFile!.path!,
+                    filename: pickedFile!.name,
+                  ),
+                });
+
                 final response = await DioClient.dio.post(
                   '/properties/import',
-                  data: {
-                    // Send demo rows for validation preview
-                    'rows': [
-                      {
-                        "Title": "3 BHK Apartment in Prahladnagar",
-                        "Price": 12000000,
-                        "Category": "Residential",
-                        "Type": "Apartment",
-                        "City": "Ahmedabad",
-                        "Area": "Prahladnagar",
-                        "Owner Name": "Jay Patel",
-                        "Owner Mobile": "7990361109"
-                      },
-                      {
-                        "Title": "2 BHK Flat",
-                        "Price": -500, // Invalid Price!
-                        "Category": "Residential",
-                        "Type": "Apartment",
-                        "City": "Surat",
-                        "Area": "Invalid Area", // Invalid Area!
-                        "Owner Name": "Raj Shah",
-                        "Owner Mobile": "12345" // Invalid Mobile!
-                      },
-                      {
-                        "Title": "XYZ", // Duplicate property!
-                        "Price": 12000000,
-                        "Category": "Residential",
-                        "Type": "Apartment",
-                        "City": "Ahmedabad",
-                        "Area": "Prahladnagar",
-                        "Owner Name": "sodvn",
-                        "Owner Mobile": "7990361109"
-                      }
-                    ]
-                  }
+                  data: formData,
                 );
                 
-                // If backend responded, use real preview data
                 previewData = response.data['data'] ?? {};
               } catch (e) {
-                // Mock preview backup if server isn't running
-                previewData = {
-                  "summary": {
-                    "totalRows": 3,
-                    "validRows": 1,
-                    "duplicateRows": 1,
-                    "invalidRows": 1
-                  },
-                  "preview": {
-                    "valid": [
-                      {"title": "3 BHK Apartment in Prahladnagar", "price": 12000000, "owner_mobile": "7990361109"}
-                    ],
-                    "duplicates": [
-                      {"rowNum": 4, "errors": ["Duplicate Property Title 'XYZ'"]}
-                    ],
-                    "invalid": [
-                      {"rowNum": 3, "errors": ["Price must be a positive number", "Area 'Invalid Area' is not recognized", "Owner Mobile must be a 10-digit number"]}
-                    ]
-                  }
-                };
+                String errorMsg = "Failed to parse import file.";
+                if (e is DioException) {
+                  errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+                }
+                setModalState(() {
+                  currentStep = 1;
+                  uploadStatusMessage = errorMsg;
+                });
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(errorMsg), backgroundColor: CRMColors.danger),
+                );
+                return;
               }
 
               setModalState(() {
@@ -711,52 +705,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
               });
             }
 
+            // Stage 4: Committing database insert
             Future<void> commitImport() async {
+              if (pickedFile == null || pickedFile!.path == null) return;
+
               setModalState(() {
                 currentStep = 4;
                 uploadStatusMessage = "Importing valid rows...";
                 progressValue = 0.4;
               });
-              await Future.delayed(const Duration(milliseconds: 600));
-
-              setModalState(() {
-                uploadStatusMessage = "Resolving duplicates and mapping contacts...";
-                progressValue = 0.8;
-              });
-              await Future.delayed(const Duration(milliseconds: 500));
 
               try {
-                // Call commit backend endpoint
+                final formData = FormData.fromMap({
+                  'file': await MultipartFile.fromFile(
+                    pickedFile!.path!,
+                    filename: pickedFile!.name,
+                  ),
+                });
+
                 final response = await DioClient.dio.post(
                   '/properties/import?action=commit',
                   queryParameters: {'duplicateResolution': selectedResolution},
-                  data: {
-                    // Send actual rows to commit
-                    'rows': [
-                      {
-                        "Title": "3 BHK Apartment in Prahladnagar",
-                        "Price": 12000000,
-                        "Category": "Residential",
-                        "Type": "Apartment",
-                        "City": "Ahmedabad",
-                        "Area": "Prahladnagar",
-                        "Owner Name": "Jay Patel",
-                        "Owner Mobile": "7990361109"
-                      }
-                    ]
-                  }
+                  data: formData,
                 );
                 finalReport = response.data['data'] ?? {};
               } catch (e) {
-                finalReport = {
-                  "imported": 1,
-                  "updated": selectedResolution == "update" ? 1 : 0,
-                  "skipped": selectedResolution == "skip" ? 1 : 0,
-                  "failed": 1
-                };
+                String errorMsg = "Failed to commit import.";
+                if (e is DioException) {
+                  errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+                }
+                setModalState(() {
+                  isCommitError = true;
+                  commitErrorMessage = errorMsg;
+                });
               }
 
-              // Refresh dashboard metrics
               if (mounted) {
                 context.read<DashboardBloc>().add(RefreshDashboard());
               }
@@ -770,26 +753,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Widget stepWidget;
 
             if (currentStep == 1) {
-              // STEP 1: Upload / Template Selection
+              final String fileName = pickedFile != null ? pickedFile!.name : 'Click to select Excel/CSV file';
+              final String fileSize = pickedFile != null ? '${(pickedFile!.size / 1024).toStringAsFixed(1)} KB' : 'Max 5 MB';
+
               stepWidget = Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: CRMColors.backgroundOf(context),
-                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      border: Border.all(color: CRMColors.primary.withOpacity(0.3), width: 1.5, style: BorderStyle.solid),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.file_upload_rounded, size: 36, color: CRMColors.primary),
-                        const SizedBox(height: CRMSpacing.s),
-                        Text('NB_Listings_Properties_Template.xlsx', style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context))),
-                        Text('12.5 KB', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context))),
-                      ],
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: pickFile,
+                      child: Container(
+                        height: 140,
+                        decoration: BoxDecoration(
+                          color: CRMColors.backgroundOf(context),
+                          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                          border: Border.all(
+                            color: pickedFile != null ? CRMColors.success : CRMColors.primary.withOpacity(0.3),
+                            width: 1.5,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              pickedFile != null ? Icons.task_outlined : Icons.file_upload_rounded,
+                              size: 36,
+                              color: pickedFile != null ? CRMColors.success : CRMColors.primary,
+                            ),
+                            const SizedBox(height: CRMSpacing.s),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Text(
+                                fileName,
+                                style: CRMTypography.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: CRMColors.textOf(context),
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              fileSize,
+                              style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: CRMSpacing.m),
@@ -801,7 +816,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               );
             } else if (currentStep == 2 || currentStep == 4) {
-              // STEP 2 & 4: Progress Indicator
               stepWidget = Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -817,7 +831,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               );
             } else if (currentStep == 3) {
-              // STEP 3: Validation Preview & Resolution selection
               final summary = previewData['summary'] ?? {};
               final preview = previewData['preview'] ?? {};
               final List invalidList = preview['invalid'] ?? [];
@@ -885,24 +898,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               );
             } else {
-              // STEP 5: Final Report Screen
               stepWidget = Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.check_circle_rounded, color: CRMColors.success, size: 48),
-                  const SizedBox(height: CRMSpacing.m),
-                  Text('Import Completed Successfully!', style: CRMTypography.body.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context)), textAlign: TextAlign.center),
-                  const SizedBox(height: CRMSpacing.m),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildMetricSummary('Imported', '${finalReport['imported'] ?? 0}', CRMColors.success),
-                      _buildMetricSummary('Updated', '${finalReport['updated'] ?? 0}', CRMColors.info),
-                      _buildMetricSummary('Skipped', '${finalReport['skipped'] ?? 0}', CRMColors.warning),
-                      _buildMetricSummary('Failed', '${finalReport['failed'] ?? 0}', CRMColors.danger),
-                    ],
+                  Icon(
+                    isCommitError ? Icons.error_outline_rounded : Icons.check_circle_rounded,
+                    color: isCommitError ? CRMColors.danger : CRMColors.success,
+                    size: 48,
                   ),
+                  const SizedBox(height: CRMSpacing.m),
+                  Text(
+                    isCommitError ? 'Import Committing Failed' : 'Import Completed Successfully!',
+                    style: CRMTypography.body.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context)),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: CRMSpacing.m),
+                  isCommitError
+                      ? Text(
+                          commitErrorMessage,
+                          style: CRMTypography.caption.copyWith(color: CRMColors.danger),
+                          textAlign: TextAlign.center,
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildMetricSummary('Imported', '${finalReport['imported'] ?? 0}', CRMColors.success),
+                            _buildMetricSummary('Updated', '${finalReport['updated'] ?? 0}', CRMColors.info),
+                            _buildMetricSummary('Skipped', '${finalReport['skipped'] ?? 0}', CRMColors.warning),
+                            _buildMetricSummary('Failed', '${finalReport['failed'] ?? 0}', CRMColors.danger),
+                          ],
+                        ),
                 ],
               );
             }

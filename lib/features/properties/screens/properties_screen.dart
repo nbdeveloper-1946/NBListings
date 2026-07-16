@@ -23,6 +23,8 @@ class PropertiesScreen extends StatefulWidget {
 
 class _PropertiesScreenState extends State<PropertiesScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  String? _highlightedPropertyId;
   String _activeTab = 'All';
   bool _hasAutoOpenedAdd = false;
   String? _selectedCategory;
@@ -43,6 +45,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -77,11 +80,21 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   Widget _buildMobilePropertyCard(PropertyModel p, String? currentUserId, Set<String> bookmarkedIds, PropertyMetadataModel? metadata) {
     final isMine = p.createdBy == currentUserId;
     final isBookmarked = bookmarkedIds.contains(p.id);
+    final isHighlighted = p.id == _highlightedPropertyId;
 
-    return CRMCard(
-      padding: const EdgeInsets.all(CRMSpacing.m),
-      child: InkWell(
-        onTap: () => showCRMPropertyDrawer(context, p),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+        border: Border.all(
+          color: isHighlighted ? CRMColors.primary : Colors.transparent,
+          width: 2,
+        ),
+      ),
+      child: CRMCard(
+        padding: const EdgeInsets.all(CRMSpacing.m),
+        child: InkWell(
+          onTap: () => showCRMPropertyDrawer(context, p),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -249,7 +262,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 
   @override
@@ -269,6 +282,23 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message), backgroundColor: CRMColors.danger),
             );
+          } else if (state is PropertySavedState) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showCRMPropertyDrawer(context, state.property);
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
+              }
+              setState(() {
+                _highlightedPropertyId = state.property.id;
+              });
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  setState(() {
+                    _highlightedPropertyId = null;
+                  });
+                }
+              });
+            });
           }
         },
         builder: (context, state) {
@@ -300,6 +330,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
               : properties.sublist(pageStart, pageEnd);
 
           return SingleChildScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(
               horizontal: CRMSpacing.m,
@@ -370,6 +401,12 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       final isMine = p.createdBy == currentUserId;
                       final isBookmarked = bookmarkedIds.contains(p.id);
                       return DataRow(
+                        color: WidgetStateProperty.resolveWith<Color?>((states) {
+                          if (p.id == _highlightedPropertyId) {
+                            return CRMColors.primary.withOpacity(0.08);
+                          }
+                          return null;
+                        }),
                         onSelectChanged: (_) => showCRMPropertyDrawer(context, p),
                         cells: [
                           DataCell(

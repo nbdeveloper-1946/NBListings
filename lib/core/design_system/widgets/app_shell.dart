@@ -857,7 +857,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                 _buildSidebarItem(Icons.dashboard_rounded, 'Dashboard', '/dashboard', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.home_work_rounded, 'Properties', '/properties', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.assignment_rounded, 'Requirements', '/requirements', currentPath, isMobile, isExpanded),
-                if (userRole == 'Admin')
+                if (userRole == 'Admin' || userRole == 'Super Admin')
                   _buildSidebarItem(Icons.people_outline_rounded, 'Employees', '/users', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.monetization_on_rounded, 'Finance', '/finance', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.analytics_rounded, 'Reports', '/reports', currentPath, isMobile, isExpanded),

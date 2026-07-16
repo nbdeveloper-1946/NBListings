@@ -10,6 +10,11 @@ import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/data_table.dart';
 import '../../../core/design_system/widgets/inputs.dart';
+import '../../../core/api/dio_client.dart';
+import 'package:dio/dio.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -22,11 +27,46 @@ class _UsersScreenState extends State<UsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   String? _selectedRoleId;
   String _selectedStatus = "All";
+  
+  List<dynamic> _passwordResets = [];
+  bool _isLoadingResets = false;
+  int _activeTabIndex = 0;
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
     super.initState();
     _triggerFetch();
+    _fetchPasswordResets();
+  }
+
+  Future<void> _fetchPasswordResets() async {
+    final authState = context.read<AuthBloc>().state;
+    // Only fetch if authenticated and caller is Admin or Super Admin
+    if (authState is Authenticated) {
+      final roleName = authState.user.role;
+      if (roleName != 'Admin' && roleName != 'Super Admin') {
+        return;
+      }
+    } else {
+      return;
+    }
+
+    setState(() {
+      _isLoadingResets = true;
+    });
+    try {
+      final response = await DioClient.dio.get('/users/password-resets');
+      final data = response.data['data']['resets'] as List? ?? [];
+      setState(() {
+        _passwordResets = data;
+        _isLoadingResets = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingResets = false;
+      });
+    }
   }
 
   void _triggerFetch() {
@@ -37,6 +77,7 @@ class _UsersScreenState extends State<UsersScreen> {
             status: _selectedStatus,
           ),
         );
+    _fetchPasswordResets();
   }
 
   void _showAddEditUserDialog([UserModel? user]) {
@@ -49,18 +90,30 @@ class _UsersScreenState extends State<UsersScreen> {
     final passwordController = TextEditingController();
 
     String? localSelectedRoleId = user?.roleId;
+    bool obscurePassword = true;
+    String? uploadedPhotoUrl = user?.profilePhoto;
 
     showDialog(
       context: context,
       builder: (dialogContext) {
+        final authState = context.read<AuthBloc>().state;
+        final callerRole = authState is Authenticated ? authState.user.role : '';
+
         final usersState = context.read<UsersBloc>().state;
         List<RoleModel> roles = [];
         if (usersState is UsersLoaded) {
           roles = usersState.roles;
+          if (callerRole == 'Admin') {
+            roles = roles.where((r) => r.name.toLowerCase() == 'sales').toList();
+          } else if (callerRole == 'Super Admin') {
+            roles = roles.where((r) => r.name.toLowerCase() != 'super admin').toList();
+          }
         }
 
         if (localSelectedRoleId == null && roles.isNotEmpty) {
-          localSelectedRoleId = roles.first.id;
+          localSelectedRoleId = roles.any((r) => r.id == user?.roleId)
+              ? user?.roleId
+              : roles.first.id;
         }
 
         return StatefulBuilder(
@@ -91,6 +144,76 @@ class _UsersScreenState extends State<UsersScreen> {
                             style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
                           ),
                           const SizedBox(height: CRMSpacing.l),
+
+                          // Profile Photo Picker Avatar
+                          Align(
+                            alignment: Alignment.center,
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: 90,
+                                  height: 90,
+                                  decoration: BoxDecoration(
+                                    color: CRMColors.background,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: CRMColors.border, width: 2),
+                                  ),
+                                  child: ClipOval(
+                                    child: _isUploadingPhoto
+                                        ? Center(
+                                            child: SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(strokeWidth: 2.5, color: CRMColors.primary),
+                                            ),
+                                          )
+                                        : (uploadedPhotoUrl != null && uploadedPhotoUrl!.isNotEmpty)
+                                            ? Image.network(
+                                                uploadedPhotoUrl!,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) => Icon(
+                                                  Icons.person_rounded,
+                                                  size: 48,
+                                                  color: CRMColors.textMuted,
+                                                ),
+                                              )
+                                            : Icon(
+                                                Icons.person_rounded,
+                                                size: 48,
+                                                color: CRMColors.textMuted,
+                                              ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: _isUploadingPhoto ? null : () => _pickAndUploadPhoto(setState, (url) {
+                                        setState(() {
+                                          uploadedPhotoUrl = url;
+                                        });
+                                      }),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: CRMColors.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.camera_alt_rounded,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: CRMSpacing.m),
                           
                           // Full Name Input
                           CRMTextField(
@@ -123,16 +246,31 @@ class _UsersScreenState extends State<UsersScreen> {
                           ),
                           const SizedBox(height: CRMSpacing.m),
 
-                          // Password
+                          // Password Input with Show/Hide Eye Toggle
                           CRMTextField(
                             controller: passwordController,
                             labelText: isEditing ? "New Password (Optional)" : "Password *",
                             hintText: 'Min 6 characters',
                             prefixIcon: Icons.lock_rounded,
-                            obscureText: true,
+                            obscureText: obscurePassword,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                color: CRMColors.textMuted,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  obscurePassword = !obscurePassword;
+                                });
+                              },
+                            ),
                             validator: (val) {
                               if (!isEditing && (val == null || val.isEmpty)) {
                                 return "Password required";
+                              }
+                              if (val != null && val.isNotEmpty && val.length < 6) {
+                                return "Password must be at least 6 characters";
                               }
                               return null;
                             },
@@ -181,8 +319,8 @@ class _UsersScreenState extends State<UsersScreen> {
                                 });
                               },
                             ),
+                            const SizedBox(height: CRMSpacing.xl),
                           ],
-                          const SizedBox(height: CRMSpacing.xl),
                           
                           // Action Buttons
                           Row(
@@ -203,6 +341,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                       'email': emailController.text.trim(),
                                       'mobile': mobileController.text.trim(),
                                       'role_id': localSelectedRoleId,
+                                      'profile_photo': uploadedPhotoUrl,
                                     };
 
                                     if (passwordController.text.isNotEmpty) {
@@ -355,9 +494,19 @@ class _UsersScreenState extends State<UsersScreen> {
               _buildStatisticsRow(),
               const SizedBox(height: CRMSpacing.l),
 
+              // Reset Requests Section (if any requests exist)
+              _buildPasswordResetsSection(),
+              if (_passwordResets.isNotEmpty) const SizedBox(height: CRMSpacing.l),
+
               // 3. Search and Filters Card
               _buildSearchAndFiltersCard(),
               const SizedBox(height: CRMSpacing.l),
+
+              // TabBar for Super Admin
+              if (authState is Authenticated && authState.user.role == 'Super Admin') ...[
+                _buildTabBar(),
+                const SizedBox(height: CRMSpacing.m),
+              ],
 
               // 4. Employees Data Table
               _buildEmployeesTable(),
@@ -649,6 +798,12 @@ class _UsersScreenState extends State<UsersScreen> {
 
         if (state is UsersLoaded) {
           users = state.users;
+          final authState = context.read<AuthBloc>().state;
+          final isSuperAdmin = authState is Authenticated && authState.user.role == 'Super Admin';
+          if (isSuperAdmin) {
+            final targetRole = _activeTabIndex == 0 ? 'Admin' : 'Sales';
+            users = users.where((u) => u.roleName.toLowerCase() == targetRole.toLowerCase()).toList();
+          }
         }
 
         if (isLoading) {
@@ -747,6 +902,12 @@ class _UsersScreenState extends State<UsersScreen> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (isAdmin) ...[
+                        IconButton(
+                          icon: const Icon(Icons.analytics_outlined, color: CRMColors.warning, size: 18),
+                          onPressed: () => _showAdminStatsDialog(user),
+                        ),
+                      ],
                       IconButton(
                         icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
                         onPressed: () => _showAddEditUserDialog(user),
@@ -876,6 +1037,17 @@ class _UsersScreenState extends State<UsersScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              if (isAdmin) ...[
+                TextButton.icon(
+                  onPressed: () => _showAdminStatsDialog(user),
+                  icon: const Icon(Icons.analytics_outlined, color: CRMColors.warning, size: 16),
+                  label: const Text(
+                    'Stats',
+                    style: TextStyle(color: CRMColors.warning),
+                  ),
+                ),
+                const SizedBox(width: CRMSpacing.s),
+              ],
               TextButton.icon(
                 onPressed: () => _showAddEditUserDialog(user),
                 icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 16),
@@ -898,5 +1070,592 @@ class _UsersScreenState extends State<UsersScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildPasswordResetsSection() {
+    if (_passwordResets.isEmpty) return const SizedBox.shrink();
+
+    return CRMCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.vpn_key_rounded, color: CRMColors.warning, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                "Pending Password Reset Requests (${_passwordResets.length})",
+                style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text, fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: CRMSpacing.m),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _passwordResets.length,
+            separatorBuilder: (context, index) => Divider(color: CRMColors.border.withOpacity(0.5)),
+            itemBuilder: (context, index) {
+              final r = _passwordResets[index];
+              final userName = r['userName'] ?? '';
+              final userEmail = r['userEmail'] ?? '';
+              final roleName = r['roleName'] ?? '';
+              final createdAtStr = r['createdAt'] ?? '';
+              
+              String timeDisplay = 'recently';
+              try {
+                final dt = DateTime.parse(createdAtStr);
+                final diff = DateTime.now().difference(dt);
+                if (diff.inMinutes < 60) {
+                  timeDisplay = '${diff.inMinutes}m ago';
+                } else if (diff.inHours < 24) {
+                  timeDisplay = '${diff.inHours}h ago';
+                } else {
+                  timeDisplay = '${diff.inDays}d ago';
+                }
+              } catch (_) {}
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                userName,
+                                style: CRMTypography.bodyMedium.copyWith(color: CRMColors.text, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: CRMColors.warning.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  roleName,
+                                  style: CRMTypography.caption.copyWith(color: CRMColors.warning, fontWeight: FontWeight.bold, fontSize: 10),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "$userEmail • Requested $timeDisplay",
+                            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    CRMButton(
+                      label: "Reset Password",
+                      variant: CRMButtonVariant.primary,
+                      onPressed: () => _showResetPasswordDialog(r),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetPasswordDialog(dynamic request) {
+    final formKey = GlobalKey<FormState>();
+    final passwordController = TextEditingController();
+    bool obscurePassword = true;
+    bool isSaving = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: CRMColors.cardBg,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
+                child: Padding(
+                  padding: const EdgeInsets.all(CRMSpacing.l),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Reset Password for ${request['userName']}",
+                          style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
+                        ),
+                        const SizedBox(height: CRMSpacing.xs),
+                        Text(
+                          "Enter a new password for ${request['userEmail']} (${request['roleName']}).",
+                          style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                        ),
+                        const SizedBox(height: CRMSpacing.l),
+                        
+                        CRMTextField(
+                          controller: passwordController,
+                          labelText: 'New Password *',
+                          hintText: 'Min 6 characters',
+                          prefixIcon: Icons.lock_rounded,
+                          obscureText: obscurePassword,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              color: CRMColors.textMuted,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                obscurePassword = !obscurePassword;
+                              });
+                            },
+                          ),
+                          validator: (val) {
+                            if (val == null || val.isEmpty) {
+                              return "Password required";
+                            }
+                            if (val.length < 6) {
+                              return "Password must be at least 6 characters";
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: CRMSpacing.xl),
+                        
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            CRMButton(
+                              label: 'Cancel',
+                              variant: CRMButtonVariant.outline,
+                              onPressed: isSaving ? null : () => Navigator.pop(dialogContext),
+                            ),
+                            const SizedBox(width: CRMSpacing.s),
+                            CRMButton(
+                              label: 'Save Password',
+                              variant: CRMButtonVariant.primary,
+                              isLoading: isSaving,
+                              onPressed: isSaving
+                                  ? null
+                                  : () async {
+                                      if (formKey.currentState?.validate() ?? false) {
+                                        setState(() {
+                                          isSaving = true;
+                                        });
+                                        try {
+                                          final newPassword = passwordController.text;
+                                          await DioClient.dio.post(
+                                            '/users/password-resets/${request['id']}/resolve',
+                                            data: {'newPassword': newPassword},
+                                          );
+                                          
+                                          Navigator.pop(dialogContext);
+                                          
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text("Password updated successfully."),
+                                              backgroundColor: CRMColors.success,
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                          
+                                          _fetchPasswordResets();
+                                          _triggerFetch();
+                                          
+                                        } catch (e) {
+                                          setState(() {
+                                            isSaving = false;
+                                          });
+                                          String errorMsg = 'Failed to reset password. Please try again.';
+                                          if (e is DioException) {
+                                            errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+                                          }
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text("Error: $errorMsg"),
+                                              backgroundColor: CRMColors.danger,
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: CRMColors.cardBg,
+          borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+          border: Border.all(color: CRMColors.border, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildTabItem(0, "Administrators", Icons.admin_panel_settings_rounded),
+            const SizedBox(width: 4),
+            _buildTabItem(1, "Sales Representatives", Icons.person_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabItem(int index, String label, IconData icon) {
+    final isSelected = _activeTabIndex == index;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _activeTabIndex = index;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? CRMColors.background : Colors.transparent,
+            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? CRMColors.primary : CRMColors.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: CRMTypography.bodyMedium.copyWith(
+                  color: isSelected ? CRMColors.text : CRMColors.textSecondary,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAdminStatsDialog(UserModel user) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: CRMColors.cardBg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 550),
+            child: FutureBuilder<Response>(
+              future: DioClient.dio.get('/users/admins/${user.id}/stats'),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return SizedBox(
+                    height: 250,
+                    child: Center(
+                      child: CircularProgressIndicator(color: CRMColors.primary),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError || !snapshot.hasData || snapshot.data?.data['success'] == false) {
+                  return Padding(
+                    padding: const EdgeInsets.all(CRMSpacing.l),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline_rounded, color: CRMColors.danger, size: 48),
+                        const SizedBox(height: CRMSpacing.m),
+                        Text(
+                          "Failed to load statistics.",
+                          style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
+                        ),
+                        const SizedBox(height: CRMSpacing.l),
+                        CRMButton(
+                          label: "Close",
+                          onPressed: () => Navigator.pop(dialogContext),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final stats = snapshot.data!.data['data'];
+                final adminName = stats['adminName'] ?? user.fullName;
+                final salesCreated = stats['salesCreated'] ?? 0;
+                final activeSales = stats['activeSales'] ?? 0;
+                final inactiveSales = stats['inactiveSales'] ?? 0;
+                final propertiesAdded = stats['propertiesAdded'] ?? 0;
+                final requirementsAdded = stats['requirementsAdded'] ?? 0;
+
+                Widget buildStatCard(String title, String value, IconData icon, Color color) {
+                  return Container(
+                    padding: const EdgeInsets.all(CRMSpacing.m),
+                    decoration: BoxDecoration(
+                      color: CRMColors.background,
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                      border: Border.all(color: CRMColors.border, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(icon, color: color, size: 20),
+                        ),
+                        const SizedBox(width: CRMSpacing.m),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                value,
+                                style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text, fontSize: 18),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.all(CRMSpacing.l),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const CircleAvatar(
+                                backgroundColor: CRMColors.info,
+                                radius: 20,
+                                child: Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 20),
+                              ),
+                              const SizedBox(width: CRMSpacing.m),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    adminName,
+                                    style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
+                                  ),
+                                  Text(
+                                    "Administrator Profile & Metrics",
+                                    style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.close_rounded, color: CRMColors.textMuted),
+                            onPressed: () => Navigator.pop(dialogContext),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: CRMSpacing.m),
+                      Divider(color: CRMColors.border),
+                      const SizedBox(height: CRMSpacing.m),
+                      
+                      // Contact info
+                      Row(
+                        children: [
+                          Icon(Icons.mail_outline_rounded, size: 16, color: CRMColors.textSecondary),
+                          const SizedBox(width: 8),
+                          Text(user.email, style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary)),
+                        ],
+                      ),
+                      if (user.mobile != null && user.mobile!.isNotEmpty) ...[
+                        const SizedBox(height: CRMSpacing.xs),
+                        Row(
+                          children: [
+                            Icon(Icons.phone_outlined, size: 16, color: CRMColors.textSecondary),
+                            const SizedBox(width: 8),
+                            Text(user.mobile!, style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary)),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: CRMSpacing.l),
+
+                      Text(
+                        "TEAM STATISTICS",
+                        style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary, letterSpacing: 0.8),
+                      ),
+                      const SizedBox(height: CRMSpacing.s),
+
+                      // Metrics Grid
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: CRMSpacing.s,
+                        mainAxisSpacing: CRMSpacing.s,
+                        childAspectRatio: 2.8,
+                        children: [
+                          buildStatCard("Sales Created", salesCreated.toString(), Icons.group_add_rounded, CRMColors.primary),
+                          buildStatCard("Active Sales", activeSales.toString(), Icons.check_circle_outline_rounded, CRMColors.success),
+                          buildStatCard("Inactive Sales", inactiveSales.toString(), Icons.cancel_outlined, CRMColors.danger),
+                          buildStatCard("Properties", propertiesAdded.toString(), Icons.home_work_outlined, CRMColors.info),
+                        ],
+                      ),
+                      const SizedBox(height: CRMSpacing.s),
+                      buildStatCard("Requirements Added", requirementsAdded.toString(), Icons.assignment_outlined, CRMColors.warning),
+                      
+                      const SizedBox(height: CRMSpacing.xl),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: CRMButton(
+                          label: "Dismiss",
+                          onPressed: () => Navigator.pop(dialogContext),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadPhoto(StateSetter dialogSetState, Function(String) onUploaded) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    dialogSetState(() {
+      _isUploadingPhoto = true;
+    });
+
+    try {
+      final File file = File(pickedFile.path);
+      final int sizeInBytes = await file.length();
+      
+      File uploadFile = file;
+
+      // Deterministic compression pipeline
+      if (sizeInBytes > 0) {
+        final String targetPath = "${Directory.systemTemp.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        
+        // Step 1: Compress with 80% quality and resize max 800x800 px
+        XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
+          file.absolute.path,
+          targetPath,
+          quality: 80,
+          minWidth: 800,
+          minHeight: 800,
+        );
+
+        if (compressedFile != null) {
+          uploadFile = File(compressedFile.path);
+          int compressedSize = await uploadFile.length();
+
+          // Step 2: If size exceeds 500 KB limit, re-compress with 70% quality
+          if (compressedSize > 500 * 1024) {
+            final String secondPath = "${Directory.systemTemp.path}/compressed_70_${DateTime.now().millisecondsSinceEpoch}.jpg";
+            final XFile? secondCompressed = await FlutterImageCompress.compressAndGetFile(
+              file.absolute.path,
+              secondPath,
+              quality: 70,
+              minWidth: 800,
+              minHeight: 800,
+            );
+            if (secondCompressed != null) {
+              uploadFile = File(secondCompressed.path);
+              compressedSize = await uploadFile.length();
+            }
+          }
+
+          // Step 3: Assert ultimate limit of 2 MB
+          if (compressedSize > 2 * 1024 * 1024) {
+            throw Exception("Compressed image size exceeds the required 2 MB limit.");
+          }
+        }
+      }
+
+      // Upload to backend
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(uploadFile.path, filename: 'profile_photo.jpg'),
+      });
+
+      final response = await DioClient.dio.post('/users/upload-profile', data: formData);
+      final publicUrl = response.data['data']['publicUrl'];
+      
+      onUploaded(publicUrl);
+
+    } catch (e) {
+      String errorMsg = 'Failed to upload photo.';
+      if (e is DioException) {
+        errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+      } else if (e is Exception) {
+        errorMsg = e.toString().replaceAll("Exception: ", "");
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: CRMColors.danger,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      dialogSetState(() {
+        _isUploadingPhoto = false;
+      });
+    }
   }
 }

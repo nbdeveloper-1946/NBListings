@@ -108,6 +108,11 @@ class PropertiesError extends PropertiesState {
   PropertiesError(this.message);
 }
 
+class PropertySavedState extends PropertiesState {
+  final PropertyModel property;
+  PropertySavedState(this.property);
+}
+
 // --- BLoC ---
 class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
   final PropertiesRepository _repository = PropertiesRepository();
@@ -202,7 +207,8 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
   ) async {
     emit(PropertiesLoading());
     try {
-      await _repository.createProperty(event.propertyData);
+      final saved = await _repository.createProperty(event.propertyData);
+      emit(PropertySavedState(saved));
       add(LoadPropertiesEvent(activeTab: event.activeTab));
     } catch (e) {
       emit(PropertiesError(e.toString()));
@@ -216,7 +222,8 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
   ) async {
     emit(PropertiesLoading());
     try {
-      await _repository.updateProperty(event.id, event.propertyData);
+      final saved = await _repository.updateProperty(event.id, event.propertyData);
+      emit(PropertySavedState(saved));
       add(LoadPropertiesEvent(activeTab: event.activeTab));
     } catch (e) {
       emit(PropertiesError(e.toString()));

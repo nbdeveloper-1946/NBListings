@@ -46,6 +46,8 @@ class PropertyModel {
   final String ownerMobile;
   final String? brokerName;
   final String? remarks;
+  final String? blockWing;
+  final String? flatNo;
   final bool isVerified;
   final String createdBy;
   final String createdByName;
@@ -101,6 +103,8 @@ class PropertyModel {
     required this.ownerMobile,
     this.brokerName,
     this.remarks,
+    this.blockWing,
+    this.flatNo,
     required this.isVerified,
     required this.createdBy,
     required this.createdByName,
@@ -181,6 +185,8 @@ class PropertyModel {
       ownerMobile: json['owner_mobile'] as String,
       brokerName: json['broker_name'] as String?,
       remarks: json['remarks'] as String?,
+      blockWing: json['block_wing'] as String?,
+      flatNo: json['flat_no'] as String?,
       isVerified: json['is_verified'] as bool? ?? false,
       createdBy: json['created_by'] as String,
       createdByName: creator != null ? creator['full_name'] as String : 'N/A',
@@ -226,6 +232,8 @@ class PropertyModel {
       'owner_mobile': ownerMobile,
       'broker_name': brokerName,
       'remarks': remarks,
+      'block_wing': blockWing,
+      'flat_no': flatNo,
       'amenities': amenities,
       'images': images,
     };
@@ -235,11 +243,13 @@ class PropertyModel {
 class LookupItem {
   final String id;
   final String name;
-  LookupItem({required this.id, required this.name});
+  final String? categoryId;
+  LookupItem({required this.id, required this.name, this.categoryId});
   factory LookupItem.fromJson(Map<String, dynamic> json) {
     return LookupItem(
       id: json['id'] as String,
       name: (json['name'] ?? json['city_name'] ?? json['area_name'] ?? '') as String,
+      categoryId: json['category_id'] as String?,
     );
   }
 }

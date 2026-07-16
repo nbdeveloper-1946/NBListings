@@ -48,6 +48,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   List<LookupItem> _types = [];
   List<LookupItem> _configurations = [];
   List<AreaLookup> _areas = [];
+  List<LookupItem> _cities = [];
 
   @override
   void initState() {
@@ -75,6 +76,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
         _types = metadata.types;
         _configurations = metadata.configurations;
         _areas = metadata.areas;
+        _cities = metadata.cities;
         
         if (widget.requirement == null) {
           if (_categories.isNotEmpty) _selectedCategoryId = _categories.first.id;
@@ -102,6 +104,103 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
         _isLoadingMetadata = false;
       });
     }
+  }
+
+  List<LookupItem> _getFilteredTypes() {
+    if (_selectedCategoryId == null) return [];
+    return _types.where((t) => t.categoryId == _selectedCategoryId).toList();
+  }
+
+  List<LookupItem> _getFilteredConfigs() {
+    if (_selectedCategoryId == null) return [];
+    return _configurations.where((c) => c.categoryId == _selectedCategoryId).toList();
+  }
+
+  void _showAddAreaDialog() {
+    final nameController = TextEditingController();
+    final pincodeController = TextEditingController();
+    String? selectedCityId = _cities.isNotEmpty ? _cities.first.id : null;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: CRMColors.cardBg,
+            title: Text('Add New Area', style: TextStyle(color: CRMColors.textOf(context))),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: selectedCityId,
+                  dropdownColor: CRMColors.cardBg,
+                  style: TextStyle(color: CRMColors.textOf(context)),
+                  decoration: const InputDecoration(labelText: 'City *'),
+                  items: _cities.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                  onChanged: (val) {
+                    setDialogState(() {
+                      selectedCityId = val;
+                    });
+                  },
+                ),
+                const SizedBox(height: CRMSpacing.m),
+                TextField(
+                  controller: nameController,
+                  style: TextStyle(color: CRMColors.textOf(context)),
+                  decoration: const InputDecoration(labelText: 'Area Name *'),
+                ),
+                const SizedBox(height: CRMSpacing.m),
+                TextField(
+                  controller: pincodeController,
+                  style: TextStyle(color: CRMColors.textOf(context)),
+                  decoration: const InputDecoration(labelText: 'Pincode *'),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+              TextButton(
+                child: const Text('Add'),
+                onPressed: () async {
+                  final name = nameController.text.trim();
+                  final pincode = pincodeController.text.trim();
+                  if (selectedCityId != null && name.isNotEmpty && pincode.isNotEmpty) {
+                    try {
+                      final repository = PropertiesRepository();
+                      final payload = {
+                        'city_id': selectedCityId!,
+                        'area_name': name,
+                        'pincode': pincode,
+                      };
+                      final response = await repository.createLookup('area', payload);
+                      final newArea = AreaLookup(
+                        id: response.id,
+                        name: response.name,
+                        cityId: selectedCityId!,
+                        pincode: pincode,
+                      );
+                      setState(() {
+                        _areas.add(newArea);
+                        _selectedAreaIds.add(newArea.id);
+                      });
+                      if (mounted) Navigator.pop(ctx);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to add area: $e'), backgroundColor: CRMColors.danger),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          );
+        }
+      ),
+    );
   }
 
   void _submitForm() {
@@ -178,6 +277,15 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 600;
+
+    final filteredTypes = _getFilteredTypes();
+    if (_selectedTypeId != null && !filteredTypes.any((t) => t.id == _selectedTypeId)) {
+      _selectedTypeId = filteredTypes.isNotEmpty ? filteredTypes.first.id : null;
+    }
+    final filteredConfigs = _getFilteredConfigs();
+    if (_selectedConfigId != null && !filteredConfigs.any((c) => c.id == _selectedConfigId)) {
+      _selectedConfigId = null;
+    }
 
     return Dialog(
       backgroundColor: CRMColors.cardBg,
@@ -256,13 +364,17 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                       label: 'Category *',
                       value: _selectedCategoryId,
                       items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                      onChanged: (val) => setState(() => _selectedCategoryId = val),
+                      onChanged: (val) => setState(() {
+                        _selectedCategoryId = val;
+                        _selectedTypeId = null;
+                        _selectedConfigId = null;
+                      }),
                     ),
                     const SizedBox(height: CRMSpacing.m),
                     _buildDropdown(
                       label: 'Property Type *',
                       value: _selectedTypeId,
-                      items: _types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                      items: filteredTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
                       onChanged: (val) => setState(() => _selectedTypeId = val),
                     ),
                   ] else ...[
@@ -273,7 +385,11 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                             label: 'Category *',
                             value: _selectedCategoryId,
                             items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                            onChanged: (val) => setState(() => _selectedCategoryId = val),
+                            onChanged: (val) => setState(() {
+                              _selectedCategoryId = val;
+                              _selectedTypeId = null;
+                              _selectedConfigId = null;
+                            }),
                           ),
                         ),
                         const SizedBox(width: CRMSpacing.m),
@@ -281,7 +397,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                           child: _buildDropdown(
                             label: 'Property Type *',
                             value: _selectedTypeId,
-                            items: _types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                            items: filteredTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
                             onChanged: (val) => setState(() => _selectedTypeId = val),
                           ),
                         ),
@@ -292,16 +408,18 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
 
                   // Configuration & Status
                   if (isMobile) ...[
-                    _buildDropdown(
-                      label: 'Configuration',
-                      value: _selectedConfigId,
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text("None")),
-                        ..._configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-                      ],
-                      onChanged: (val) => setState(() => _selectedConfigId = val),
-                    ),
-                    const SizedBox(height: CRMSpacing.m),
+                    if (filteredConfigs.isNotEmpty) ...[
+                      _buildDropdown(
+                        label: 'Configuration',
+                        value: _selectedConfigId,
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text("None")),
+                          ...filteredConfigs.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                        ],
+                        onChanged: (val) => setState(() => _selectedConfigId = val),
+                      ),
+                      const SizedBox(height: CRMSpacing.m),
+                    ],
                     _buildDropdown(
                       label: 'Status *',
                       value: _selectedStatus,
@@ -311,18 +429,20 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                   ] else ...[
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildDropdown(
-                            label: 'Configuration',
-                            value: _selectedConfigId,
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text("None")),
-                              ..._configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-                            ],
-                            onChanged: (val) => setState(() => _selectedConfigId = val),
+                        if (filteredConfigs.isNotEmpty) ...[
+                          Expanded(
+                            child: _buildDropdown(
+                              label: 'Configuration',
+                              value: _selectedConfigId,
+                              items: [
+                                const DropdownMenuItem(value: null, child: Text("None")),
+                                ...filteredConfigs.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                              ],
+                              onChanged: (val) => setState(() => _selectedConfigId = val),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: CRMSpacing.m),
+                          const SizedBox(width: CRMSpacing.m),
+                        ],
                         Expanded(
                           child: _buildDropdown(
                             label: 'Status *',
@@ -385,7 +505,19 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                   const SizedBox(height: CRMSpacing.m),
 
                   // Target Area list chips selection
-                  Text("Select Target Area(s) *", style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary)),
+                  Row(
+                    children: [
+                      Text("Select Target Area(s) *", style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary)),
+                      const SizedBox(width: CRMSpacing.xs),
+                      IconButton(
+                        icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary, size: 20),
+                        onPressed: _showAddAreaDialog,
+                        tooltip: 'Add New Area',
+                        constraints: const BoxConstraints(),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: CRMSpacing.xs),
                   Wrap(
                     spacing: CRMSpacing.xs,

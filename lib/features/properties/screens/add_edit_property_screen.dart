@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:dio/dio.dart';
+import 'dart:io';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
+import '../../../core/api/dio_client.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
 import '../services/properties_service.dart';
@@ -52,6 +57,12 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   final _ownerMobileController = TextEditingController();
   final _brokerNameController = TextEditingController();
   final _remarksController = TextEditingController();
+  final _blockWingController = TextEditingController();
+  final _flatNoController = TextEditingController();
+  TextEditingController _facingController = TextEditingController();
+  
+  final List<String> _propertyImages = [];
+  bool _isUploadingImage = false;
 
   String? _selectedCategory;
   String? _selectedType;
@@ -99,6 +110,9 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     _ownerMobileController.dispose();
     _brokerNameController.dispose();
     _remarksController.dispose();
+    _blockWingController.dispose();
+    _flatNoController.dispose();
+    _facingController.dispose();
     super.dispose();
   }
 
@@ -138,7 +152,19 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _maintenanceController.text = p.maintenance.toStringAsFixed(0);
       _selectedFurnishing = p.furnishingTypeId;
       _selectedFacing = p.facingTypeId;
+      if (p.facingTypeId != null) {
+        final match = widget.metadata.facings.firstWhere(
+          (f) => f.id == p.facingTypeId,
+          orElse: () => LookupItem(id: '', name: ''),
+        );
+        if (match.id.isNotEmpty) {
+          _facingController.text = match.name;
+        }
+      }
       _selectedOwnership = p.ownershipTypeId;
+      _blockWingController.text = p.blockWing ?? '';
+      _flatNoController.text = p.flatNo ?? '';
+      _propertyImages.addAll(p.images);
       _bedroomsController.text = p.bedrooms.toString();
       _bathroomsController.text = p.bathrooms.toString();
       _balconiesController.text = p.balconies.toString();
@@ -281,56 +307,270 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     });
   }
 
-  void _submitForm() {
+  List<LookupItem> _getFilteredTypes() {
+    if (_selectedCategory == null) return [];
+    return widget.metadata.types.where((t) => t.categoryId == _selectedCategory).toList();
+  }
+
+  List<LookupItem> _getFilteredConfigs() {
+    if (_selectedCategory == null) return [];
+    return widget.metadata.configurations.where((c) => c.categoryId == _selectedCategory).toList();
+  }
+
+  Future<void> _showImageSourceDialog(int index) async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded),
+              title: const Text('Take Photo (Camera)'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(index, ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(index, ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(int index, ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+    if (pickedFile == null) return;
+
+    setState(() {
+      _isUploadingImage = true;
+    });
+
+    try {
+      final File file = File(pickedFile.path);
+      final int sizeInBytes = await file.length();
+      
+      File uploadFile = file;
+
+      if (sizeInBytes > 0) {
+        final String targetPath = "${Directory.systemTemp.path}/compressed_prop_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        
+        XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
+          file.absolute.path,
+          targetPath,
+          quality: 80,
+          minWidth: 1200,
+          minHeight: 1200,
+        );
+
+        if (compressedFile != null) {
+          uploadFile = File(compressedFile.path);
+          int compressedSize = await uploadFile.length();
+
+          if (compressedSize > 5 * 1024 * 1024) {
+            throw Exception("Compressed image exceeds 5 MB limit.");
+          }
+        }
+      }
+
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(uploadFile.path, filename: 'property_image.jpg'),
+      });
+
+      final response = await DioClient.dio.post('/properties/upload-media', data: formData);
+      final publicUrl = response.data['data']['url'];
+
+      setState(() {
+        if (index < _propertyImages.length) {
+          _propertyImages[index] = publicUrl;
+        } else {
+          _propertyImages.add(publicUrl);
+        }
+        _isUploadingImage = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isUploadingImage = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to upload image: $e"), backgroundColor: CRMColors.danger),
+      );
+    }
+  }
+
+  void _showAddMasterDialog(String masterType) {
+    final controller = TextEditingController();
+    final String friendlyTitle = masterType == 'property-type' ? 'Property Type' :
+                                 masterType == 'listing-type' ? 'Listing Type' :
+                                 masterType[0].toUpperCase() + masterType.substring(1);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Add New $friendlyTitle'),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: '$friendlyTitle Name *',
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          TextButton(
+            child: const Text('Add'),
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                try {
+                  final payload = {'name': name};
+                  
+                  if (masterType == 'property-type' || masterType == 'configuration') {
+                    if (_selectedCategory == null) {
+                      throw Exception("Please select a Category first.");
+                    }
+                    payload['category_id'] = _selectedCategory!;
+                  }
+                  
+                  final repository = PropertiesRepository();
+                  final response = await repository.createLookup(masterType, payload);
+                  
+                  setState(() {
+                    if (masterType == 'category') {
+                      widget.metadata.categories.add(response);
+                      _selectedCategory = response.id;
+                      _selectedType = null;
+                      _selectedConfig = null;
+                    } else if (masterType == 'property-type') {
+                      widget.metadata.types.add(response);
+                      _selectedType = response.id;
+                    } else if (masterType == 'configuration') {
+                      widget.metadata.configurations.add(response);
+                      _selectedConfig = response.id;
+                    } else if (masterType == 'listing-type') {
+                      widget.metadata.listingTypes.add(response);
+                      _selectedListingType = response.id;
+                    }
+                  });
+                  
+                  if (mounted) Navigator.pop(ctx);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(e.toString().replaceAll("Exception: ", "")),
+                      backgroundColor: CRMColors.danger,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final propertyData = {
-      'title': _titleController.text.trim(),
-      'description': _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-      'category_id': _selectedCategory,
-      'property_type_id': _selectedType,
-      'configuration_id': _selectedConfig,
-      'listing_type_id': _selectedListingType,
-      'property_status_id': _selectedStatus,
-      'city_id': _selectedCity,
-      'area_id': _selectedArea,
-      'address': _addressController.text.trim(),
-      'landmark': _landmarkController.text.trim().isEmpty ? null : _landmarkController.text.trim(),
-      'super_builtup_area': double.tryParse(_superBuiltupController.text),
-      'carpet_area': double.tryParse(_carpetController.text),
-      'plot_area': double.tryParse(_plotController.text),
-      'price': BudgetFormatter.parse(_priceController.text),
-      'deposit': double.tryParse(_depositController.text) ?? 0.0,
-      'maintenance': double.tryParse(_maintenanceController.text) ?? 0.0,
-      'furnishing_type_id': _selectedFurnishing,
-      'facing_type_id': _selectedFacing,
-      'ownership_type_id': _selectedOwnership,
-      'bedrooms': int.tryParse(_bedroomsController.text) ?? 0,
-      'bathrooms': int.tryParse(_bathroomsController.text) ?? 0,
-      'balconies': int.tryParse(_balconiesController.text) ?? 0,
-      'parking': int.tryParse(_parkingController.text) ?? 0,
-      'floor_no': int.tryParse(_floorNoController.text),
-      'total_floor': int.tryParse(_totalFloorController.text),
-      'age_of_property': int.tryParse(_ageController.text),
-      'owner_name': _ownerNameController.text.trim(),
-      'owner_mobile': _ownerMobileController.text.trim(),
-      'broker_name': _brokerNameController.text.trim().isEmpty ? null : _brokerNameController.text.trim(),
-      'remarks': _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
-      'amenities': _selectedAmenities,
-      'images': widget.property?.images ?? [],
-    };
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
-    if (widget.property == null) {
-      context.read<PropertiesBloc>().add(
-            CreatePropertyEvent(propertyData, activeTab: widget.activeTab),
-          );
-    } else {
-      context.read<PropertiesBloc>().add(
-            UpdatePropertyEvent(widget.property!.id, propertyData, activeTab: widget.activeTab),
-          );
+    try {
+      final String typedFacing = _facingController.text.trim();
+      if (typedFacing.isNotEmpty) {
+        final match = widget.metadata.facings.firstWhere(
+          (f) => f.name.trim().toLowerCase() == typedFacing.toLowerCase(),
+          orElse: () => LookupItem(id: '', name: ''),
+        );
+        if (match.id.isNotEmpty) {
+          _selectedFacing = match.id;
+        } else {
+          final repository = PropertiesRepository();
+          final newFacing = await repository.createLookup("facing", {"name": typedFacing});
+          widget.metadata.facings.add(newFacing);
+          _selectedFacing = newFacing.id;
+        }
+      } else {
+        _selectedFacing = null;
+      }
+
+      final propertyData = {
+        'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        'category_id': _selectedCategory,
+        'property_type_id': _selectedType,
+        'configuration_id': _selectedConfig,
+        'listing_type_id': _selectedListingType,
+        'property_status_id': _selectedStatus,
+        'city_id': _selectedCity,
+        'area_id': _selectedArea,
+        'address': _addressController.text.trim(),
+        'landmark': _landmarkController.text.trim().isEmpty ? null : _landmarkController.text.trim(),
+        'block_wing': _blockWingController.text.trim().isEmpty ? null : _blockWingController.text.trim(),
+        'flat_no': _flatNoController.text.trim().isEmpty ? null : _flatNoController.text.trim(),
+        'super_builtup_area': double.tryParse(_superBuiltupController.text),
+        'carpet_area': double.tryParse(_carpetController.text),
+        'plot_area': double.tryParse(_plotController.text),
+        'price': BudgetFormatter.parse(_priceController.text),
+        'deposit': double.tryParse(_depositController.text) ?? 0.0,
+        'maintenance': double.tryParse(_maintenanceController.text) ?? 0.0,
+        'furnishing_type_id': _selectedFurnishing,
+        'facing_type_id': _selectedFacing,
+        'ownership_type_id': _selectedOwnership,
+        'bedrooms': int.tryParse(_bedroomsController.text) ?? 0,
+        'bathrooms': int.tryParse(_bathroomsController.text) ?? 0,
+        'balconies': int.tryParse(_balconiesController.text) ?? 0,
+        'parking': int.tryParse(_parkingController.text) ?? 0,
+        'floor_no': int.tryParse(_floorNoController.text),
+        'total_floor': int.tryParse(_totalFloorController.text),
+        'age_of_property': int.tryParse(_ageController.text),
+        'owner_name': _ownerNameController.text.trim(),
+        'owner_mobile': _ownerMobileController.text.trim(),
+        'broker_name': _brokerNameController.text.trim().isEmpty ? null : _brokerNameController.text.trim(),
+        'remarks': _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
+        'amenities': _selectedAmenities,
+        'images': _propertyImages,
+      };
+
+      if (mounted) {
+        Navigator.pop(context); // pop loading spinner
+      }
+
+      if (widget.property == null) {
+        context.read<PropertiesBloc>().add(
+              CreatePropertyEvent(propertyData, activeTab: widget.activeTab),
+            );
+      } else {
+        context.read<PropertiesBloc>().add(
+              UpdatePropertyEvent(widget.property!.id, propertyData, activeTab: widget.activeTab),
+            );
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // close form screen
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // pop loading spinner
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to publish property: $e"), backgroundColor: CRMColors.danger),
+        );
+      }
     }
-
-    Navigator.pop(context);
   }
 
   @override
@@ -435,6 +675,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   Widget _buildBasicStep(bool isMobile) {
+    final filteredTypes = _getFilteredTypes();
+    if (_selectedType != null && !filteredTypes.any((t) => t.id == _selectedType)) {
+      _selectedType = filteredTypes.isNotEmpty ? filteredTypes.first.id : null;
+    }
+    final filteredConfigs = _getFilteredConfigs();
+    if (_selectedConfig != null && !filteredConfigs.any((c) => c.id == _selectedConfig)) {
+      _selectedConfig = null;
+    }
+
     return CRMCard(
       title: 'Basic Property Setup',
       subtitle: 'Complete listing definitions and categories',
@@ -460,27 +709,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
           ),
           const SizedBox(height: CRMSpacing.m),
+
           if (isMobile) ...[
-            DropdownButtonFormField<String>(
-              value: _selectedCategory,
-              decoration: InputDecoration(
-                labelText: 'Category *',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-              ),
-              items: widget.metadata.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-              onChanged: (v) => setState(() => _selectedCategory = v),
-            ),
-            const SizedBox(height: CRMSpacing.m),
-            DropdownButtonFormField<String>(
-              value: _selectedListingType,
-              decoration: InputDecoration(
-                labelText: 'Listing Type *',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-              ),
-              items: widget.metadata.listingTypes.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
-              onChanged: (v) => setState(() => _selectedListingType = v),
-            ),
-          ] else ...[
             Row(
               children: [
                 Expanded(
@@ -491,10 +721,26 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                     ),
                     items: widget.metadata.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                    onChanged: (v) => setState(() => _selectedCategory = v),
+                    onChanged: (v) {
+                      setState(() {
+                        _selectedCategory = v;
+                        _selectedType = null;
+                        _selectedConfig = null;
+                      });
+                    },
                   ),
                 ),
-                const SizedBox(width: CRMSpacing.s),
+                const SizedBox(width: CRMSpacing.xs),
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                  onPressed: () => _showAddMasterDialog('category'),
+                  tooltip: 'Add Category',
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.m),
+            Row(
+              children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _selectedListingType,
@@ -506,34 +752,75 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                     onChanged: (v) => setState(() => _selectedListingType = v),
                   ),
                 ),
+                const SizedBox(width: CRMSpacing.xs),
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                  onPressed: () => _showAddMasterDialog('listing-type'),
+                  tooltip: 'Add Listing Type',
+                ),
+              ],
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedCategory,
+                          decoration: InputDecoration(
+                            labelText: 'Category *',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                          ),
+                          items: widget.metadata.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                          onChanged: (v) {
+                            setState(() {
+                              _selectedCategory = v;
+                              _selectedType = null;
+                              _selectedConfig = null;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: CRMSpacing.xs),
+                      IconButton(
+                        icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                        onPressed: () => _showAddMasterDialog('category'),
+                        tooltip: 'Add Category',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedListingType,
+                          decoration: InputDecoration(
+                            labelText: 'Listing Type *',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                          ),
+                          items: widget.metadata.listingTypes.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
+                          onChanged: (v) => setState(() => _selectedListingType = v),
+                        ),
+                      ),
+                      const SizedBox(width: CRMSpacing.xs),
+                      IconButton(
+                        icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                        onPressed: () => _showAddMasterDialog('listing-type'),
+                        tooltip: 'Add Listing Type',
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ],
           const SizedBox(height: CRMSpacing.m),
           if (isMobile) ...[
-            DropdownButtonFormField<String>(
-              value: _selectedType,
-              decoration: InputDecoration(
-                labelText: 'Property Type *',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-              ),
-              items: widget.metadata.types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
-              onChanged: (v) => setState(() => _selectedType = v),
-            ),
-            const SizedBox(height: CRMSpacing.m),
-            DropdownButtonFormField<String>(
-              value: _selectedConfig,
-              decoration: InputDecoration(
-                labelText: 'Configuration',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-              ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('None')),
-                ...widget.metadata.configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-              ],
-              onChanged: (v) => setState(() => _selectedConfig = v),
-            ),
-          ] else ...[
             Row(
               children: [
                 Expanded(
@@ -543,11 +830,21 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                       labelText: 'Property Type *',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                     ),
-                    items: widget.metadata.types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                    items: filteredTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
                     onChanged: (v) => setState(() => _selectedType = v),
                   ),
                 ),
-                const SizedBox(width: CRMSpacing.s),
+                const SizedBox(width: CRMSpacing.xs),
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                  onPressed: () => _showAddMasterDialog('property-type'),
+                  tooltip: 'Add Property Type',
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.m),
+            Row(
+              children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _selectedConfig,
@@ -557,9 +854,70 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                     ),
                     items: [
                       const DropdownMenuItem(value: null, child: Text('None')),
-                      ...widget.metadata.configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                      ...filteredConfigs.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
                     ],
                     onChanged: (v) => setState(() => _selectedConfig = v),
+                  ),
+                ),
+                const SizedBox(width: CRMSpacing.xs),
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                  onPressed: () => _showAddMasterDialog('configuration'),
+                  tooltip: 'Add Configuration',
+                ),
+              ],
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedType,
+                          decoration: InputDecoration(
+                            labelText: 'Property Type *',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                          ),
+                          items: filteredTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                          onChanged: (v) => setState(() => _selectedType = v),
+                        ),
+                      ),
+                      const SizedBox(width: CRMSpacing.xs),
+                      IconButton(
+                        icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                        onPressed: () => _showAddMasterDialog('property-type'),
+                        tooltip: 'Add Property Type',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedConfig,
+                          decoration: InputDecoration(
+                            labelText: 'Configuration',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                          ),
+                          items: [
+                            const DropdownMenuItem(value: null, child: Text('None')),
+                            ...filteredConfigs.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                          ],
+                          onChanged: (v) => setState(() => _selectedConfig = v),
+                        ),
+                      ),
+                      const SizedBox(width: CRMSpacing.xs),
+                      IconButton(
+                        icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+                        onPressed: () => _showAddMasterDialog('configuration'),
+                        tooltip: 'Add Configuration',
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -574,6 +932,86 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
             items: widget.metadata.statuses.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
             onChanged: (v) => setState(() => _selectedStatus = v),
+          ),
+          const SizedBox(height: CRMSpacing.l),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Property Images (Max 3)', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
+              if (_isUploadingImage)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          const SizedBox(height: CRMSpacing.s),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(3, (index) {
+              final hasImage = index < _propertyImages.length;
+              final imageUrl = hasImage ? _propertyImages[index] : null;
+
+              return Column(
+                children: [
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: CRMColors.cardBg,
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                      border: Border.all(color: CRMColors.border, width: 1.5),
+                    ),
+                    child: hasImage
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(CRMBorderRadius.s - 1.5),
+                            child: Image.network(
+                              imageUrl!,
+                              fit: BoxFit.cover,
+                              width: 90,
+                              height: 90,
+                            ),
+                          )
+                        : Icon(Icons.add_photo_alternate_outlined, color: CRMColors.textSecondary, size: 28),
+                  ),
+                  const SizedBox(height: CRMSpacing.xs),
+                  if (hasImage) ...[
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.edit_outlined, size: 16, color: CRMColors.primary),
+                          onPressed: () => _showImageSourceDialog(index),
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: CRMColors.danger),
+                          onPressed: () {
+                            setState(() {
+                              _propertyImages.removeAt(index);
+                            });
+                          },
+                          constraints: const BoxConstraints(),
+                          padding: const EdgeInsets.all(4),
+                        ),
+                      ],
+                    )
+                  ] else ...[
+                    TextButton(
+                      onPressed: () => _showImageSourceDialog(index),
+                      child: const Text('Add', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    )
+                  ],
+                ],
+              );
+            }),
           ),
         ],
       ),
@@ -626,6 +1064,24 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       ],
     );
 
+    final blockWingField = TextFormField(
+      controller: _blockWingController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      decoration: InputDecoration(
+        labelText: 'Block / Wing',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+    );
+
+    final flatNoField = TextFormField(
+      controller: _flatNoController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      decoration: InputDecoration(
+        labelText: 'Flat Number',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+    );
+
     return CRMCard(
       title: 'Location Mapping',
       subtitle: 'Specify geo-coordinates and landmark directions',
@@ -641,6 +1097,20 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                 Expanded(child: cityField),
                 const SizedBox(width: CRMSpacing.s),
                 Expanded(child: areaField),
+              ],
+            ),
+          ],
+          const SizedBox(height: CRMSpacing.m),
+          if (isMobile) ...[
+            blockWingField,
+            const SizedBox(height: CRMSpacing.m),
+            flatNoField,
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: blockWingField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: flatNoField),
               ],
             ),
           ],
@@ -760,17 +1230,43 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       onChanged: (v) => setState(() => _selectedFurnishing = v),
     );
 
-    final facingField = DropdownButtonFormField<String>(
-      value: _selectedFacing,
-      decoration: InputDecoration(
-        labelText: 'Facing',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
-      items: [
-        const DropdownMenuItem(value: null, child: Text('None')),
-        ...widget.metadata.facings.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))),
-      ],
-      onChanged: (v) => setState(() => _selectedFacing = v),
+    final facingField = Autocomplete<String>(
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (textEditingValue.text.isEmpty) {
+          return widget.metadata.facings.map((f) => f.name);
+        }
+        return widget.metadata.facings
+            .map((f) => f.name)
+            .where((String option) {
+          return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+        });
+      },
+      onSelected: (String selection) {
+        final match = widget.metadata.facings.firstWhere(
+          (f) => f.name.toLowerCase() == selection.toLowerCase(),
+          orElse: () => LookupItem(id: '', name: ''),
+        );
+        if (match.id.isNotEmpty) {
+          _selectedFacing = match.id;
+          _facingController.text = match.name;
+        }
+      },
+      fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+        textEditingController.text = _facingController.text;
+        _facingController = textEditingController;
+        return TextFormField(
+          controller: textEditingController,
+          focusNode: focusNode,
+          style: CRMTypography.body.copyWith(color: CRMColors.text),
+          decoration: InputDecoration(
+            labelText: 'Facing',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+          ),
+          onChanged: (val) {
+            _selectedFacing = null;
+          },
+        );
+      },
     );
 
     final ownershipField = DropdownButtonFormField<String>(

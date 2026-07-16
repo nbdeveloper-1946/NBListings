@@ -136,4 +136,16 @@ class PropertiesRepository {
     final data = response['data'] as Map<String, dynamic>? ?? {};
     return PropertyModel.fromJson(data['property'] ?? {});
   }
+
+  Future<LookupItem> createLookup(String masterType, Map<String, dynamic> payload) async {
+    final response = await _propertiesService.createLookup(masterType, payload);
+    final data = response['data'] as Map<String, dynamic>? ?? {};
+    final key = masterType == 'property-type' ? 'propertyType' :
+                masterType == 'listing-type' ? 'listingType' : masterType;
+    final item = data[key] as Map<String, dynamic>? ?? {};
+    if (masterType == 'area') {
+      return AreaLookup.fromJson(item);
+    }
+    return LookupItem.fromJson(item);
+  }
 }

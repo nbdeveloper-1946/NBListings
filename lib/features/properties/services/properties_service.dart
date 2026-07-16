@@ -187,4 +187,18 @@ class PropertiesService {
       throw ApiException(message: e.toString());
     }
   }
+
+  Future<Map<String, dynamic>> createLookup(String masterType, Map<String, dynamic> payload) async {
+    try {
+      final response = await _apiClient.post('/lookup/$masterType', payload);
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw ApiException(message: "Invalid response format from server.");
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
 }

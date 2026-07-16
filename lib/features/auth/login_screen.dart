@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/auth_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/api/dio_client.dart';
+import 'package:dio/dio.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -70,6 +72,152 @@ class _LoginScreenState extends State<LoginScreen> {
               },
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    final emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppBorderRadius.card),
+              ),
+              backgroundColor: const Color(0xFF1E293B),
+              title: const Text(
+                'Forgot Password',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Enter your email address below, and we will send a password reset request to your administrator.',
+                      style: TextStyle(
+                        color: Color(0xFFCBD5E1),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    PremiumTextField(
+                      controller: emailController,
+                      labelText: 'Email Address',
+                      prefixIcon: Icons.mail_outline_rounded,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your email address';
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+                          return 'Please enter a valid email address';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.only(bottom: 16, right: 16, left: 16),
+              actions: [
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade400,
+                  ),
+                  onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.brandGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (formKey.currentState?.validate() ?? false) {
+                            setState(() {
+                              isSubmitting = true;
+                            });
+                            try {
+                              final email = emailController.text.trim();
+                              final response = await DioClient.dio.post(
+                                '/auth/forgot-password',
+                                data: {'email': email},
+                              );
+                              Navigator.pop(dialogContext);
+                              
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  backgroundColor: const Color(0xFF1E293B),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppBorderRadius.card),
+                                  ),
+                                  title: const Row(
+                                    children: [
+                                      Icon(Icons.check_circle_outline_rounded, color: AppColors.brandGreen, size: 28),
+                                      SizedBox(width: 10),
+                                      Text('Request Sent', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    response.data['message'] ?? 'Password reset request has been created successfully.',
+                                    style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 15),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Dismiss', style: TextStyle(color: AppColors.brandGreen, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } catch (e) {
+                              setState(() {
+                                isSubmitting = false;
+                              });
+                              String errorMsg = 'Failed to submit request. Please try again.';
+                              if (e is DioException) {
+                                errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(errorMsg),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -338,9 +486,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
-                    onTap: () {
-                      // Forgot password action
-                    },
+                    onTap: _showForgotPasswordDialog,
                     child: const Text(
                       'Forgot Password?',
                       style: TextStyle(
