@@ -9,6 +9,7 @@ import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/inputs.dart';
+import '../../../core/utils/budget_formatter.dart';
 
 class AddEditRequirementScreen extends StatefulWidget {
   final RequirementModel? requirement;
@@ -82,8 +83,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
           final req = widget.requirement!;
           _nameController.text = req.clientName;
           _mobileController.text = req.clientMobile;
-          _minBudgetController.text = req.minBudget.toStringAsFixed(0);
-          _maxBudgetController.text = req.maxBudget.toStringAsFixed(0);
+          _minBudgetController.text = BudgetFormatter.format(req.minBudget);
+          _maxBudgetController.text = BudgetFormatter.format(req.maxBudget);
           _minAreaController.text = req.minArea?.toStringAsFixed(0) ?? '';
           _maxAreaController.text = req.maxArea?.toStringAsFixed(0) ?? '';
           _remarksController.text = req.remarks ?? '';
@@ -134,8 +135,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       propertyTypeName: type.name,
       configurationId: _selectedConfigId,
       configurationName: config.id.isNotEmpty ? config.name : null,
-      minBudget: double.tryParse(_minBudgetController.text) ?? 0.0,
-      maxBudget: double.tryParse(_maxBudgetController.text) ?? 0.0,
+      minBudget: BudgetFormatter.parse(_minBudgetController.text),
+      maxBudget: BudgetFormatter.parse(_maxBudgetController.text),
       minArea: double.tryParse(_minAreaController.text),
       maxArea: double.tryParse(_maxAreaController.text),
       areaIds: _selectedAreaIds,
@@ -175,6 +176,9 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
 
     final isEditing = widget.requirement != null;
 
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+
     return Dialog(
       backgroundColor: CRMColors.cardBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.m)),
@@ -201,109 +205,183 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                   const SizedBox(height: CRMSpacing.l),
                   
                   // Client info
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CRMTextField(
-                          controller: _nameController,
-                          labelText: 'Client Name *',
-                          hintText: 'Enter name',
-                          prefixIcon: Icons.person_rounded,
-                          validator: (v) => v == null || v.isEmpty ? 'Client name required' : null,
+                  if (isMobile) ...[
+                    CRMTextField(
+                      controller: _nameController,
+                      labelText: 'Client Name *',
+                      hintText: 'Enter name',
+                      prefixIcon: Icons.person_rounded,
+                      validator: (v) => v == null || v.isEmpty ? 'Client name required' : null,
+                    ),
+                    const SizedBox(height: CRMSpacing.m),
+                    CRMTextField(
+                      controller: _mobileController,
+                      labelText: 'Mobile Phone *',
+                      hintText: '+91 XXXXX XXXXX',
+                      prefixIcon: Icons.phone_rounded,
+                      keyboardType: TextInputType.phone,
+                      validator: (v) => v == null || v.isEmpty ? 'Mobile number required' : null,
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CRMTextField(
+                            controller: _nameController,
+                            labelText: 'Client Name *',
+                            hintText: 'Enter name',
+                            prefixIcon: Icons.person_rounded,
+                            validator: (v) => v == null || v.isEmpty ? 'Client name required' : null,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: CRMSpacing.m),
-                      Expanded(
-                        child: CRMTextField(
-                          controller: _mobileController,
-                          labelText: 'Mobile Phone *',
-                          hintText: '+91 XXXXX XXXXX',
-                          prefixIcon: Icons.phone_rounded,
-                          keyboardType: TextInputType.phone,
-                          validator: (v) => v == null || v.isEmpty ? 'Mobile number required' : null,
+                        const SizedBox(width: CRMSpacing.m),
+                        Expanded(
+                          child: CRMTextField(
+                            controller: _mobileController,
+                            labelText: 'Mobile Phone *',
+                            hintText: '+91 XXXXX XXXXX',
+                            prefixIcon: Icons.phone_rounded,
+                            keyboardType: TextInputType.phone,
+                            validator: (v) => v == null || v.isEmpty ? 'Mobile number required' : null,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: CRMSpacing.m),
 
                   // Category & Type Selection
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDropdown(
-                          label: 'Category *',
-                          value: _selectedCategoryId,
-                          items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                          onChanged: (val) => setState(() => _selectedCategoryId = val),
+                  if (isMobile) ...[
+                    _buildDropdown(
+                      label: 'Category *',
+                      value: _selectedCategoryId,
+                      items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                      onChanged: (val) => setState(() => _selectedCategoryId = val),
+                    ),
+                    const SizedBox(height: CRMSpacing.m),
+                    _buildDropdown(
+                      label: 'Property Type *',
+                      value: _selectedTypeId,
+                      items: _types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                      onChanged: (val) => setState(() => _selectedTypeId = val),
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDropdown(
+                            label: 'Category *',
+                            value: _selectedCategoryId,
+                            items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                            onChanged: (val) => setState(() => _selectedCategoryId = val),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: CRMSpacing.m),
-                      Expanded(
-                        child: _buildDropdown(
-                          label: 'Property Type *',
-                          value: _selectedTypeId,
-                          items: _types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
-                          onChanged: (val) => setState(() => _selectedTypeId = val),
+                        const SizedBox(width: CRMSpacing.m),
+                        Expanded(
+                          child: _buildDropdown(
+                            label: 'Property Type *',
+                            value: _selectedTypeId,
+                            items: _types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                            onChanged: (val) => setState(() => _selectedTypeId = val),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: CRMSpacing.m),
 
                   // Configuration & Status
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDropdown(
-                          label: 'Configuration',
-                          value: _selectedConfigId,
-                          items: [
-                            const DropdownMenuItem(value: null, child: Text("None")),
-                            ..._configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-                          ],
-                          onChanged: (val) => setState(() => _selectedConfigId = val),
+                  if (isMobile) ...[
+                    _buildDropdown(
+                      label: 'Configuration',
+                      value: _selectedConfigId,
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text("None")),
+                        ..._configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                      ],
+                      onChanged: (val) => setState(() => _selectedConfigId = val),
+                    ),
+                    const SizedBox(height: CRMSpacing.m),
+                    _buildDropdown(
+                      label: 'Status *',
+                      value: _selectedStatus,
+                      items: ["Active", "Closed", "Suspended"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                      onChanged: (val) => setState(() => _selectedStatus = val ?? "Active"),
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDropdown(
+                            label: 'Configuration',
+                            value: _selectedConfigId,
+                            items: [
+                              const DropdownMenuItem(value: null, child: Text("None")),
+                              ..._configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                            ],
+                            onChanged: (val) => setState(() => _selectedConfigId = val),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: CRMSpacing.m),
-                      Expanded(
-                        child: _buildDropdown(
-                          label: 'Status *',
-                          value: _selectedStatus,
-                          items: ["Active", "Closed", "Suspended"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                          onChanged: (val) => setState(() => _selectedStatus = val ?? "Active"),
+                        const SizedBox(width: CRMSpacing.m),
+                        Expanded(
+                          child: _buildDropdown(
+                            label: 'Status *',
+                            value: _selectedStatus,
+                            items: ["Active", "Closed", "Suspended"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                            onChanged: (val) => setState(() => _selectedStatus = val ?? "Active"),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: CRMSpacing.m),
 
                   // Budget range
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CRMTextField(
-                          controller: _minBudgetController,
-                          labelText: 'Min Budget (₹) *',
-                          hintText: 'e.g. 5000000',
-                          prefixIcon: Icons.currency_rupee_rounded,
-                          keyboardType: TextInputType.number,
-                          validator: (v) => v == null || v.isEmpty ? 'Min budget required' : null,
+                  if (isMobile) ...[
+                    CRMTextField(
+                      controller: _minBudgetController,
+                      labelText: 'Min Budget (₹) *',
+                      hintText: 'e.g. 5000000',
+                      prefixIcon: Icons.currency_rupee_rounded,
+                      keyboardType: TextInputType.number,
+                      validator: (v) => v == null || v.isEmpty ? 'Min budget required' : null,
+                    ),
+                    const SizedBox(height: CRMSpacing.m),
+                    CRMTextField(
+                      controller: _maxBudgetController,
+                      labelText: 'Max Budget (₹) *',
+                      hintText: 'e.g. 8000000',
+                      prefixIcon: Icons.currency_rupee_rounded,
+                      keyboardType: TextInputType.number,
+                      validator: (v) => v == null || v.isEmpty ? 'Max budget required' : null,
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CRMTextField(
+                            controller: _minBudgetController,
+                            labelText: 'Min Budget (₹) *',
+                            hintText: 'e.g. 5000000',
+                            prefixIcon: Icons.currency_rupee_rounded,
+                            keyboardType: TextInputType.number,
+                            validator: (v) => v == null || v.isEmpty ? 'Min budget required' : null,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: CRMSpacing.m),
-                      Expanded(
-                        child: CRMTextField(
-                          controller: _maxBudgetController,
-                          labelText: 'Max Budget (₹) *',
-                          hintText: 'e.g. 8000000',
-                          prefixIcon: Icons.currency_rupee_rounded,
-                          keyboardType: TextInputType.number,
-                          validator: (v) => v == null || v.isEmpty ? 'Max budget required' : null,
+                        const SizedBox(width: CRMSpacing.m),
+                        Expanded(
+                          child: CRMTextField(
+                            controller: _maxBudgetController,
+                            labelText: 'Max Budget (₹) *',
+                            hintText: 'e.g. 8000000',
+                            prefixIcon: Icons.currency_rupee_rounded,
+                            keyboardType: TextInputType.number,
+                            validator: (v) => v == null || v.isEmpty ? 'Max budget required' : null,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: CRMSpacing.m),
 
                   // Target Area list chips selection

@@ -7,6 +7,9 @@ import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
+import '../services/properties_service.dart';
+import '../repository/properties_repository.dart';
+import '../../../core/utils/budget_formatter.dart';
 
 class AddEditPropertyScreen extends StatefulWidget {
   final PropertyMetadataModel metadata;
@@ -63,6 +66,9 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
 
   final List<String> _selectedAmenities = [];
   List<AreaLookup> _filteredAreas = [];
+  List<LookupItem> _cities = [];
+  List<AreaLookup> _areas = [];
+  List<LookupItem> _localAmenities = [];
 
   @override
   void initState() {
@@ -97,12 +103,16 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   void _initializeForm() {
+    _cities = List.from(widget.metadata.cities);
+    _areas = List.from(widget.metadata.areas);
+    _localAmenities = List.from(widget.metadata.amenities);
+
     if (widget.metadata.categories.isNotEmpty) _selectedCategory = widget.metadata.categories.first.id;
     if (widget.metadata.types.isNotEmpty) _selectedType = widget.metadata.types.first.id;
     if (widget.metadata.listingTypes.isNotEmpty) _selectedListingType = widget.metadata.listingTypes.first.id;
     if (widget.metadata.statuses.isNotEmpty) _selectedStatus = widget.metadata.statuses.first.id;
-    if (widget.metadata.cities.isNotEmpty) {
-      _selectedCity = widget.metadata.cities.first.id;
+    if (_cities.isNotEmpty) {
+      _selectedCity = _cities.first.id;
       _updateAreasForCity(_selectedCity!);
     }
 
@@ -123,7 +133,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _superBuiltupController.text = p.superBuiltupArea?.toStringAsFixed(0) ?? '';
       _carpetController.text = p.carpetArea?.toStringAsFixed(0) ?? '';
       _plotController.text = p.plotArea?.toStringAsFixed(0) ?? '';
-      _priceController.text = p.price.toStringAsFixed(0);
+      _priceController.text = BudgetFormatter.format(p.price);
       _depositController.text = p.deposit.toStringAsFixed(0);
       _maintenanceController.text = p.maintenance.toStringAsFixed(0);
       _selectedFurnishing = p.furnishingTypeId;
@@ -153,9 +163,116 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     }
   }
 
+
+  void _showAddCityDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New City'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'City Name'),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          TextButton(
+            child: const Text('Add'),
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                try {
+                  final service = PropertiesService();
+                  final result = await service.createCity(name);
+                  final LookupItem newCity = LookupItem(
+                    id: result['data']['city']['id'],
+                    name: result['data']['city']['city_name'],
+                  );
+                  setState(() {
+                    _cities.add(newCity);
+                    _selectedCity = newCity.id;
+                  });
+                  _updateAreasForCity(newCity.id);
+                  if (mounted) Navigator.pop(ctx);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to add city: $e')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddAreaDialog() {
+    final nameController = TextEditingController();
+    final pincodeController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New Area'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Area Name'),
+            ),
+            TextField(
+              controller: pincodeController,
+              decoration: const InputDecoration(labelText: 'Pincode'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          TextButton(
+            child: const Text('Add'),
+            onPressed: () async {
+              final name = nameController.text.trim();
+              final pincode = pincodeController.text.trim();
+              if (name.isNotEmpty && pincode.isNotEmpty && _selectedCity != null) {
+                try {
+                  final service = PropertiesService();
+                  final result = await service.createArea(_selectedCity!, name, pincode);
+                  final AreaLookup newArea = AreaLookup(
+                    id: result['data']['area']['id'],
+                    name: result['data']['area']['area_name'],
+                    cityId: result['data']['area']['city_id'],
+                    pincode: result['data']['area']['pincode'],
+                  );
+                  setState(() {
+                    _areas.add(newArea);
+                    _filteredAreas.add(newArea);
+                    _selectedArea = newArea.id;
+                  });
+                  if (mounted) Navigator.pop(ctx);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to add area: $e')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _updateAreasForCity(String cityId) {
     setState(() {
-      _filteredAreas = widget.metadata.areas.where((a) => a.cityId == cityId).toList();
+      _filteredAreas = _areas.where((a) => a.cityId == cityId).toList();
       if (_filteredAreas.isNotEmpty) {
         _selectedArea = _filteredAreas.first.id;
       } else {
@@ -182,7 +299,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       'super_builtup_area': double.tryParse(_superBuiltupController.text),
       'carpet_area': double.tryParse(_carpetController.text),
       'plot_area': double.tryParse(_plotController.text),
-      'price': double.tryParse(_priceController.text) ?? 0.0,
+      'price': BudgetFormatter.parse(_priceController.text),
       'deposit': double.tryParse(_depositController.text) ?? 0.0,
       'maintenance': double.tryParse(_maintenanceController.text) ?? 0.0,
       'furnishing_type_id': _selectedFurnishing,
@@ -219,11 +336,12 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.property != null;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(isEdit ? 'Edit CRM Listing' : 'Publish New Property', style: CRMTypography.sectionTitle),
+        title: Text(isEdit ? 'Edit CRM Listing' : 'Add New Property', style: CRMTypography.sectionTitle),
         backgroundColor: CRMColors.cardBg,
         elevation: 0,
       ),
@@ -231,11 +349,11 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         key: _formKey,
         child: Column(
           children: [
-            _buildWizardProgress(),
+            _buildWizardProgress(isMobile),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(CRMSpacing.l),
-                child: _buildActiveStepContent(),
+                child: _buildActiveStepContent(isMobile),
               ),
             ),
             _buildWizardActions(isEdit),
@@ -245,26 +363,29 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
   }
 
-  Widget _buildWizardProgress() {
+  Widget _buildWizardProgress(bool isMobile) {
     return Container(
       color: CRMColors.cardBg,
-      padding: const EdgeInsets.symmetric(vertical: CRMSpacing.m, horizontal: CRMSpacing.l),
+      padding: EdgeInsets.symmetric(
+        vertical: CRMSpacing.m,
+        horizontal: isMobile ? CRMSpacing.m : CRMSpacing.l,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildStepNode(0, 'Basic Info'),
+          _buildStepNode(0, 'Basic Info', isMobile),
           _buildStepDivider(),
-          _buildStepNode(1, 'Location'),
+          _buildStepNode(1, 'Location', isMobile),
           _buildStepDivider(),
-          _buildStepNode(2, 'Pricing'),
+          _buildStepNode(2, 'Pricing', isMobile),
           _buildStepDivider(),
-          _buildStepNode(3, 'Contacts'),
+          _buildStepNode(3, 'Contacts', isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildStepNode(int index, String label) {
+  Widget _buildStepNode(int index, String label, bool isMobile) {
     final isActive = _currentStep == index;
     final isPassed = _currentStep > index;
 
@@ -279,13 +400,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               ? const Icon(Icons.check, size: 14, color: Colors.white)
               : Text('${index + 1}', style: TextStyle(color: isActive ? Colors.white : CRMColors.textSecondary, fontSize: 12)),
         ),
-        const SizedBox(width: CRMSpacing.xs),
-        Text(
-          label,
-          style: CRMTypography.captionBold.copyWith(
-            color: isActive ? CRMColors.primary : CRMColors.textSecondary,
+        if (!isMobile) ...[
+          const SizedBox(width: CRMSpacing.xs),
+          Text(
+            label,
+            style: CRMTypography.captionBold.copyWith(
+              color: isActive ? CRMColors.primary : CRMColors.textSecondary,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -296,22 +419,22 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
   }
 
-  Widget _buildActiveStepContent() {
+  Widget _buildActiveStepContent(bool isMobile) {
     switch (_currentStep) {
       case 0:
-        return _buildBasicStep();
+        return _buildBasicStep(isMobile);
       case 1:
-        return _buildLocationStep();
+        return _buildLocationStep(isMobile);
       case 2:
-        return _buildPricingStep();
+        return _buildPricingStep(isMobile);
       case 3:
-        return _buildContactsStep();
+        return _buildContactsStep(isMobile);
       default:
         return const SizedBox.shrink();
     }
   }
 
-  Widget _buildBasicStep() {
+  Widget _buildBasicStep(bool isMobile) {
     return CRMCard(
       title: 'Basic Property Setup',
       subtitle: 'Complete listing definitions and categories',
@@ -337,64 +460,111 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
           ),
           const SizedBox(height: CRMSpacing.m),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedCategory,
-                  decoration: InputDecoration(
-                    labelText: 'Category *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: widget.metadata.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                  onChanged: (v) => setState(() => _selectedCategory = v),
-                ),
+          if (isMobile) ...[
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              decoration: InputDecoration(
+                labelText: 'Category *',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
               ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedListingType,
-                  decoration: InputDecoration(
-                    labelText: 'Listing Type *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: widget.metadata.listingTypes.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
-                  onChanged: (v) => setState(() => _selectedListingType = v),
-                ),
+              items: widget.metadata.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+              onChanged: (v) => setState(() => _selectedCategory = v),
+            ),
+            const SizedBox(height: CRMSpacing.m),
+            DropdownButtonFormField<String>(
+              value: _selectedListingType,
+              decoration: InputDecoration(
+                labelText: 'Listing Type *',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
               ),
-            ],
-          ),
+              items: widget.metadata.listingTypes.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
+              onChanged: (v) => setState(() => _selectedListingType = v),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    decoration: InputDecoration(
+                      labelText: 'Category *',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                    ),
+                    items: widget.metadata.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                    onChanged: (v) => setState(() => _selectedCategory = v),
+                  ),
+                ),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedListingType,
+                    decoration: InputDecoration(
+                      labelText: 'Listing Type *',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                    ),
+                    items: widget.metadata.listingTypes.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
+                    onChanged: (v) => setState(() => _selectedListingType = v),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: CRMSpacing.m),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedType,
-                  decoration: InputDecoration(
-                    labelText: 'Property Type *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: widget.metadata.types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
-                  onChanged: (v) => setState(() => _selectedType = v),
-                ),
+          if (isMobile) ...[
+            DropdownButtonFormField<String>(
+              value: _selectedType,
+              decoration: InputDecoration(
+                labelText: 'Property Type *',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
               ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedConfig,
-                  decoration: InputDecoration(
-                    labelText: 'Configuration',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('None')),
-                    ...widget.metadata.configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-                  ],
-                  onChanged: (v) => setState(() => _selectedConfig = v),
-                ),
+              items: widget.metadata.types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+              onChanged: (v) => setState(() => _selectedType = v),
+            ),
+            const SizedBox(height: CRMSpacing.m),
+            DropdownButtonFormField<String>(
+              value: _selectedConfig,
+              decoration: InputDecoration(
+                labelText: 'Configuration',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
               ),
-            ],
-          ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('None')),
+                ...widget.metadata.configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+              ],
+              onChanged: (v) => setState(() => _selectedConfig = v),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedType,
+                    decoration: InputDecoration(
+                      labelText: 'Property Type *',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                    ),
+                    items: widget.metadata.types.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                    onChanged: (v) => setState(() => _selectedType = v),
+                  ),
+                ),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedConfig,
+                    decoration: InputDecoration(
+                      labelText: 'Configuration',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                    ),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('None')),
+                      ...widget.metadata.configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                    ],
+                    onChanged: (v) => setState(() => _selectedConfig = v),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: CRMSpacing.m),
           DropdownButtonFormField<String>(
             value: _selectedStatus,
@@ -410,42 +580,70 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
   }
 
-  Widget _buildLocationStep() {
+  Widget _buildLocationStep(bool isMobile) {
+    final cityField = Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: _selectedCity,
+            decoration: InputDecoration(
+              labelText: 'City *',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+            ),
+            items: _cities.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+            onChanged: (v) {
+              setState(() => _selectedCity = v);
+              if (v != null) _updateAreasForCity(v);
+            },
+          ),
+        ),
+        IconButton(
+          icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+          onPressed: _showAddCityDialog,
+          tooltip: 'Add New City',
+        ),
+      ],
+    );
+
+    final areaField = Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: _selectedArea,
+            decoration: InputDecoration(
+              labelText: 'Area *',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+            ),
+            items: _filteredAreas.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
+            onChanged: (v) => setState(() => _selectedArea = v),
+          ),
+        ),
+        IconButton(
+          icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+          onPressed: _selectedCity == null ? null : _showAddAreaDialog,
+          tooltip: 'Add New Area',
+        ),
+      ],
+    );
+
     return CRMCard(
       title: 'Location Mapping',
       subtitle: 'Specify geo-coordinates and landmark directions',
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedCity,
-                  decoration: InputDecoration(
-                    labelText: 'City *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: widget.metadata.cities.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                  onChanged: (v) {
-                    setState(() => _selectedCity = v);
-                    if (v != null) _updateAreasForCity(v);
-                  },
-                ),
-              ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedArea,
-                  decoration: InputDecoration(
-                    labelText: 'Area *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: _filteredAreas.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
-                  onChanged: (v) => setState(() => _selectedArea = v),
-                ),
-              ),
-            ],
-          ),
+          if (isMobile) ...[
+            cityField,
+            const SizedBox(height: CRMSpacing.m),
+            areaField,
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: cityField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: areaField),
+              ],
+            ),
+          ],
           const SizedBox(height: CRMSpacing.m),
           TextFormField(
             controller: _landmarkController,
@@ -471,40 +669,142 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
   }
 
-  Widget _buildPricingStep() {
+  Widget _buildPricingStep(bool isMobile) {
+    final priceField = TextFormField(
+      controller: _priceController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: 'Rent/Sell Price *',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      validator: (v) => v!.isEmpty ? 'Price is required' : null,
+    );
+
+    final depositField = TextFormField(
+      controller: _depositController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: 'Deposit Amount',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+    );
+
+    final superBuiltupField = TextFormField(
+      controller: _superBuiltupController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: 'Super Builtup Area *',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      validator: (v) => v!.isEmpty ? 'Area required' : null,
+    );
+
+    final carpetField = TextFormField(
+      controller: _carpetController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: 'Carpet Area Size',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+    );
+
+    final bedroomsField = _buildNumberField(_bedroomsController, 'Bedrooms');
+    final bathroomsField = _buildNumberField(_bathroomsController, 'Bathrooms');
+    final balconiesField = _buildNumberField(_balconiesController, 'Balconies');
+    final parkingField = _buildNumberField(_parkingController, 'Parking');
+
+    final floorNoField = TextFormField(
+      controller: _floorNoController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: 'Floor No.',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+    );
+
+    final totalFloorField = TextFormField(
+      controller: _totalFloorController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: 'Total Floors',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+    );
+
+    final ageField = TextFormField(
+      controller: _ageController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: 'Age (years)',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+    );
+
+    final furnishingField = DropdownButtonFormField<String>(
+      value: _selectedFurnishing,
+      decoration: InputDecoration(
+        labelText: 'Furnishing',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('None')),
+        ...widget.metadata.furnishings.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))),
+      ],
+      onChanged: (v) => setState(() => _selectedFurnishing = v),
+    );
+
+    final facingField = DropdownButtonFormField<String>(
+      value: _selectedFacing,
+      decoration: InputDecoration(
+        labelText: 'Facing',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('None')),
+        ...widget.metadata.facings.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))),
+      ],
+      onChanged: (v) => setState(() => _selectedFacing = v),
+    );
+
+    final ownershipField = DropdownButtonFormField<String>(
+      value: _selectedOwnership,
+      decoration: InputDecoration(
+        labelText: 'Ownership',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('None')),
+        ...widget.metadata.ownerships.map((o) => DropdownMenuItem(value: o.id, child: Text(o.name))),
+      ],
+      onChanged: (v) => setState(() => _selectedOwnership = v),
+    );
+
     return CRMCard(
       title: 'Pricing & Sizing Sockets',
       subtitle: 'Complete budget calculations and builtup area parameters',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _priceController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Rent/Sell Price *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  validator: (v) => v!.isEmpty ? 'Price is required' : null,
-                ),
-              ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: TextFormField(
-                  controller: _depositController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Deposit Amount',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          if (isMobile) ...[
+            priceField,
+            const SizedBox(height: CRMSpacing.m),
+            depositField,
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: priceField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: depositField),
+              ],
+            ),
+          ],
           const SizedBox(height: CRMSpacing.m),
           TextFormField(
             controller: _maintenanceController,
@@ -516,34 +816,19 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
           ),
           const SizedBox(height: CRMSpacing.m),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _superBuiltupController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Super Builtup Area *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  validator: (v) => v!.isEmpty ? 'Area required' : null,
-                ),
-              ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: TextFormField(
-                  controller: _carpetController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Carpet Area Size',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          if (isMobile) ...[
+            superBuiltupField,
+            const SizedBox(height: CRMSpacing.m),
+            carpetField,
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: superBuiltupField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: carpetField),
+              ],
+            ),
+          ],
           const SizedBox(height: CRMSpacing.m),
           TextFormField(
             controller: _plotController,
@@ -557,135 +842,161 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
           const SizedBox(height: CRMSpacing.l),
           Text('Room & Floor Details', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
           const SizedBox(height: CRMSpacing.s),
-          Row(
-            children: [
-              Expanded(child: _buildNumberField(_bedroomsController, 'Bedrooms')),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(child: _buildNumberField(_bathroomsController, 'Bathrooms')),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(child: _buildNumberField(_balconiesController, 'Balconies')),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(child: _buildNumberField(_parkingController, 'Parking')),
-            ],
-          ),
+          if (isMobile) ...[
+            Row(
+              children: [
+                Expanded(child: bedroomsField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: bathroomsField),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.m),
+            Row(
+              children: [
+                Expanded(child: balconiesField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: parkingField),
+              ],
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: bedroomsField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: bathroomsField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: balconiesField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: parkingField),
+              ],
+            ),
+          ],
           const SizedBox(height: CRMSpacing.m),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _floorNoController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Floor No.',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: TextFormField(
-                  controller: _totalFloorController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Total Floors',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: TextFormField(
-                  controller: _ageController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Age (years)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          if (isMobile) ...[
+            floorNoField,
+            const SizedBox(height: CRMSpacing.m),
+            totalFloorField,
+            const SizedBox(height: CRMSpacing.m),
+            ageField,
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: floorNoField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: totalFloorField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: ageField),
+              ],
+            ),
+          ],
           const SizedBox(height: CRMSpacing.l),
           Text('Property Attributes', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
           const SizedBox(height: CRMSpacing.s),
+          if (isMobile) ...[
+            furnishingField,
+            const SizedBox(height: CRMSpacing.m),
+            facingField,
+            const SizedBox(height: CRMSpacing.m),
+            ownershipField,
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: furnishingField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: facingField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: ownershipField),
+              ],
+            ),
+          ],
+          const SizedBox(height: CRMSpacing.l),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedFurnishing,
-                  decoration: InputDecoration(
-                    labelText: 'Furnishing',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('None')),
-                    ...widget.metadata.furnishings.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))),
-                  ],
-                  onChanged: (v) => setState(() => _selectedFurnishing = v),
-                ),
-              ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedFacing,
-                  decoration: InputDecoration(
-                    labelText: 'Facing',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('None')),
-                    ...widget.metadata.facings.map((f) => DropdownMenuItem(value: f.id, child: Text(f.name))),
-                  ],
-                  onChanged: (v) => setState(() => _selectedFacing = v),
-                ),
-              ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _selectedOwnership,
-                  decoration: InputDecoration(
-                    labelText: 'Ownership',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('None')),
-                    ...widget.metadata.ownerships.map((o) => DropdownMenuItem(value: o.id, child: Text(o.name))),
-                  ],
-                  onChanged: (v) => setState(() => _selectedOwnership = v),
+              Text('Amenities', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
+              TextButton.icon(
+                onPressed: _showAddAmenityDialog,
+                icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                label: const Text('Add Custom Amenity'),
+                style: TextButton.styleFrom(
+                  foregroundColor: CRMColors.primary,
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
             ],
           ),
-          if (widget.metadata.amenities.isNotEmpty) ...[
-            const SizedBox(height: CRMSpacing.l),
-            Text('Amenities', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
-            const SizedBox(height: CRMSpacing.s),
-            Wrap(
-              spacing: CRMSpacing.s,
-              runSpacing: CRMSpacing.xs,
-              children: widget.metadata.amenities.map((amenity) {
-                final isSelected = _selectedAmenities.contains(amenity.id);
-                return FilterChip(
-                  label: Text(amenity.name),
-                  selected: isSelected,
-                  selectedColor: CRMColors.primary.withOpacity(0.12),
-                  checkmarkColor: CRMColors.primary,
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedAmenities.add(amenity.id);
-                      } else {
-                        _selectedAmenities.remove(amenity.id);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ],
+          const SizedBox(height: CRMSpacing.s),
+          Wrap(
+            spacing: CRMSpacing.s,
+            runSpacing: CRMSpacing.xs,
+            children: _localAmenities.map((amenity) {
+              final isSelected = _selectedAmenities.contains(amenity.id);
+              return FilterChip(
+                label: Text(amenity.name),
+                selected: isSelected,
+                selectedColor: CRMColors.primary.withOpacity(0.12),
+                checkmarkColor: CRMColors.primary,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedAmenities.add(amenity.id);
+                    } else {
+                      _selectedAmenities.remove(amenity.id);
+                    }
+                  });
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAddAmenityDialog() async {
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: CRMColors.cardBg,
+        title: Text('Add Custom Amenity', style: TextStyle(color: CRMColors.textOf(context))),
+        content: TextField(
+          controller: controller,
+          style: TextStyle(color: CRMColors.textOf(context)),
+          decoration: const InputDecoration(
+            hintText: 'Enter amenity name (e.g. Solar Panels)',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                try {
+                  final newAmenity = await PropertiesRepository().createAmenity(name);
+                  setState(() {
+                    _localAmenities.add(newAmenity);
+                    _selectedAmenities.add(newAmenity.id);
+                  });
+                  if (context.mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to add amenity: $e'), backgroundColor: CRMColors.danger),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Add'),
+          ),
         ],
       ),
     );
@@ -703,40 +1014,46 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
   }
 
-  Widget _buildContactsStep() {
+  Widget _buildContactsStep(bool isMobile) {
+    final ownerNameField = TextFormField(
+      controller: _ownerNameController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      decoration: InputDecoration(
+        labelText: 'Owner Name *',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      validator: (v) => v!.isEmpty ? 'Owner name required' : null,
+    );
+
+    final ownerMobileField = TextFormField(
+      controller: _ownerMobileController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      keyboardType: TextInputType.phone,
+      decoration: InputDecoration(
+        labelText: 'Owner Mobile *',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      validator: (v) => v!.isEmpty ? 'Mobile required' : null,
+    );
+
     return CRMCard(
       title: 'Contacts Info & Visibility',
       subtitle: 'Verify owner profiles and direct remarks',
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _ownerNameController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  decoration: InputDecoration(
-                    labelText: 'Owner Name *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  validator: (v) => v!.isEmpty ? 'Owner name required' : null,
-                ),
-              ),
-              const SizedBox(width: CRMSpacing.s),
-              Expanded(
-                child: TextFormField(
-                  controller: _ownerMobileController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Owner Mobile *',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                  ),
-                  validator: (v) => v!.isEmpty ? 'Mobile required' : null,
-                ),
-              ),
-            ],
-          ),
+          if (isMobile) ...[
+            ownerNameField,
+            const SizedBox(height: CRMSpacing.m),
+            ownerMobileField,
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: ownerNameField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: ownerMobileField),
+              ],
+            ),
+          ],
           const SizedBox(height: CRMSpacing.m),
           TextFormField(
             controller: _brokerNameController,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
@@ -23,6 +24,7 @@ class PropertiesScreen extends StatefulWidget {
 class _PropertiesScreenState extends State<PropertiesScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _activeTab = 'All';
+  bool _hasAutoOpenedAdd = false;
   String? _selectedCategory;
   String? _selectedArea;
   String? _selectedListingType;
@@ -72,6 +74,184 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     }
   }
 
+  Widget _buildMobilePropertyCard(PropertyModel p, String? currentUserId, Set<String> bookmarkedIds, PropertyMetadataModel? metadata) {
+    final isMine = p.createdBy == currentUserId;
+    final isBookmarked = bookmarkedIds.contains(p.id);
+
+    return CRMCard(
+      padding: const EdgeInsets.all(CRMSpacing.m),
+      child: InkWell(
+        onTap: () => showCRMPropertyDrawer(context, p),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  p.propertyCode,
+                  style: CRMTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: CRMColors.primary,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: p.propertyStatusName.toLowerCase() == 'available' 
+                        ? CRMColors.success.withOpacity(0.1) 
+                        : CRMColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                  ),
+                  child: Text(
+                    p.propertyStatusName,
+                    style: TextStyle(
+                      color: p.propertyStatusName.toLowerCase() == 'available' 
+                          ? CRMColors.success 
+                          : CRMColors.warning,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.s),
+            Text(
+              p.title,
+              style: CRMTypography.cardTitle.copyWith(
+                color: CRMColors.textOf(context),
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: CRMSpacing.s),
+            Wrap(
+              spacing: CRMSpacing.m,
+              runSpacing: CRMSpacing.xs,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${p.areaName}, ${p.cityName}',
+                      style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.sell_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '₹${p.price.toStringAsFixed(0)}',
+                      style: CRMTypography.captionBold.copyWith(
+                        color: CRMColors.textOf(context),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Divider(height: CRMSpacing.l),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Verified: ',
+                      style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                    ),
+                    Transform.scale(
+                      scale: 0.8,
+                      child: Switch(
+                        value: p.isVerified,
+                        activeColor: CRMColors.success,
+                        onChanged: (val) {
+                          context.read<PropertiesBloc>().add(
+                            ToggleVerificationEvent(p.id, val, activeTab: _activeTab),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+                        color: isBookmarked ? CRMColors.warning : CRMColors.textMutedOf(context),
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        context.read<PropertiesBloc>().add(
+                          ToggleBookmarkEvent(p.id, activeTab: _activeTab),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: CRMSpacing.m),
+                    if (isMine && _activeTab != 'My Deleted') ...[
+                      IconButton(
+                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          if (metadata != null) {
+                            _showAddEditPropertyDialog(context, metadata, p);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: CRMSpacing.m),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          context.read<PropertiesBloc>().add(
+                            DeletePropertyEvent(p.id, activeTab: _activeTab),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: CRMSpacing.m),
+                    ] else if (isMine && _activeTab == 'My Deleted') ...[
+                      IconButton(
+                        icon: Icon(Icons.restore_rounded, color: CRMColors.success, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          context.read<PropertiesBloc>().add(
+                            RestorePropertyEvent(p.id, activeTab: _activeTab),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: CRMSpacing.m),
+                    ],
+                    IconButton(
+                      icon: Icon(Icons.chat_bubble_outline_rounded, color: CRMColors.success, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _launchWhatsApp(p),
+                      tooltip: 'Contact on WhatsApp',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
@@ -79,6 +259,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     if (authState is Authenticated) {
       currentUserId = authState.user.id;
     }
+    final double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -100,6 +281,14 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
             properties = state.properties;
             metadata = state.metadata;
             bookmarkedIds = state.bookmarkedIds;
+
+            final action = GoRouterState.of(context).uri.queryParameters['action'];
+            if (action == 'add' && !_hasAutoOpenedAdd && state.metadata != null) {
+              _hasAutoOpenedAdd = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _showAddEditPropertyDialog(context, state.metadata!);
+              });
+            }
           }
 
           final totalPages = properties.isEmpty ? 1 : (properties.length / _pageSize).ceil();
@@ -135,134 +324,149 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                 _buildActionToolbar(),
                 const SizedBox(height: CRMSpacing.m),
 
-                // 6. Property Table & 7. Pagination
-                CRMDataTable(
-                  isLoading: isLoading,
-                  emptyTitle: 'No Properties Found',
-                  emptyDescription: 'No records match your active search terms.',
-                  columns: const [
-                    DataColumn(label: Text('Shortlist')),
-                    DataColumn(label: Text('Actions')),
-                    DataColumn(label: Text('Verified')),
-                    DataColumn(label: Text('Code')),
-                    DataColumn(label: Text('Title')),
-                    DataColumn(label: Text('City')),
-                    DataColumn(label: Text('Area')),
-                    DataColumn(label: Text('Price')),
-                    DataColumn(label: Text('Status')),
-                  ],
-                  rows: pagedProperties.map((p) {
-                    final isMine = p.createdBy == currentUserId;
-                    final isBookmarked = bookmarkedIds.contains(p.id);
-                    return DataRow(
-                      onSelectChanged: (_) => showCRMPropertyDrawer(context, p),
-                      cells: [
-                        DataCell(
-                          IconButton(
-                            icon: Icon(
-                              isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
-                              color: isBookmarked ? CRMColors.warning : CRMColors.textMuted,
-                            ),
-                            onPressed: () {
-                              context.read<PropertiesBloc>().add(
-                                ToggleBookmarkEvent(p.id, activeTab: _activeTab),
-                              );
-                            },
-                          ),
+                // 6. Property Table (Desktop) / Property Cards (Mobile) & 7. Pagination
+                if (screenWidth < 768) ...[
+                  if (isLoading)
+                    const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
+                  else if (pagedProperties.isEmpty)
+                    CRMCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(CRMSpacing.xl),
+                        child: Column(
+                          children: [
+                            Text('No Properties Found', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
+                            const SizedBox(height: CRMSpacing.s),
+                            Text('No records match your active search terms.', style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
+                          ],
                         ),
-                        DataCell(
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (isMine && _activeTab != 'My Deleted') ...[
-                                IconButton(
-                                  icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
-                                  onPressed: () {
-                                    if (metadata != null) {
-                                      final propertiesBloc = context.read<PropertiesBloc>();
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => BlocProvider.value(
-                                            value: propertiesBloc,
-                                            child: AddEditPropertyScreen(
-                                              metadata: metadata!,
-                                              property: p,
-                                              activeTab: _activeTab,
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
-                                  onPressed: () {
-                                    context.read<PropertiesBloc>().add(
-                                      DeletePropertyEvent(p.id, activeTab: _activeTab),
-                                    );
-                                  },
-                                ),
-                              ] else if (isMine && _activeTab == 'My Deleted') ...[
-                                IconButton(
-                                  icon: Icon(Icons.restore_rounded, color: CRMColors.success, size: 18),
-                                  onPressed: () {
-                                    context.read<PropertiesBloc>().add(
-                                      RestorePropertyEvent(p.id, activeTab: _activeTab),
-                                    );
-                                  },
-                                ),
-                              ],
-                              IconButton(
-                                icon: Icon(Icons.share_outlined, color: CRMColors.success, size: 18),
-                                  onPressed: () => _launchWhatsApp(p),
+                      ),
+                    )
+                  else
+                    Column(
+                      children: pagedProperties.map((p) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: CRMSpacing.m),
+                          child: _buildMobilePropertyCard(p, currentUserId, bookmarkedIds, metadata),
+                        );
+                      }).toList(),
+                    ),
+                ] else ...[
+                  CRMDataTable(
+                    isLoading: isLoading,
+                    emptyTitle: 'No Properties Found',
+                    emptyDescription: 'No records match your active search terms.',
+                    columns: const [
+                      DataColumn(label: Text('Shortlist')),
+                      DataColumn(label: Text('Actions')),
+                      DataColumn(label: Text('Verified')),
+                      DataColumn(label: Text('Code')),
+                      DataColumn(label: Text('Title')),
+                      DataColumn(label: Text('City')),
+                      DataColumn(label: Text('Area')),
+                      DataColumn(label: Text('Price')),
+                      DataColumn(label: Text('Status')),
+                    ],
+                    rows: pagedProperties.map((p) {
+                      final isMine = p.createdBy == currentUserId;
+                      final isBookmarked = bookmarkedIds.contains(p.id);
+                      return DataRow(
+                        onSelectChanged: (_) => showCRMPropertyDrawer(context, p),
+                        cells: [
+                          DataCell(
+                            IconButton(
+                              icon: Icon(
+                                isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+                                color: isBookmarked ? CRMColors.warning : CRMColors.textMuted,
                               ),
-                            ],
-                          ),
-                        ),
-                        DataCell(
-                          Transform.scale(
-                            scale: 0.9,
-                            child: Switch(
-                              value: p.isVerified,
-                              activeColor: CRMColors.success,
-                              onChanged: (val) {
+                              onPressed: () {
                                 context.read<PropertiesBloc>().add(
-                                  ToggleVerificationEvent(p.id, val, activeTab: _activeTab),
+                                  ToggleBookmarkEvent(p.id, activeTab: _activeTab),
                                 );
                               },
                             ),
                           ),
-                        ),
-                        DataCell(Text(p.propertyCode, style: const TextStyle(fontWeight: FontWeight.bold))),
-                        DataCell(Text(p.title)),
-                        DataCell(Text(p.cityName)),
-                        DataCell(Text(p.areaName)),
-                        DataCell(Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))),
-                        DataCell(
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: p.propertyStatusName.toLowerCase() == 'available' 
-                                  ? CRMColors.success.withOpacity(0.1) 
-                                  : CRMColors.warning.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                          DataCell(
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isMine && _activeTab != 'My Deleted') ...[
+                                  IconButton(
+                                    icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                                    onPressed: () {
+                                      if (metadata != null) {
+                                        _showAddEditPropertyDialog(context, metadata!, p);
+                                      }
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                                    onPressed: () {
+                                      context.read<PropertiesBloc>().add(
+                                        DeletePropertyEvent(p.id, activeTab: _activeTab),
+                                      );
+                                    },
+                                  ),
+                                ] else if (isMine && _activeTab == 'My Deleted') ...[
+                                  IconButton(
+                                    icon: Icon(Icons.restore_rounded, color: CRMColors.success, size: 18),
+                                    onPressed: () {
+                                      context.read<PropertiesBloc>().add(
+                                        RestorePropertyEvent(p.id, activeTab: _activeTab),
+                                      );
+                                    },
+                                  ),
+                                ],
+                                IconButton(
+                                  icon: Icon(Icons.chat_bubble_outline_rounded, color: CRMColors.success, size: 18),
+                                  onPressed: () => _launchWhatsApp(p),
+                                  tooltip: 'Contact on WhatsApp',
+                                ),
+                              ],
                             ),
-                            child: Text(
-                              p.propertyStatusName,
-                              style: TextStyle(
-                                color: p.propertyStatusName.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold
+                          ),
+                          DataCell(
+                            Transform.scale(
+                              scale: 0.9,
+                              child: Switch(
+                                value: p.isVerified,
+                                activeColor: CRMColors.success,
+                                onChanged: (val) {
+                                  context.read<PropertiesBloc>().add(
+                                    ToggleVerificationEvent(p.id, val, activeTab: _activeTab),
+                                  );
+                                },
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                ),
+                          DataCell(Text(p.propertyCode, style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataCell(Text(p.title)),
+                          DataCell(Text(p.cityName)),
+                          DataCell(Text(p.areaName)),
+                          DataCell(Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))),
+                          DataCell(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: p.propertyStatusName.toLowerCase() == 'available' 
+                                    ? CRMColors.success.withOpacity(0.1) 
+                                    : CRMColors.warning.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                              ),
+                              child: Text(
+                                p.propertyStatusName,
+                                style: TextStyle(
+                                  color: p.propertyStatusName.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ],
                 if (properties.isNotEmpty) ...[
                   const SizedBox(height: CRMSpacing.m),
                   _buildPagination(properties.length, totalPages, safePage),
@@ -304,19 +508,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           );
           return;
         }
-        final propertiesBloc = context.read<PropertiesBloc>();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BlocProvider.value(
-              value: propertiesBloc,
-              child: AddEditPropertyScreen(
-                metadata: metadata,
-                activeTab: _activeTab,
-              ),
-            ),
-          ),
-        );
+        _showAddEditPropertyDialog(context, metadata!);
       },
     );
 
@@ -367,7 +559,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     } else {
       // Mobile 2-column view: Lower ratio gives cards more height for wrapped titles
       crossAxisCount = 2;
-      childAspectRatio = 0.95;
+      childAspectRatio = 0.8;
     }
 
     final cards = [
@@ -643,10 +835,13 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     required ValueChanged<String?> onChanged,
     required double width,
   }) {
+    final bool hasValue = value == null || items.any((item) => item.value == value);
+    final String? safeValue = hasValue ? value : null;
+
     return SizedBox(
       width: width,
       child: DropdownButtonFormField<String>(
-        value: value,
+        value: safeValue,
         isExpanded: true,
         decoration: InputDecoration(
           labelText: label,
@@ -723,6 +918,35 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
         Expanded(child: chipsList),
         refreshButton,
       ],
+    );
+  }
+
+  void _showAddEditPropertyDialog(BuildContext context, PropertyMetadataModel metadata, [PropertyModel? property]) {
+    final propertiesBloc = context.read<PropertiesBloc>();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            color: CRMColors.cardBg,
+            borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+          ),
+          width: MediaQuery.of(context).size.width * 0.95,
+          height: MediaQuery.of(context).size.height * 0.95,
+          constraints: const BoxConstraints(maxWidth: 800, maxHeight: 750),
+          clipBehavior: Clip.antiAlias,
+          child: BlocProvider.value(
+            value: propertiesBloc,
+            child: AddEditPropertyScreen(
+              metadata: metadata,
+              property: property,
+              activeTab: _activeTab,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

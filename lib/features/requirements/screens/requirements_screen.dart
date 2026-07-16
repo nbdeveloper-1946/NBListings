@@ -12,6 +12,7 @@ import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/data_table.dart';
+import '../../../core/utils/budget_formatter.dart';
 
 class RequirementsScreen extends StatefulWidget {
   const RequirementsScreen({super.key});
@@ -24,21 +25,50 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String? _selectedConfigId;
   String _selectedStatus = "All";
+  final PropertiesRepository _propertiesRepository = PropertiesRepository();
+  PropertyMetadataModel? _metadata;
+  bool _isLoadingMetadata = true;
+  bool _hasAutoOpenedAdd = false;
 
   @override
   void initState() {
     super.initState();
+    _loadMetadata();
     _triggerFetch();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final action = GoRouterState.of(context).uri.queryParameters['action'];
+        if (action == 'add' && !_hasAutoOpenedAdd) {
+          _hasAutoOpenedAdd = true;
+          _showAddEditDialog();
+        }
+      }
+    });
+  }
+
+  Future<void> _loadMetadata() async {
+    try {
+      final meta = await _propertiesRepository.getPropertyMetadata();
+      setState(() {
+        _metadata = meta;
+        _isLoadingMetadata = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingMetadata = false;
+      });
+    }
   }
 
   void _triggerFetch() {
     context.read<RequirementsBloc>().add(
-          FetchRequirementsEvent(
-            search: _searchController.text.trim(),
-            configurationId: _selectedConfigId,
-            status: _selectedStatus,
-          ),
-        );
+      FetchRequirementsEvent(
+        search: _searchController.text.trim(),
+        configurationId: _selectedConfigId,
+        status: _selectedStatus,
+      ),
+    );
   }
 
   void _clearFilters() {
@@ -255,11 +285,22 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 700;
             if (!isWide) {
-              return Column(
-                children: cards.map((card) => Padding(
-                  padding: const EdgeInsets.only(bottom: CRMSpacing.s),
-                  child: card,
-                )).toList(),
+              final double cardWidth = (constraints.maxWidth - CRMSpacing.m) / 2;
+              double mobileRatio = 1.35;
+              if (cardWidth < 150) {
+                mobileRatio = 1.1;
+              } else if (cardWidth < 180) {
+                mobileRatio = 1.25;
+              }
+
+              return GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: CRMSpacing.m,
+                mainAxisSpacing: CRMSpacing.m,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: mobileRatio,
+                children: cards,
               );
             }
             return Row(
@@ -314,15 +355,12 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             spacing: CRMSpacing.m,
             runSpacing: CRMSpacing.s,
             children: [
-              _buildDropdownFilter(
+              _buildDropdownFilter<String?>(
                 label: 'Configuration',
                 value: _selectedConfigId,
                 items: [
                   const DropdownMenuItem(value: null, child: Text("All Configurations")),
-                  const DropdownMenuItem(value: '1bhk', child: Text("1 BHK")),
-                  const DropdownMenuItem(value: '2bhk', child: Text("2 BHK")),
-                  const DropdownMenuItem(value: '3bhk', child: Text("3 BHK")),
-                  const DropdownMenuItem(value: '4bhk', child: Text("4 BHK")),
+                  ...?_metadata?.configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
                 ],
                 onChanged: (val) {
                   setState(() => _selectedConfigId = val);
@@ -358,11 +396,14 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
   }) {
+    final bool hasValue = value == null || items.any((item) => item.value == value);
+    final T? safeValue = hasValue ? value : null;
+
     return SizedBox(
       width: 200,
       height: 44,
       child: DropdownButtonFormField<T>(
-        value: value,
+        value: safeValue,
         dropdownColor: CRMColors.cardBg,
         style: CRMTypography.body.copyWith(color: CRMColors.text),
         decoration: InputDecoration(
@@ -437,7 +478,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                     DataCell(Text('${req.propertyTypeName} (${req.configurationName ?? "-"})', style: CRMTypography.body.copyWith(color: CRMColors.text))),
                     DataCell(
                       Text(
-                        '${(req.minBudget / 100000).toStringAsFixed(0)}L - ${(req.maxBudget / 100000).toStringAsFixed(0)}L',
+                        '${BudgetFormatter.format(req.minBudget)} - ${BudgetFormatter.format(req.maxBudget)}',
                         style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary),
                       ),
                     ),
@@ -531,7 +572,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     return Column(
       children: requirements.map((req) {
         final isActive = req.status == 'Active';
-        final budget = '₹${(req.minBudget / 100000).toStringAsFixed(0)}L - ₹${(req.maxBudget / 100000).toStringAsFixed(0)}L';
+        final budget = '₹${BudgetFormatter.format(req.minBudget)} - ₹${BudgetFormatter.format(req.maxBudget)}';
 
         return Container(
           margin: const EdgeInsets.only(bottom: CRMSpacing.m),
@@ -689,10 +730,10 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
       final matches = properties.where((p) {
         // 1. Category Check
         final catMatch = p.categoryId == req.categoryId;
-        
+
         // 2. Property Type Check
         final typeMatch = p.propertyTypeId == req.propertyTypeId;
-        
+
         // 3. Configuration Check
         final configMatch = req.configurationId == null || p.configurationId == req.configurationId;
 
@@ -749,7 +790,7 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
             style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
           ),
           const Divider(height: CRMSpacing.xl),
-          
+
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40.0),
@@ -791,7 +832,7 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
                         children: [
                           Text(p.title, style: CRMTypography.bodyMedium),
                           Text(
-                            '₹${(p.price / 100000).toStringAsFixed(1)}L',
+                            '₹${BudgetFormatter.format(p.price)}',
                             style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary),
                           ),
                         ],

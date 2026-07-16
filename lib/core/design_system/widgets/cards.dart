@@ -113,19 +113,24 @@ class CRMKPICard extends StatelessWidget {
     final showGrowth = growthPercent != null;
     final isPositive = (growthPercent ?? 0.0) >= 0;
     final activeIconColor = iconColor ?? CRMColors.primary;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
 
     return CRMCard(
-      padding: const EdgeInsets.all(CRMSpacing.m),
+      padding: EdgeInsets.all(isMobile ? CRMSpacing.s : CRMSpacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
+              Expanded(
+                child: Text(
+                  title,
+                  style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
+                ),
               ),
+              const SizedBox(width: CRMSpacing.xs),
               Container(
                 padding: const EdgeInsets.all(CRMSpacing.xxs),
                 decoration: BoxDecoration(

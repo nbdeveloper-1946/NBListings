@@ -278,6 +278,9 @@ class _UsersScreenState extends State<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 768;
+
     final authState = context.watch<AuthBloc>().state;
     bool hasAccess = false;
     if (authState is Authenticated) {
@@ -340,7 +343,7 @@ class _UsersScreenState extends State<UsersScreen> {
           }
         },
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(CRMSpacing.l),
+          padding: EdgeInsets.all(isMobile ? CRMSpacing.m : CRMSpacing.l),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -366,23 +369,53 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   Widget _buildPageHeader() {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+
+    final textColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "User Management",
+          style: CRMTypography.pageTitle.copyWith(
+            color: CRMColors.text,
+            fontSize: isMobile ? 22 : 28,
+          ),
+        ),
+        const SizedBox(height: 4.0),
+        Text(
+          "Configure workspace permissions, logins, and enterprise roles",
+          style: CRMTypography.body.copyWith(
+            color: CRMColors.textSecondary,
+            fontSize: isMobile ? 13 : 14,
+          ),
+        ),
+      ],
+    );
+
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          textColumn,
+          const SizedBox(height: CRMSpacing.m),
+          SizedBox(
+            width: double.infinity,
+            child: CRMButton(
+              label: "Add Employee",
+              prefixIcon: Icons.add_rounded,
+              onPressed: () => _showAddEditUserDialog(),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "User Management",
-              style: CRMTypography.pageTitle.copyWith(color: CRMColors.text),
-            ),
-            const SizedBox(height: 4.0),
-            Text(
-              "Configure workspace permissions, logins, and enterprise roles",
-              style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
-            ),
-          ],
-        ),
+        Expanded(child: textColumn),
+        const SizedBox(width: CRMSpacing.m),
         CRMButton(
           label: "Add Employee",
           prefixIcon: Icons.add_rounded,
@@ -408,13 +441,23 @@ class _UsersScreenState extends State<UsersScreen> {
         return LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 700;
+            double mobileRatio = 1.35;
+            if (!isWide) {
+              final double cardWidth = (constraints.maxWidth - CRMSpacing.m) / 2;
+              if (cardWidth < 150) {
+                mobileRatio = 1.1;
+              } else if (cardWidth < 180) {
+                mobileRatio = 1.25;
+              }
+            }
+
             return GridView.count(
-              crossAxisCount: isWide ? 3 : 1,
+              crossAxisCount: isWide ? 3 : 2,
               crossAxisSpacing: CRMSpacing.m,
               mainAxisSpacing: CRMSpacing.m,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: isWide ? 2.5 : 4,
+              childAspectRatio: isWide ? 2.5 : mobileRatio,
               children: [
                 CRMKPICard(
                   title: "TOTAL EMPLOYEES",
@@ -596,6 +639,9 @@ class _UsersScreenState extends State<UsersScreen> {
   }
 
   Widget _buildEmployeesTable() {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 768;
+
     return BlocBuilder<UsersBloc, UsersState>(
       builder: (context, state) {
         final isLoading = state is UsersLoading || state is UsersInitial;
@@ -603,6 +649,31 @@ class _UsersScreenState extends State<UsersScreen> {
 
         if (state is UsersLoaded) {
           users = state.users;
+        }
+
+        if (isLoading) {
+          return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
+        }
+
+        if (users.isEmpty) {
+          return CRMCard(
+            child: Padding(
+              padding: const EdgeInsets.all(CRMSpacing.xl),
+              child: Column(
+                children: [
+                  Text('No Employees Found', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
+                  const SizedBox(height: CRMSpacing.s),
+                  Text('Try adjusting your filters or add a new employee profile.', style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (isMobile) {
+          return Column(
+            children: users.map((user) => _buildMobileUserCard(user)).toList(),
+          );
         }
 
         return CRMDataTable(
@@ -692,6 +763,140 @@ class _UsersScreenState extends State<UsersScreen> {
           }).toList(),
         );
       },
+    );
+  }
+
+  Widget _buildMobileUserCard(UserModel user) {
+    final isAdmin = user.roleName.toLowerCase() == 'admin';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: CRMSpacing.s),
+      padding: const EdgeInsets.all(CRMSpacing.m),
+      decoration: BoxDecoration(
+        color: CRMColors.cardBgOf(context),
+        borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+        border: Border.all(color: CRMColors.borderOf(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: isAdmin
+                    ? CRMColors.info.withOpacity(0.1)
+                    : CRMColors.primary.withOpacity(0.1),
+                radius: 18,
+                child: Icon(
+                  isAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded,
+                  color: isAdmin ? CRMColors.info : CRMColors.primary,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: CRMSpacing.s),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.fullName,
+                      style: CRMTypography.bodyMedium.copyWith(
+                        color: CRMColors.textOf(context),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      user.email,
+                      style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: CRMSpacing.xxs),
+                decoration: BoxDecoration(
+                  color: isAdmin ? CRMColors.info.withOpacity(0.12) : CRMColors.primary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.round),
+                ),
+                child: Text(
+                  user.roleName,
+                  style: CRMTypography.captionBold.copyWith(
+                    color: isAdmin ? CRMColors.info : CRMColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: CRMSpacing.m),
+          Divider(color: CRMColors.borderOf(context).withOpacity(0.5), height: 1),
+          const SizedBox(height: CRMSpacing.s),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.phone_rounded, size: 16, color: CRMColors.textMutedOf(context)),
+                  const SizedBox(width: 6),
+                  Text(
+                    user.mobile ?? '-',
+                    style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(context)),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    'Active Login',
+                    style: CRMTypography.body.copyWith(
+                      color: CRMColors.textSecondaryOf(context),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: CRMSpacing.xs),
+                  Transform.scale(
+                    scale: 0.85,
+                    child: Switch(
+                      value: user.isActive,
+                      activeColor: CRMColors.primary,
+                      onChanged: (val) {
+                        context.read<UsersBloc>().add(
+                              ToggleUserStatusRequested(id: user.id, isActive: val),
+                            );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: CRMSpacing.s),
+          Divider(color: CRMColors.borderOf(context).withOpacity(0.5), height: 1),
+          const SizedBox(height: CRMSpacing.s),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => _showAddEditUserDialog(user),
+                icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 16),
+                label: Text(
+                  'Edit',
+                  style: TextStyle(color: CRMColors.primary),
+                ),
+              ),
+              const SizedBox(width: CRMSpacing.s),
+              TextButton.icon(
+                onPressed: () => _showDeleteConfirmDialog(user),
+                icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 16),
+                label: Text(
+                  'Delete',
+                  style: TextStyle(color: CRMColors.danger),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

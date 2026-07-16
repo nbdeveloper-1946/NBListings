@@ -15,6 +15,9 @@ import '../../features/builders/screens/builders_screen.dart';
 import '../../splash.dart';
 import '../design_system/widgets/app_shell.dart';
 import '../design_system/widgets/placeholder_screen.dart';
+import '../../features/settings/screens/settings_screen.dart';
+import '../../features/profile/screens/profile_screen.dart';
+
 
 class GoRouterRefreshStream extends ChangeNotifier {
   late final StreamSubscription<dynamic> _subscription;
@@ -112,16 +115,11 @@ class AppRouter {
           ),
           GoRoute(
             path: '/settings',
-            builder: (context, state) => const CRMPlaceholderScreen(
-              title: 'Settings & Configs',
-              icon: Icons.settings_rounded,
-              description: 'Configure corporate metadata, custom fields, and API access tokens.',
-              upcomingFeatures: [
-                'Custom drop-down options builder',
-                'System API keys & webhook integration console',
-                'Branded invoice layouts & email templates designer',
-              ],
-            ),
+            builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) => const ProfileScreen(),
           ),
         ],
       ),

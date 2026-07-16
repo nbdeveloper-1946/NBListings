@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 import '../../../../features/auth/bloc/auth_bloc.dart';
 import '../../theme/theme_manager.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
+import '../../api/dio_client.dart';
+import '../../utils/budget_formatter.dart';
+import 'dart:async';
 
 class CRMAppShell extends StatefulWidget {
   final Widget child;
@@ -19,6 +23,390 @@ class CRMAppShell extends StatefulWidget {
 class _CRMAppShellState extends State<CRMAppShell> {
   bool _isSidebarExpanded = true;
   final TextEditingController _searchController = TextEditingController();
+  late PersistentTabController _tabController;
+  int _previousIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = PersistentTabController(initialIndex: 0);
+    _tabController.addListener(() {
+      final index = _tabController.index;
+      if (index == 2) {
+        // Reset controller to previous index, show bottom sheet
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _tabController.jumpToTab(_previousIndex);
+        });
+        _showQuickActionsBottomSheet();
+      } else {
+        if (index != _previousIndex) {
+          _previousIndex = index;
+          context.go(_getTabRoutePath(index));
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    _searchDebounce?.cancel();
+    _notificationsTimer?.cancel();
+    super.dispose();
+  }
+  OverlayEntry? _searchOverlayEntry;
+  final LayerLink _searchLayerLink = LayerLink();
+  List<dynamic> _propertySuggestions = [];
+  List<dynamic> _requirementSuggestions = [];
+  List<dynamic> _ownerSuggestions = [];
+  bool _isSearching = false;
+  Timer? _searchDebounce;
+  List<dynamic> _notifications = [];
+  int _unreadNotificationsCount = 0;
+  bool _isLoadingNotifications = false;
+  int _notificationsPage = 1;
+  int _totalNotificationPages = 1;
+  Timer? _notificationsTimer;
+
+  int _getTabRouteIndex(String location) {
+    if (location.startsWith('/dashboard')) return 0;
+    if (location.startsWith('/properties')) return 1;
+    if (location.startsWith('/requirements')) return 3;
+    if (location.startsWith('/profile')) return 4;
+    return _tabController.index;
+  }
+
+  String _getTabRoutePath(int index) {
+    switch (index) {
+      case 0:
+        return '/dashboard';
+      case 1:
+        return '/properties';
+      case 3:
+        return '/requirements';
+      case 4:
+        return '/profile';
+      default:
+        return '/dashboard';
+    }
+  }
+
+  void _showQuickActionsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: CRMColors.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.m)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: CRMSpacing.l, horizontal: CRMSpacing.xl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Quick Actions',
+                      style: CRMTypography.sectionTitle.copyWith(
+                        color: CRMColors.text,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close_rounded, color: CRMColors.textSecondary),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: CRMSpacing.m),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: CRMColors.primary.withOpacity(0.12),
+                    child: Icon(Icons.add_business_rounded, color: CRMColors.primary),
+                  ),
+                  title: Text(
+                    'Add Property',
+                    style: CRMTypography.bodyMedium.copyWith(
+                      color: CRMColors.text,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'List a new commercial or residential property',
+                    style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go('/properties?action=add');
+                  },
+                ),
+                const Divider(height: CRMSpacing.m),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: CRMColors.primary.withOpacity(0.12),
+                    child: Icon(Icons.add_task_rounded, color: CRMColors.primary),
+                  ),
+                  title: Text(
+                    'Add Requirement',
+                    style: CRMTypography.bodyMedium.copyWith(
+                      color: CRMColors.text,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Add a new client listing requirement matching criteria',
+                    style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go('/requirements?action=add');
+                  },
+                ),
+                const SizedBox(height: CRMSpacing.s),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getRelativeTime(String isoString) {
+    if (isoString.isEmpty) return '';
+    try {
+      final date = DateTime.parse(isoString).toLocal();
+      final diff = DateTime.now().difference(date);
+      if (diff.inSeconds < 60) {
+        return 'Just now';
+      } else if (diff.inMinutes < 60) {
+        return '${diff.inMinutes}m ago';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours}h ago';
+      } else {
+        return '${diff.inDays}d ago';
+      }
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> _fetchNotifications({bool loadMore = false}) async {
+    if (_isLoadingNotifications) return;
+    if (loadMore && _notificationsPage >= _totalNotificationPages) return;
+
+    setState(() {
+      _isLoadingNotifications = true;
+      if (!loadMore) {
+        _notificationsPage = 1;
+      } else {
+        _notificationsPage++;
+      }
+    });
+
+    try {
+      final response = await DioClient.dio.get(
+        '/notifications',
+        queryParameters: {'page': _notificationsPage, 'limit': 5},
+      );
+      final list = response.data['data']['notifications'] as List? ?? [];
+      final pagination = response.data['data']['pagination'] ?? {};
+      
+      setState(() {
+        if (loadMore) {
+          _notifications.addAll(list);
+        } else {
+          _notifications = list;
+        }
+        _totalNotificationPages = pagination['totalPages'] ?? 1;
+        _unreadNotificationsCount = pagination['totalItems'] ?? 0; // estimate unread count as total for now, or fetch unread count separately
+        // Let's count actual unread items in our list for the badge to be precise
+        _unreadNotificationsCount = _notifications.where((n) => n['is_read'] == false).length;
+        _isLoadingNotifications = false;
+      });
+    } catch (_) {
+      setState(() => _isLoadingNotifications = false);
+    }
+  }
+
+  Future<void> _markNotificationRead(String id) async {
+    try {
+      await DioClient.dio.patch('/notifications/$id/read');
+      _fetchNotifications();
+    } catch (_) {}
+  }
+
+  Future<void> _markAllNotificationsRead() async {
+    try {
+      await DioClient.dio.patch('/notifications/read-all');
+      _fetchNotifications();
+    } catch (_) {}
+  }
+
+  Future<void> _deleteNotification(String id) async {
+    try {
+      await DioClient.dio.delete('/notifications/$id');
+      _fetchNotifications();
+    } catch (_) {}
+  }
+
+  void _onSearchChanged(String text) {
+    if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+      if (text.trim().isEmpty) {
+        _hideSearchOverlay();
+        return;
+      }
+      _performSearch(text.trim());
+    });
+  }
+
+  Future<void> _performSearch(String query) async {
+    setState(() => _isSearching = true);
+    _showSearchOverlay();
+    try {
+      final response = await DioClient.dio.get('/search', queryParameters: {'query': query});
+      final data = response.data['data'] ?? {};
+      setState(() {
+        _propertySuggestions = data['properties'] ?? [];
+        _requirementSuggestions = data['requirements'] ?? [];
+        _ownerSuggestions = data['owners'] ?? [];
+        _isSearching = false;
+      });
+      _searchOverlayEntry?.markNeedsBuild();
+    } catch (e) {
+      setState(() => _isSearching = false);
+      _searchOverlayEntry?.markNeedsBuild();
+    }
+  }
+
+  void _showSearchOverlay() {
+    if (_searchOverlayEntry != null) return;
+    _searchOverlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          width: 400,
+          child: CompositedTransformFollower(
+            link: _searchLayerLink,
+            showWhenUnlinked: false,
+            offset: const Offset(0, 50),
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              color: CRMColors.cardBg,
+              child: Container(
+                constraints: const BoxConstraints(maxHeight: 400),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                  border: Border.all(color: CRMColors.border, width: 1.5),
+                ),
+                child: _isSearching
+                    ? const Padding(
+                        padding: EdgeInsets.all(CRMSpacing.m),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : (_propertySuggestions.isEmpty &&
+                            _requirementSuggestions.isEmpty &&
+                            _ownerSuggestions.isEmpty)
+                        ? Padding(
+                            padding: const EdgeInsets.all(CRMSpacing.m),
+                            child: Text(
+                              'No suggestions found.',
+                              style: TextStyle(color: CRMColors.textSecondary),
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : ListView(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.symmetric(vertical: CRMSpacing.s),
+                            children: [
+                              if (_propertySuggestions.isNotEmpty) ...[
+                                _buildSuggestionSectionHeader('Properties'),
+                                ..._propertySuggestions.map((p) => _buildSuggestionTile(
+                                      icon: Icons.business_rounded,
+                                      title: p['title'] ?? '',
+                                      subtitle: 'Code: ${p['property_code']} • ₹${BudgetFormatter.format((p['price'] as num?)?.toDouble() ?? 0.0)}',
+                                      onTap: () {
+                                        _hideSearchOverlay();
+                                        context.go('/properties');
+                                      },
+                                    )),
+                              ],
+                              if (_requirementSuggestions.isNotEmpty) ...[
+                                _buildSuggestionSectionHeader('Requirements'),
+                                ..._requirementSuggestions.map((r) => _buildSuggestionTile(
+                                      icon: Icons.person_search_rounded,
+                                      title: r['customer_name'] ?? '',
+                                      subtitle: 'Mobile: ${r['mobile']}',
+                                      onTap: () {
+                                        _hideSearchOverlay();
+                                        context.go('/requirements');
+                                      },
+                                    )),
+                              ],
+                              if (_ownerSuggestions.isNotEmpty) ...[
+                                _buildSuggestionSectionHeader('Owners'),
+                                ..._ownerSuggestions.map((o) => _buildSuggestionTile(
+                                      icon: Icons.person_rounded,
+                                      title: o['name'] ?? '',
+                                      subtitle: 'Mobile: ${o['mobile']}',
+                                      onTap: () {
+                                        _hideSearchOverlay();
+                                        context.go('/owners');
+                                      },
+                                    )),
+                              ],
+                            ],
+                          ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    Overlay.of(context).insert(_searchOverlayEntry!);
+  }
+
+  void _hideSearchOverlay() {
+    _searchOverlayEntry?.remove();
+    _searchOverlayEntry = null;
+  }
+
+  Widget _buildSuggestionSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.xs),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: CRMColors.primary,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: CRMColors.textSecondary, size: 20),
+      title: Text(title, style: TextStyle(color: CRMColors.textOf(context), fontSize: 13, fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle, style: TextStyle(color: CRMColors.textSecondary, fontSize: 11)),
+      onTap: onTap,
+      dense: true,
+    );
+  }
 
   void _handleLogout() {
     context.read<AuthBloc>().add(LogoutRequested());
@@ -33,12 +421,68 @@ class _CRMAppShellState extends State<CRMAppShell> {
     final isTablet = size.width >= 768 && size.width < 1024;
     final isDesktop = size.width >= 1024;
 
+    final targetIndex = _getTabRouteIndex(location);
+    if (_tabController.index != targetIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_tabController.index != targetIndex) {
+          _tabController.jumpToTab(targetIndex);
+          _previousIndex = targetIndex;
+        }
+      });
+    }
+
     final showSidebar = isDesktop || isTablet;
     final sidebarWidth = _isSidebarExpanded ? 260.0 : 78.0;
 
     return Scaffold(
       backgroundColor: CRMColors.background,
       drawer: isMobile ? Drawer(child: _buildSidebarContent(location, isMobile: true)) : null,
+      bottomNavigationBar: isMobile
+          ? Style3BottomNavBar(
+              navBarConfig: NavBarConfig(
+                selectedIndex: _tabController.index,
+                items: [
+                  ItemConfig(
+                    icon: const Icon(Icons.dashboard_rounded),
+                    title: 'Dashboard',
+                    activeForegroundColor: CRMColors.primary,
+                    inactiveForegroundColor: CRMColors.textSecondary,
+                  ),
+                  ItemConfig(
+                    icon: const Icon(Icons.home_work_rounded),
+                    title: 'Properties',
+                    activeForegroundColor: CRMColors.primary,
+                    inactiveForegroundColor: CRMColors.textSecondary,
+                  ),
+                  ItemConfig(
+                    icon: const Icon(Icons.add_circle_rounded, size: 36),
+                    title: 'Add',
+                    activeForegroundColor: CRMColors.primary,
+                    inactiveForegroundColor: CRMColors.textSecondary,
+                  ),
+                  ItemConfig(
+                    icon: const Icon(Icons.assignment_rounded),
+                    title: 'Requirements',
+                    activeForegroundColor: CRMColors.primary,
+                    inactiveForegroundColor: CRMColors.textSecondary,
+                  ),
+                  ItemConfig(
+                    icon: const Icon(Icons.person_rounded),
+                    title: 'Profile',
+                    activeForegroundColor: CRMColors.primary,
+                    inactiveForegroundColor: CRMColors.textSecondary,
+                  ),
+                ],
+                onItemSelected: (index) {
+                  _tabController.jumpToTab(index);
+                },
+              ),
+              navBarDecoration: NavBarDecoration(
+                color: CRMColors.cardBg,
+                border: Border(top: BorderSide(color: CRMColors.border, width: 1.5)),
+              ),
+            )
+          : null,
       body: Row(
         children: [
           if (showSidebar)
@@ -73,7 +517,6 @@ class _CRMAppShellState extends State<CRMAppShell> {
   }
 
   Widget _buildTopBar(BuildContext context, bool isMobile) {
-    final isDark = ThemeManager().isDarkMode;
     return Container(
       height: 70,
       decoration: BoxDecoration(
@@ -108,77 +551,247 @@ class _CRMAppShellState extends State<CRMAppShell> {
               alignment: Alignment.centerLeft,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 400),
-                child: TextField(
-                  controller: _searchController,
-                  style: CRMTypography.body.copyWith(color: CRMColors.text),
-                  decoration: InputDecoration(
-                    hintText: 'Search in NB Listings (Properties, Clients, Code)...',
-                    hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-                    prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted, size: 20),
-                    filled: true,
-                    fillColor: CRMColors.background,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.xs),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      borderSide: BorderSide.none,
+                child: CompositedTransformTarget(
+                  link: _searchLayerLink,
+                  child: Focus(
+                    onFocusChange: (hasFocus) {
+                      if (!hasFocus) {
+                        Future.delayed(const Duration(milliseconds: 200), () {
+                          _hideSearchOverlay();
+                        });
+                      }
+                    },
+                    child: TextField(
+                      controller: _searchController,
+                      style: CRMTypography.body.copyWith(color: CRMColors.text),
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Search in NB Listings (Properties, Clients, Code)...',
+                        hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
+                        prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted, size: 20),
+                        filled: true,
+                        fillColor: CRMColors.background,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.xs),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: CRMSpacing.m),
-          IconButton(
-            icon: Icon(Icons.notifications_none_rounded, color: CRMColors.textSecondary),
-            onPressed: () {},
-          ),
-          const SizedBox(width: CRMSpacing.s),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
-            tooltip: 'Quick Actions',
-            onSelected: (value) {
-              if (value == 'property') {
-                context.go('/properties');
-              } else if (value == 'requirement') {
-                context.go('/requirements');
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem(
-                value: 'property',
-                child: Row(
-                  children: [
-                    Icon(Icons.add_business_rounded, color: CRMColors.primary, size: 20),
-                    const SizedBox(width: CRMSpacing.s),
-                    Text('Add Property', style: TextStyle(color: CRMColors.textOf(context))),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'requirement',
-                child: Row(
-                  children: [
-                    Icon(Icons.add_task_rounded, color: CRMColors.primary, size: 20),
-                    const SizedBox(width: CRMSpacing.s),
-                    Text('Add Requirement', style: TextStyle(color: CRMColors.textOf(context))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: CRMSpacing.s),
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              color: isDark ? const Color(0xFFFCD34D) : CRMColors.textSecondary,
-            ),
-            tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
-            onPressed: () {
-              ThemeManager().toggleTheme();
-            },
-          ),
+          if (!isMobile) ...[
+            const SizedBox(width: CRMSpacing.m),
+            _buildNotificationButton(context),
+            const SizedBox(width: CRMSpacing.s),
+            _buildQuickActionsButton(context),
+            const SizedBox(width: CRMSpacing.s),
+            _buildThemeToggleButton(context),
+          ] else ...[
+            const SizedBox(width: CRMSpacing.m),
+            _buildNotificationButton(context),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildNotificationButton(BuildContext context) {
+    return Badge(
+      label: Text('$_unreadNotificationsCount'),
+      isLabelVisible: _unreadNotificationsCount > 0,
+      child: PopupMenuButton<dynamic>(
+        icon: Icon(Icons.notifications_none_rounded, color: CRMColors.textSecondary),
+        offset: const Offset(0, 50),
+        tooltip: 'Notifications',
+        itemBuilder: (BuildContext context) {
+          List<PopupMenuEntry<dynamic>> items = [];
+          
+          // Header
+          items.add(
+            PopupMenuItem(
+              enabled: false,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Notifications', style: CRMTypography.body.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context))),
+                  if (_unreadNotificationsCount > 0)
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _markAllNotificationsRead();
+                      },
+                      child: Text('Mark all read', style: CRMTypography.caption.copyWith(color: CRMColors.primary)),
+                    )
+                ],
+              ),
+            ),
+          );
+          
+          items.add(const PubSubDivider());
+
+          if (_isLoadingNotifications && _notifications.isEmpty) {
+            items.add(
+              const PopupMenuItem(
+                enabled: false,
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              )
+            );
+          } else if (_notifications.isEmpty) {
+            items.add(
+              PopupMenuItem(
+                enabled: false,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text('No notifications', style: TextStyle(color: CRMColors.textSecondaryOf(context))),
+                  ),
+                ),
+              )
+            );
+          } else {
+            for (final n in _notifications) {
+              items.add(
+                PopupMenuItem(
+                  value: n,
+                  child: Container(
+                    width: 320,
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          n['is_read'] ? Icons.notifications_none_rounded : Icons.notifications_active_rounded,
+                          color: n['is_read'] ? CRMColors.textMutedOf(context) : CRMColors.primary,
+                          size: 18,
+                        ),
+                        const SizedBox(width: CRMSpacing.s),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                n['title'] ?? '',
+                                style: TextStyle(
+                                  fontWeight: n['is_read'] ? FontWeight.normal : FontWeight.bold,
+                                  fontSize: 12,
+                                  color: CRMColors.textOf(context),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                n['message'] ?? '',
+                                style: TextStyle(
+                                  color: CRMColors.textSecondaryOf(context),
+                                  fontSize: 10,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _getRelativeTime(n['created_at'] ?? ''),
+                                style: TextStyle(
+                                  color: CRMColors.textMutedOf(context),
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: CRMColors.danger),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _deleteNotification(n['id']);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+            
+            if (_notificationsPage < _totalNotificationPages) {
+              items.add(const PubSubDivider());
+              items.add(
+                PopupMenuItem(
+                  value: 'load_more',
+                  child: Center(
+                    child: Text('Load More', style: TextStyle(color: CRMColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                )
+              );
+            }
+          }
+
+          return items;
+        },
+        onSelected: (val) {
+          if (val == 'load_more') {
+            _fetchNotifications(loadMore: true);
+          } else if (val is Map && !val['is_read']) {
+             _markNotificationRead(val['id']);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsButton(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+      tooltip: 'Quick Actions',
+      onSelected: (value) {
+        if (value == 'property') {
+          context.go('/properties?action=add');
+        } else if (value == 'requirement') {
+          context.go('/requirements?action=add');
+        }
+      },
+      itemBuilder: (BuildContext context) => [
+        PopupMenuItem(
+          value: 'property',
+          child: Row(
+            children: [
+              Icon(Icons.add_business_rounded, color: CRMColors.primary, size: 20),
+              const SizedBox(width: CRMSpacing.s),
+              Text('Add Property', style: TextStyle(color: CRMColors.textOf(context))),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'requirement',
+          child: Row(
+            children: [
+              Icon(Icons.add_task_rounded, color: CRMColors.primary, size: 20),
+              const SizedBox(width: CRMSpacing.s),
+              Text('Add Requirement', style: TextStyle(color: CRMColors.textOf(context))),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildThemeToggleButton(BuildContext context) {
+    final isDark = ThemeManager().isDarkMode;
+    return IconButton(
+      icon: Icon(
+        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+        color: isDark ? const Color(0xFFFCD34D) : CRMColors.textSecondary,
+      ),
+      tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+      onPressed: () {
+        ThemeManager().toggleTheme();
+      },
     );
   }
 
@@ -236,7 +849,10 @@ class _CRMAppShellState extends State<CRMAppShell> {
           Divider(color: CRMColors.border, height: 1),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: CRMSpacing.m, horizontal: CRMSpacing.s),
+              padding: EdgeInsets.symmetric(
+                vertical: CRMSpacing.m,
+                horizontal: isExpanded ? CRMSpacing.s : CRMSpacing.xxs,
+              ),
               children: [
                 _buildSidebarItem(Icons.dashboard_rounded, 'Dashboard', '/dashboard', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.home_work_rounded, 'Properties', '/properties', currentPath, isMobile, isExpanded),
@@ -258,28 +874,49 @@ class _CRMAppShellState extends State<CRMAppShell> {
             child: Row(
               mainAxisAlignment: isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  backgroundColor: CRMColors.primary.withValues(alpha: 0.1),
-                  child: Icon(Icons.person_outline_rounded, color: CRMColors.primary),
+                GestureDetector(
+                  onTap: () {
+                    if (isMobile) {
+                      Navigator.pop(context);
+                    }
+                    if (currentPath != '/profile') {
+                      context.go('/profile');
+                    }
+                  },
+                  child: CircleAvatar(
+                    backgroundColor: CRMColors.primary.withValues(alpha: 0.1),
+                    child: Icon(Icons.person_outline_rounded, color: CRMColors.primary),
+                  ),
                 ),
                 if (isExpanded) ...[
                   const SizedBox(width: CRMSpacing.m),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayEmail,
-                          style: CRMTypography.captionBold.copyWith(color: CRMColors.text),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          displayRole,
-                          style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
-                        ),
-                      ],
-                    ),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (isMobile) {
+                          Navigator.pop(context);
+                        }
+                        if (currentPath != '/profile') {
+                          context.go('/profile');
+                        }
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayEmail,
+                            style: CRMTypography.captionBold.copyWith(color: CRMColors.text),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            displayRole,
+                            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                          ),
+                        ],
                       ),
+                    ),
+                  ),
                   IconButton(
                     icon: Icon(Icons.logout_rounded, color: CRMColors.danger),
                     onPressed: _handleLogout,
@@ -362,8 +999,8 @@ class _SidebarItemState extends State<_SidebarItem> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(
-              horizontal: CRMSpacing.m,
+            padding: EdgeInsets.symmetric(
+              horizontal: isExpanded ? CRMSpacing.m : CRMSpacing.xs,
               vertical: CRMSpacing.s,
             ),
             decoration: BoxDecoration(
@@ -426,4 +1063,19 @@ class _SidebarItemState extends State<_SidebarItem> {
       ),
     );
   }
+}
+
+
+class PubSubDivider extends PopupMenuEntry<Never> {
+  const PubSubDivider({super.key});
+  @override
+  double get height => 1;
+  @override
+  bool represents(void value) => false;
+  @override
+  State<PubSubDivider> createState() => _PubSubDividerState();
+}
+class _PubSubDividerState extends State<PubSubDivider> {
+  @override
+  Widget build(BuildContext context) => const Divider(height: 1, thickness: 1);
 }

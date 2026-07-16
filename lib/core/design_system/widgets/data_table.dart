@@ -52,18 +52,34 @@ class CRMDataTable extends StatelessWidget {
         border: Border.all(color: CRMColors.border, width: 1),
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(CRMColors.sidebarBg),
-          headingTextStyle: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
-          dataTextStyle: CRMTypography.body.copyWith(color: CRMColors.text),
-          dividerThickness: 1.0,
-          horizontalMargin: CRMSpacing.m,
-          columnSpacing: CRMSpacing.l,
-          columns: columns,
-          rows: rows,
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double availableWidth = constraints.maxWidth;
+          final int colCount = columns.length;
+          // Dynamically adjust spacing: assume average column content is 115px, plus margins
+          final double estimatedContentWidth = colCount * 115.0 + CRMSpacing.m * 2;
+          double spacing = CRMSpacing.l;
+          if (colCount > 1 && availableWidth > estimatedContentWidth) {
+            spacing = ((availableWidth - estimatedContentWidth) / (colCount - 1)).clamp(CRMSpacing.l, 70.0);
+          }
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(CRMColors.sidebarBg),
+                headingTextStyle: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
+                dataTextStyle: CRMTypography.body.copyWith(color: CRMColors.text),
+                dividerThickness: 1.0,
+                horizontalMargin: CRMSpacing.m,
+                columnSpacing: spacing,
+                columns: columns,
+                rows: rows,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
