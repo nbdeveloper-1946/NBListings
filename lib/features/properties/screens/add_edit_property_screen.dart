@@ -699,16 +699,6 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             validator: (v) => v!.isEmpty ? 'Scheme name is required' : null,
           ),
           const SizedBox(height: CRMSpacing.m),
-          TextFormField(
-            controller: _descriptionController,
-            style: CRMTypography.body.copyWith(color: CRMColors.text),
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: 'Description',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-            ),
-          ),
-          const SizedBox(height: CRMSpacing.m),
 
           if (isMobile) ...[
             Row(
