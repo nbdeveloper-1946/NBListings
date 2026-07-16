@@ -4,12 +4,8 @@ import '../bloc/requirements_bloc.dart';
 import '../models/requirement_model.dart';
 import '../../properties/repository/properties_repository.dart';
 import '../../properties/models/property_model.dart';
-import '../../../core/design_system/tokens/app_colors.dart';
-import '../../../core/design_system/tokens/app_spacing.dart';
-import '../../../core/design_system/tokens/app_typography.dart';
-import '../../../core/design_system/widgets/buttons.dart';
-import '../../../core/design_system/widgets/inputs.dart';
-import '../../../core/utils/budget_formatter.dart';
+import '../../../core/design_system/crm_design_system.dart';
+import '../../../core/storage/crm_draft_repository.dart';
 
 class AddEditRequirementScreen extends StatefulWidget {
   final RequirementModel? requirement;
@@ -31,8 +27,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
 
   final _nameController = TextEditingController();
   final _mobileController = TextEditingController();
-  final _minBudgetController = TextEditingController();
-  final _maxBudgetController = TextEditingController();
+  final _budgetController = TextEditingController();
   final _minAreaController = TextEditingController();
   final _maxAreaController = TextEditingController();
   final _remarksController = TextEditingController();
@@ -40,8 +35,9 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   String? _selectedCategoryId;
   String? _selectedTypeId;
   String? _selectedConfigId;
-  String _selectedStatus = "Active";
+  String _selectedStatus = "Live";
   final List<String> _selectedAreaIds = [];
+  bool _isSaved = false;
 
   bool _isLoadingMetadata = true;
   List<LookupItem> _categories = [];
@@ -54,17 +50,24 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   void initState() {
     super.initState();
     _loadMetadata();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.requirement == null && CRMDraftRepository().hasDraft('requirement')) {
+        _showRestoreDraftDialog();
+      }
+    });
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _mobileController.dispose();
-    _minBudgetController.dispose();
-    _maxBudgetController.dispose();
+    _budgetController.dispose();
     _minAreaController.dispose();
     _maxAreaController.dispose();
     _remarksController.dispose();
+    if (!_isSaved && widget.requirement == null) {
+      _saveCurrentDraft();
+    }
     super.dispose();
   }
 
@@ -85,15 +88,21 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
           final req = widget.requirement!;
           _nameController.text = req.clientName;
           _mobileController.text = req.clientMobile;
-          _minBudgetController.text = BudgetFormatter.format(req.minBudget);
-          _maxBudgetController.text = BudgetFormatter.format(req.maxBudget);
+          final double avgBudget = req.minBudget == req.maxBudget ? req.minBudget : (req.minBudget + req.maxBudget) / 2;
+          _budgetController.text = CRMCurrencyFormatter.format(avgBudget);
           _minAreaController.text = req.minArea?.toStringAsFixed(0) ?? '';
           _maxAreaController.text = req.maxArea?.toStringAsFixed(0) ?? '';
           _remarksController.text = req.remarks ?? '';
           _selectedCategoryId = req.categoryId;
           _selectedTypeId = req.propertyTypeId;
           _selectedConfigId = req.configurationId;
-          _selectedStatus = req.status;
+          
+          String mappedStatus = req.status;
+          if (mappedStatus == 'Active') mappedStatus = 'Live';
+          if (mappedStatus == 'Closed') mappedStatus = 'Won';
+          if (mappedStatus == 'Suspended') mappedStatus = 'Dead';
+          _selectedStatus = mappedStatus;
+          
           _selectedAreaIds.addAll(req.areaIds);
         }
         
@@ -104,6 +113,68 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
         _isLoadingMetadata = false;
       });
     }
+  }
+
+  void _saveCurrentDraft() {
+    if (widget.requirement != null) return;
+    final draftData = {
+      'clientName': _nameController.text,
+      'clientMobile': _mobileController.text,
+      'category_id': _selectedCategoryId,
+      'property_type_id': _selectedTypeId,
+      'configuration_id': _selectedConfigId,
+      'budget': _budgetController.text,
+      'minArea': _minAreaController.text,
+      'maxArea': _maxAreaController.text,
+      'remarks': _remarksController.text,
+      'status': _selectedStatus,
+      'areaIds': _selectedAreaIds,
+    };
+    CRMDraftRepository().saveDraft('requirement', draftData);
+  }
+
+  void _showRestoreDraftDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Restore Unsaved Draft?'),
+        content: const Text('We found an unsaved draft from your previous session. Would you like to restore it?'),
+        actions: [
+          TextButton(
+            child: const Text('Discard'),
+            onPressed: () {
+              CRMDraftRepository().clearDraft('requirement');
+              Navigator.pop(ctx);
+            },
+          ),
+          TextButton(
+            child: const Text('Restore'),
+            onPressed: () {
+              final draft = CRMDraftRepository().getDraft('requirement');
+              if (draft != null) {
+                setState(() {
+                  _nameController.text = draft['clientName'] ?? '';
+                  _mobileController.text = draft['clientMobile'] ?? '';
+                  _selectedCategoryId = draft['category_id'];
+                  _selectedTypeId = draft['property_type_id'];
+                  _selectedConfigId = draft['configuration_id'];
+                  _budgetController.text = draft['budget'] ?? '';
+                  _minAreaController.text = draft['minArea'] ?? '';
+                  _maxAreaController.text = draft['maxArea'] ?? '';
+                  _remarksController.text = draft['remarks'] ?? '';
+                  _selectedStatus = draft['status'] ?? 'Live';
+                  
+                  final List<String> areas = List<String>.from(draft['areaIds'] ?? []);
+                  _selectedAreaIds.clear();
+                  _selectedAreaIds.addAll(areas);
+                });
+              }
+              Navigator.pop(ctx);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   List<LookupItem> _getFilteredTypes() {
@@ -204,7 +275,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   }
 
   void _submitForm() {
-    if (!_formKey.currentState!.validate()) return;
+    if (!CRMFormUtils.validateAndScroll(_formKey, context)) return;
     if (_selectedAreaIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select at least one target area."), backgroundColor: CRMColors.danger),
@@ -224,6 +295,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       return match.name;
     }).toList();
 
+    final budgetVal = CRMCurrencyFormatter.parse(_budgetController.text);
     final req = RequirementModel(
       id: widget.requirement?.id ?? '',
       clientName: _nameController.text.trim(),
@@ -234,8 +306,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       propertyTypeName: type.name,
       configurationId: _selectedConfigId,
       configurationName: config.id.isNotEmpty ? config.name : null,
-      minBudget: BudgetFormatter.parse(_minBudgetController.text),
-      maxBudget: BudgetFormatter.parse(_maxBudgetController.text),
+      minBudget: budgetVal * 0.8,
+      maxBudget: budgetVal * 1.2,
       minArea: double.tryParse(_minAreaController.text),
       maxArea: double.tryParse(_maxAreaController.text),
       areaIds: _selectedAreaIds,
@@ -244,6 +316,9 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       status: _selectedStatus,
       createdAt: widget.requirement?.createdAt ?? DateTime.now(),
     );
+
+    _isSaved = true;
+    CRMDraftRepository().clearDraft('requirement');
 
     if (widget.requirement == null) {
       context.read<RequirementsBloc>().add(CreateRequirementEvent(req));
@@ -294,8 +369,13 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
         constraints: const BoxConstraints(maxWidth: 600),
         child: Padding(
           padding: const EdgeInsets.all(CRMSpacing.l),
-          child: Form(
-            key: _formKey,
+          child: CRMForm(
+            formKey: _formKey,
+            isDirty: true,
+            onSave: () async {
+              _submitForm();
+              return true;
+            },
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -322,13 +402,10 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                       validator: (v) => v == null || v.isEmpty ? 'Client name required' : null,
                     ),
                     const SizedBox(height: CRMSpacing.m),
-                    CRMTextField(
+                    CRMPhoneField(
                       controller: _mobileController,
-                      labelText: 'Mobile Phone *',
-                      hintText: '+91 XXXXX XXXXX',
-                      prefixIcon: Icons.phone_rounded,
-                      keyboardType: TextInputType.phone,
-                      validator: (v) => v == null || v.isEmpty ? 'Mobile number required' : null,
+                      labelText: 'Client Mobile',
+                      isRequired: true,
                     ),
                   ] else ...[
                     Row(
@@ -344,13 +421,10 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                         ),
                         const SizedBox(width: CRMSpacing.m),
                         Expanded(
-                          child: CRMTextField(
+                          child: CRMPhoneField(
                             controller: _mobileController,
-                            labelText: 'Mobile Phone *',
-                            hintText: '+91 XXXXX XXXXX',
-                            prefixIcon: Icons.phone_rounded,
-                            keyboardType: TextInputType.phone,
-                            validator: (v) => v == null || v.isEmpty ? 'Mobile number required' : null,
+                            labelText: 'Client Mobile',
+                            isRequired: true,
                           ),
                         ),
                       ],
@@ -423,8 +497,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                     _buildDropdown(
                       label: 'Status *',
                       value: _selectedStatus,
-                      items: ["Active", "Closed", "Suspended"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                      onChanged: (val) => setState(() => _selectedStatus = val ?? "Active"),
+                      items: ["Live", "Won", "Dead"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                      onChanged: (val) => setState(() => _selectedStatus = val ?? "Live"),
                     ),
                   ] else ...[
                     Row(
@@ -447,8 +521,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                           child: _buildDropdown(
                             label: 'Status *',
                             value: _selectedStatus,
-                            items: ["Active", "Closed", "Suspended"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                            onChanged: (val) => setState(() => _selectedStatus = val ?? "Active"),
+                            items: ["Live", "Won", "Dead"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                            onChanged: (val) => setState(() => _selectedStatus = val ?? "Live"),
                           ),
                         ),
                       ],
@@ -456,52 +530,11 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                   ],
                   const SizedBox(height: CRMSpacing.m),
 
-                  // Budget range
-                  if (isMobile) ...[
-                    CRMTextField(
-                      controller: _minBudgetController,
-                      labelText: 'Min Budget (₹) *',
-                      hintText: 'e.g. 5000000',
-                      prefixIcon: Icons.currency_rupee_rounded,
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v == null || v.isEmpty ? 'Min budget required' : null,
-                    ),
-                    const SizedBox(height: CRMSpacing.m),
-                    CRMTextField(
-                      controller: _maxBudgetController,
-                      labelText: 'Max Budget (₹) *',
-                      hintText: 'e.g. 8000000',
-                      prefixIcon: Icons.currency_rupee_rounded,
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v == null || v.isEmpty ? 'Max budget required' : null,
-                    ),
-                  ] else ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CRMTextField(
-                            controller: _minBudgetController,
-                            labelText: 'Min Budget (₹) *',
-                            hintText: 'e.g. 5000000',
-                            prefixIcon: Icons.currency_rupee_rounded,
-                            keyboardType: TextInputType.number,
-                            validator: (v) => v == null || v.isEmpty ? 'Min budget required' : null,
-                          ),
-                        ),
-                        const SizedBox(width: CRMSpacing.m),
-                        Expanded(
-                          child: CRMTextField(
-                            controller: _maxBudgetController,
-                            labelText: 'Max Budget (₹) *',
-                            hintText: 'e.g. 8000000',
-                            prefixIcon: Icons.currency_rupee_rounded,
-                            keyboardType: TextInputType.number,
-                            validator: (v) => v == null || v.isEmpty ? 'Max budget required' : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  CRMCurrencyField(
+                    controller: _budgetController,
+                    labelText: 'Target Budget',
+                    isRequired: true,
+                  ),
                   const SizedBox(height: CRMSpacing.m),
 
                   // Target Area list chips selection
@@ -549,6 +582,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                     labelText: 'Internal CRM Remarks',
                     hintText: 'Add additional requirements here...',
                     prefixIcon: Icons.chat_bubble_outline_rounded,
+                    maxLength: 150,
                   ),
                   const SizedBox(height: CRMSpacing.xl),
 

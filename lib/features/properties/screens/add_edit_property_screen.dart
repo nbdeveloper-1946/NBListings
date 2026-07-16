@@ -4,17 +4,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:dio/dio.dart';
 import 'dart:io';
-import '../../../core/design_system/tokens/app_colors.dart';
-import '../../../core/design_system/tokens/app_spacing.dart';
-import '../../../core/design_system/tokens/app_typography.dart';
-import '../../../core/design_system/widgets/cards.dart';
-import '../../../core/design_system/widgets/buttons.dart';
+import '../../../core/design_system/crm_design_system.dart';
 import '../../../core/api/dio_client.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
 import '../services/properties_service.dart';
 import '../repository/properties_repository.dart';
 import '../../../core/utils/budget_formatter.dart';
+import '../../../core/storage/crm_draft_repository.dart';
 
 class AddEditPropertyScreen extends StatefulWidget {
   final PropertyMetadataModel metadata;
@@ -74,6 +71,11 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   String? _selectedFurnishing;
   String? _selectedFacing;
   String? _selectedOwnership;
+  String? _googlePlaceId;
+  double? _latitude;
+  double? _longitude;
+  String? _selectedBrokerage;
+  bool _isSaved = false;
 
   final List<String> _selectedAmenities = [];
   List<AreaLookup> _filteredAreas = [];
@@ -85,6 +87,11 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   void initState() {
     super.initState();
     _initializeForm();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.property == null && CRMDraftRepository().hasDraft('property')) {
+        _showRestoreDraftDialog();
+      }
+    });
   }
 
   @override
@@ -113,6 +120,9 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     _blockWingController.dispose();
     _flatNoController.dispose();
     _facingController.dispose();
+    if (!_isSaved && widget.property == null) {
+      _saveCurrentDraft();
+    }
     super.dispose();
   }
 
@@ -147,7 +157,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _superBuiltupController.text = p.superBuiltupArea?.toStringAsFixed(0) ?? '';
       _carpetController.text = p.carpetArea?.toStringAsFixed(0) ?? '';
       _plotController.text = p.plotArea?.toStringAsFixed(0) ?? '';
-      _priceController.text = BudgetFormatter.format(p.price);
+      _priceController.text = CRMCurrencyFormatter.format(p.price);
       _depositController.text = p.deposit.toStringAsFixed(0);
       _maintenanceController.text = p.maintenance.toStringAsFixed(0);
       _selectedFurnishing = p.furnishingTypeId;
@@ -162,6 +172,10 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         }
       }
       _selectedOwnership = p.ownershipTypeId;
+      _googlePlaceId = p.googlePlaceId;
+      _latitude = p.latitude;
+      _longitude = p.longitude;
+      _selectedBrokerage = p.brokerageTypeId;
       _blockWingController.text = p.blockWing ?? '';
       _flatNoController.text = p.flatNo ?? '';
       _propertyImages.addAll(p.images);
@@ -236,9 +250,9 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
   }
 
-  void _showAddAreaDialog() {
-    final nameController = TextEditingController();
-    final pincodeController = TextEditingController();
+  void _showAddAreaDialog({String? initialName, String? initialPincode}) {
+    final nameController = TextEditingController(text: initialName);
+    final pincodeController = TextEditingController(text: initialPincode);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -296,6 +310,175 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
   }
 
+  void _showAddBrokerageDialog() {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add New Brokerage Option'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(labelText: 'Option Name (e.g. Direct, Broker)'),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          TextButton(
+            child: const Text('Add'),
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                try {
+                  final repository = PropertiesRepository();
+                  final newItem = await repository.createLookup('brokerage', {'name': name});
+                  setState(() {
+                    widget.metadata.brokerages.add(newItem);
+                    _selectedBrokerage = newItem.id;
+                  });
+                  if (mounted) Navigator.pop(ctx);
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to add brokerage: $e')),
+                    );
+                  }
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveCurrentDraft() {
+    if (widget.property != null) return;
+    final draftData = {
+      'title': _titleController.text,
+      'description': _descriptionController.text,
+      'category_id': _selectedCategory,
+      'property_type_id': _selectedType,
+      'configuration_id': _selectedConfig,
+      'listing_type_id': _selectedListingType,
+      'property_status_id': _selectedStatus,
+      'city_id': _selectedCity,
+      'area_id': _selectedArea,
+      'address': _addressController.text,
+      'landmark': _landmarkController.text,
+      'block_wing': _blockWingController.text,
+      'flat_no': _flatNoController.text,
+      'google_place_id': _googlePlaceId,
+      'latitude': _latitude,
+      'longitude': _longitude,
+      'brokerage_type_id': _selectedBrokerage,
+      'super_builtup_area': _superBuiltupController.text,
+      'carpet_area': _carpetController.text,
+      'plot_area': _plotController.text,
+      'price': _priceController.text,
+      'deposit': _depositController.text,
+      'maintenance': _maintenanceController.text,
+      'furnishing_type_id': _selectedFurnishing,
+      'facing_type_id': _selectedFacing,
+      'facing_name': _facingController.text,
+      'ownership_type_id': _selectedOwnership,
+      'bedrooms': _bedroomsController.text,
+      'bathrooms': _bathroomsController.text,
+      'balconies': _balconiesController.text,
+      'parking': _parkingController.text,
+      'floor_no': _floorNoController.text,
+      'total_floor': _totalFloorController.text,
+      'age_of_property': _ageController.text,
+      'owner_name': _ownerNameController.text,
+      'owner_mobile': _ownerMobileController.text,
+      'broker_name': _brokerNameController.text,
+      'remarks': _remarksController.text,
+      'amenities': _selectedAmenities,
+      'images': _propertyImages,
+    };
+    CRMDraftRepository().saveDraft('property', draftData);
+  }
+
+  void _showRestoreDraftDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Restore Unsaved Draft?'),
+        content: const Text('We found an unsaved draft from your previous session. Would you like to restore it?'),
+        actions: [
+          TextButton(
+            child: const Text('Discard'),
+            onPressed: () {
+              CRMDraftRepository().clearDraft('property');
+              Navigator.pop(ctx);
+            },
+          ),
+          TextButton(
+            child: const Text('Restore'),
+            onPressed: () {
+              final draft = CRMDraftRepository().getDraft('property');
+              if (draft != null) {
+                setState(() {
+                  _titleController.text = draft['title'] ?? '';
+                  _descriptionController.text = draft['description'] ?? '';
+                  _selectedCategory = draft['category_id'];
+                  _selectedType = draft['property_type_id'];
+                  _selectedConfig = draft['configuration_id'];
+                  _selectedListingType = draft['listing_type_id'];
+                  _selectedStatus = draft['property_status_id'];
+                  _selectedCity = draft['city_id'];
+                  if (_selectedCity != null) {
+                    _updateAreasForCity(_selectedCity!);
+                  }
+                  _selectedArea = draft['area_id'];
+                  _addressController.text = draft['address'] ?? '';
+                  _landmarkController.text = draft['landmark'] ?? '';
+                  _blockWingController.text = draft['block_wing'] ?? '';
+                  _flatNoController.text = draft['flat_no'] ?? '';
+                  _googlePlaceId = draft['google_place_id'];
+                  _latitude = draft['latitude'];
+                  _longitude = draft['longitude'];
+                  _selectedBrokerage = draft['brokerage_type_id'];
+                  _superBuiltupController.text = draft['super_builtup_area'] ?? '';
+                  _carpetController.text = draft['carpet_area'] ?? '';
+                  _plotController.text = draft['plot_area'] ?? '';
+                  _priceController.text = draft['price'] ?? '';
+                  _depositController.text = draft['deposit'] ?? '';
+                  _maintenanceController.text = draft['maintenance'] ?? '';
+                  _selectedFurnishing = draft['furnishing_type_id'];
+                  _selectedFacing = draft['facing_type_id'];
+                  _facingController.text = draft['facing_name'] ?? '';
+                  _selectedOwnership = draft['ownership_type_id'];
+                  _bedroomsController.text = draft['bedrooms'] ?? '0';
+                  _bathroomsController.text = draft['bathrooms'] ?? '0';
+                  _balconiesController.text = draft['balconies'] ?? '0';
+                  _parkingController.text = draft['parking'] ?? '0';
+                  _floorNoController.text = draft['floor_no'] ?? '';
+                  _totalFloorController.text = draft['total_floor'] ?? '';
+                  _ageController.text = draft['age_of_property'] ?? '';
+                  _ownerNameController.text = draft['owner_name'] ?? '';
+                  _ownerMobileController.text = draft['owner_mobile'] ?? '';
+                  _brokerNameController.text = draft['broker_name'] ?? '';
+                  _remarksController.text = draft['remarks'] ?? '';
+                  
+                  final List<String> ams = List<String>.from(draft['amenities'] ?? []);
+                  _selectedAmenities.clear();
+                  _selectedAmenities.addAll(ams);
+
+                  final List<String> imgs = List<String>.from(draft['images'] ?? []);
+                  _propertyImages.clear();
+                  _propertyImages.addAll(imgs);
+                });
+              }
+              Navigator.pop(ctx);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   void _updateAreasForCity(String cityId) {
     setState(() {
       _filteredAreas = _areas.where((a) => a.cityId == cityId).toList();
@@ -317,94 +500,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     return widget.metadata.configurations.where((c) => c.categoryId == _selectedCategory).toList();
   }
 
-  Future<void> _showImageSourceDialog(int index) async {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt_rounded),
-              title: const Text('Take Photo (Camera)'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(index, ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_rounded),
-              title: const Text('Choose from Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(index, ImageSource.gallery);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Future<void> _pickImage(int index, ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
-    if (pickedFile == null) return;
-
-    setState(() {
-      _isUploadingImage = true;
-    });
-
-    try {
-      final File file = File(pickedFile.path);
-      final int sizeInBytes = await file.length();
-      
-      File uploadFile = file;
-
-      if (sizeInBytes > 0) {
-        final String targetPath = "${Directory.systemTemp.path}/compressed_prop_${DateTime.now().millisecondsSinceEpoch}.jpg";
-        
-        XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
-          file.absolute.path,
-          targetPath,
-          quality: 80,
-          minWidth: 1200,
-          minHeight: 1200,
-        );
-
-        if (compressedFile != null) {
-          uploadFile = File(compressedFile.path);
-          int compressedSize = await uploadFile.length();
-
-          if (compressedSize > 5 * 1024 * 1024) {
-            throw Exception("Compressed image exceeds 5 MB limit.");
-          }
-        }
-      }
-
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(uploadFile.path, filename: 'property_image.jpg'),
-      });
-
-      final response = await DioClient.dio.post('/properties/upload-media', data: formData);
-      final publicUrl = response.data['data']['url'];
-
-      setState(() {
-        if (index < _propertyImages.length) {
-          _propertyImages[index] = publicUrl;
-        } else {
-          _propertyImages.add(publicUrl);
-        }
-        _isUploadingImage = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isUploadingImage = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to upload image: $e"), backgroundColor: CRMColors.danger),
-      );
-    }
-  }
 
   void _showAddMasterDialog(String masterType) {
     final controller = TextEditingController();
@@ -481,7 +577,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   void _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!CRMFormUtils.validateAndScroll(_formKey, context)) return;
 
     showDialog(
       context: context,
@@ -522,10 +618,14 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         'landmark': _landmarkController.text.trim().isEmpty ? null : _landmarkController.text.trim(),
         'block_wing': _blockWingController.text.trim().isEmpty ? null : _blockWingController.text.trim(),
         'flat_no': _flatNoController.text.trim().isEmpty ? null : _flatNoController.text.trim(),
+        'google_place_id': _googlePlaceId,
+        'latitude': _latitude,
+        'longitude': _longitude,
+        'brokerage_type_id': _selectedBrokerage,
         'super_builtup_area': double.tryParse(_superBuiltupController.text),
         'carpet_area': double.tryParse(_carpetController.text),
         'plot_area': double.tryParse(_plotController.text),
-        'price': BudgetFormatter.parse(_priceController.text),
+        'price': CRMCurrencyFormatter.parse(_priceController.text),
         'deposit': double.tryParse(_depositController.text) ?? 0.0,
         'maintenance': double.tryParse(_maintenanceController.text) ?? 0.0,
         'furnishing_type_id': _selectedFurnishing,
@@ -546,6 +646,80 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         'images': _propertyImages,
       };
 
+      if (widget.property == null) {
+        final repository = PropertiesRepository();
+        final duplicateResult = await repository.checkDuplicate({
+          'property_type_id': _selectedType,
+          'title': _titleController.text.trim(),
+          'flat_no': _flatNoController.text.trim(),
+          'block_wing': _blockWingController.text.trim(),
+          'latitude': _latitude,
+          'longitude': _longitude,
+          'google_place_id': _googlePlaceId,
+          'owner_mobile': _ownerMobileController.text.trim(),
+        });
+
+        if (duplicateResult['duplicate'] == true) {
+          if (mounted) {
+            Navigator.pop(context); // pop loading spinner
+          }
+
+          final details = duplicateResult['details'] as Map<String, dynamic>? ?? {};
+          final propName = details['propertyName'] ?? 'Unknown';
+          final ownerName = details['ownerName'] ?? 'Unknown';
+          final createdBy = details['createdBy'] ?? 'Unknown';
+
+          final bool proceed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text('Possible Duplicate'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('A similar property already exists:'),
+                  const SizedBox(height: 8),
+                  Text('Property: $propName', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Owner: $ownerName'),
+                  Text('Added by: $createdBy'),
+                  const SizedBox(height: 16),
+                  const Text('Do you want to create this anyway?'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () => Navigator.pop(ctx, false),
+                ),
+                TextButton(
+                  child: const Text('Create Anyway'),
+                  onPressed: () => Navigator.pop(ctx, true),
+                ),
+              ],
+            ),
+          ) ?? false;
+
+          if (!proceed) {
+            return; // Abort submission
+          }
+
+          // Show loader again
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(child: CircularProgressIndicator()),
+            );
+          }
+        }
+      }
+
       if (mounted) {
         Navigator.pop(context); // pop loading spinner
       }
@@ -560,6 +734,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             );
       }
 
+      _isSaved = true;
+      CRMDraftRepository().clearDraft('property');
       if (mounted) {
         Navigator.pop(context); // close form screen
       }
@@ -585,8 +761,13 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         backgroundColor: CRMColors.cardBg,
         elevation: 0,
       ),
-      body: Form(
-        key: _formKey,
+      body: CRMForm(
+        formKey: _formKey,
+        isDirty: true,
+        onSave: () async {
+          _submitForm();
+          return true;
+        },
         child: Column(
           children: [
             _buildWizardProgress(isMobile),
@@ -693,10 +874,10 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             controller: _titleController,
             style: CRMTypography.body.copyWith(color: CRMColors.text),
             decoration: InputDecoration(
-              labelText: 'Title / Scheme Name *',
+              labelText: 'Location / Property Name *',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
             ),
-            validator: (v) => v!.isEmpty ? 'Scheme name is required' : null,
+            validator: (v) => v!.isEmpty ? 'Location / Property Name is required' : null,
           ),
           const SizedBox(height: CRMSpacing.m),
 
@@ -923,85 +1104,25 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             items: widget.metadata.statuses.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
             onChanged: (v) => setState(() => _selectedStatus = v),
           ),
-          const SizedBox(height: CRMSpacing.l),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Property Images (Max 3)', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
-              if (_isUploadingImage)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-            ],
-          ),
-          const SizedBox(height: CRMSpacing.s),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(3, (index) {
-              final hasImage = index < _propertyImages.length;
-              final imageUrl = hasImage ? _propertyImages[index] : null;
-
-              return Column(
-                children: [
-                  Container(
-                    width: 90,
-                    height: 90,
-                    decoration: BoxDecoration(
-                      color: CRMColors.cardBg,
-                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      border: Border.all(color: CRMColors.border, width: 1.5),
-                    ),
-                    child: hasImage
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(CRMBorderRadius.s - 1.5),
-                            child: Image.network(
-                              imageUrl!,
-                              fit: BoxFit.cover,
-                              width: 90,
-                              height: 90,
-                            ),
-                          )
-                        : Icon(Icons.add_photo_alternate_outlined, color: CRMColors.textSecondary, size: 28),
-                  ),
-                  const SizedBox(height: CRMSpacing.xs),
-                  if (hasImage) ...[
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit_outlined, size: 16, color: CRMColors.primary),
-                          onPressed: () => _showImageSourceDialog(index),
-                          constraints: const BoxConstraints(),
-                          padding: const EdgeInsets.all(4),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: CRMColors.danger),
-                          onPressed: () {
-                            setState(() {
-                              _propertyImages.removeAt(index);
-                            });
-                          },
-                          constraints: const BoxConstraints(),
-                          padding: const EdgeInsets.all(4),
-                        ),
-                      ],
-                    )
-                  ] else ...[
-                    TextButton(
-                      onPressed: () => _showImageSourceDialog(index),
-                      child: const Text('Add', style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    )
-                  ],
-                ],
-              );
-            }),
+          CRMImagePicker(
+            imageUrls: _propertyImages,
+            onImageAdded: (url) {
+              setState(() {
+                _propertyImages.add(url);
+              });
+            },
+            onImageRemoved: (index) {
+              setState(() {
+                _propertyImages.removeAt(index);
+              });
+            },
+            onImageReplaced: (index, url) {
+              setState(() {
+                _propertyImages[index] = url;
+              });
+            },
+            maxImages: 3,
+            uploadEndpoint: '/properties/upload-media',
           ),
         ],
       ),
@@ -1105,24 +1226,46 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
           ],
           const SizedBox(height: CRMSpacing.m),
-          TextFormField(
-            controller: _landmarkController,
-            style: CRMTypography.body.copyWith(color: CRMColors.text),
-            decoration: InputDecoration(
-              labelText: 'Landmark',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-            ),
-          ),
-          const SizedBox(height: CRMSpacing.m),
-          TextFormField(
-            controller: _addressController,
-            style: CRMTypography.body.copyWith(color: CRMColors.text),
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: 'Complete Address *',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-            ),
-            validator: (v) => v!.isEmpty ? 'Address is required' : null,
+          CRMAddressInput(
+            labelText: 'Address Details',
+            initialValue: _addressController.text,
+            isRequired: true,
+            onAddressSelected: (details) {
+              setState(() {
+                _addressController.text = details.formattedAddress;
+                _landmarkController.text = details.landmark;
+                _googlePlaceId = details.placeId;
+                _latitude = details.latitude;
+                _longitude = details.longitude;
+
+                if (_titleController.text.trim().isEmpty && details.landmark.isNotEmpty) {
+                  _titleController.text = details.landmark;
+                }
+
+                if (details.city.isNotEmpty) {
+                  final matchedCity = widget.metadata.cities.firstWhere(
+                    (c) => c.name.toLowerCase() == details.city.toLowerCase(),
+                    orElse: () => LookupItem(id: '', name: ''),
+                  );
+                  if (matchedCity.id.isNotEmpty) {
+                    _selectedCity = matchedCity.id;
+                    _updateAreasForCity(matchedCity.id);
+                  }
+                }
+
+                if (details.area.isNotEmpty) {
+                  final matchedArea = widget.metadata.areas.firstWhere(
+                    (a) => a.name.toLowerCase() == details.area.toLowerCase(),
+                    orElse: () => AreaLookup(id: '', name: '', cityId: '', pincode: ''),
+                  );
+                  if (matchedArea.id.isNotEmpty) {
+                    _selectedArea = matchedArea.id;
+                  } else if (_selectedCity != null) {
+                    _showAddAreaDialog(initialName: details.area, initialPincode: details.pincode);
+                  }
+                }
+              });
+            },
           ),
         ],
       ),
@@ -1130,25 +1273,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   Widget _buildPricingStep(bool isMobile) {
-    final priceField = TextFormField(
+    final priceField = CRMCurrencyField(
       controller: _priceController,
-      style: CRMTypography.body.copyWith(color: CRMColors.text),
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: 'Rent/Sell Price *',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
-      validator: (v) => v!.isEmpty ? 'Price is required' : null,
+      labelText: 'Rent/Sell Price',
+      isRequired: true,
     );
 
-    final depositField = TextFormField(
+    final depositField = CRMCurrencyField(
       controller: _depositController,
-      style: CRMTypography.body.copyWith(color: CRMColors.text),
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: 'Deposit Amount',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
+      labelText: 'Deposit Amount',
     );
 
     final superBuiltupField = TextFormField(
@@ -1272,6 +1405,14 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       onChanged: (v) => setState(() => _selectedOwnership = v),
     );
 
+    final brokerageField = CRMSearchableDropdown(
+      labelText: 'Brokerage Confirmation',
+      selectedValue: _selectedBrokerage,
+      items: widget.metadata.brokerages.map((b) => CRMDropdownItem(id: b.id, label: b.name)).toList(),
+      onChanged: (v) => setState(() => _selectedBrokerage = v),
+      onAddPressed: _showAddBrokerageDialog,
+    );
+
     return CRMCard(
       title: 'Pricing & Sizing Sockets',
       subtitle: 'Complete budget calculations and builtup area parameters',
@@ -1384,6 +1525,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             facingField,
             const SizedBox(height: CRMSpacing.m),
             ownershipField,
+            const SizedBox(height: CRMSpacing.m),
+            brokerageField,
           ] else ...[
             Row(
               children: [
@@ -1392,6 +1535,16 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                 Expanded(child: facingField),
                 const SizedBox(width: CRMSpacing.s),
                 Expanded(child: ownershipField),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.m),
+            Row(
+              children: [
+                Expanded(child: brokerageField),
+                const SizedBox(width: CRMSpacing.s),
+                const Expanded(child: SizedBox()),
+                const SizedBox(width: CRMSpacing.s),
+                const Expanded(child: SizedBox()),
               ],
             ),
           ],
@@ -1501,25 +1654,16 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   Widget _buildContactsStep(bool isMobile) {
-    final ownerNameField = TextFormField(
+    final ownerNameField = CRMTextField(
       controller: _ownerNameController,
-      style: CRMTypography.body.copyWith(color: CRMColors.text),
-      decoration: InputDecoration(
-        labelText: 'Owner Name *',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
-      validator: (v) => v!.isEmpty ? 'Owner name required' : null,
+      labelText: 'Owner Name',
+      validator: (v) => v == null || v.isEmpty ? 'Owner name required' : null,
     );
 
-    final ownerMobileField = TextFormField(
+    final ownerMobileField = CRMPhoneField(
       controller: _ownerMobileController,
-      style: CRMTypography.body.copyWith(color: CRMColors.text),
-      keyboardType: TextInputType.phone,
-      decoration: InputDecoration(
-        labelText: 'Owner Mobile *',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
-      validator: (v) => v!.isEmpty ? 'Mobile required' : null,
+      labelText: 'Owner Mobile',
+      isRequired: true,
     );
 
     return CRMCard(

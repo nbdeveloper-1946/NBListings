@@ -48,6 +48,9 @@ class PropertyModel {
   final String? remarks;
   final String? blockWing;
   final String? flatNo;
+  final String? googlePlaceId;
+  final String? brokerageTypeId;
+  final String? brokerageTypeName;
   final bool isVerified;
   final String createdBy;
   final String createdByName;
@@ -111,6 +114,9 @@ class PropertyModel {
     required this.createdAt,
     required this.images,
     required this.amenities,
+    this.googlePlaceId,
+    this.brokerageTypeId,
+    this.brokerageTypeName,
   });
 
   factory PropertyModel.fromJson(Map<String, dynamic> json) {
@@ -124,6 +130,7 @@ class PropertyModel {
     final furnishing = json['furnishing_type'] as Map<String, dynamic>?;
     final facing = json['facing_type'] as Map<String, dynamic>?;
     final ownership = json['ownership_type'] as Map<String, dynamic>?;
+    final brokerage = json['brokerage_type'] as Map<String, dynamic>?;
     final creator = json['creator'] as Map<String, dynamic>?;
 
     final rawImages = json['property_images'] as List<dynamic>? ?? [];
@@ -173,6 +180,9 @@ class PropertyModel {
       facingTypeName: facing != null ? facing['name'] as String : null,
       ownershipTypeId: json['ownership_type_id'] as String?,
       ownershipTypeName: ownership != null ? ownership['name'] as String : null,
+      googlePlaceId: json['google_place_id'] as String?,
+      brokerageTypeId: json['brokerage_type_id'] as String?,
+      brokerageTypeName: brokerage != null ? brokerage['name'] as String : null,
       bedrooms: json['bedrooms'] as int? ?? 0,
       bathrooms: json['bathrooms'] as int? ?? 0,
       balconies: json['balconies'] as int? ?? 0,
@@ -280,6 +290,7 @@ class PropertyMetadataModel {
   final List<LookupItem> furnishings;
   final List<LookupItem> facings;
   final List<LookupItem> ownerships;
+  final List<LookupItem> brokerages;
   final List<LookupItem> amenities;
 
   PropertyMetadataModel({
@@ -293,6 +304,7 @@ class PropertyMetadataModel {
     required this.furnishings,
     required this.facings,
     required this.ownerships,
+    required this.brokerages,
     required this.amenities,
   });
 
@@ -315,6 +327,7 @@ class PropertyMetadataModel {
       furnishings: parseList(meta['furnishings'], LookupItem.fromJson),
       facings: parseList(meta['facings'], LookupItem.fromJson),
       ownerships: parseList(meta['ownerships'], LookupItem.fromJson),
+      brokerages: parseList(meta['brokerages'], LookupItem.fromJson),
       amenities: parseList(meta['amenities'], LookupItem.fromJson),
     );
   }

@@ -135,6 +135,7 @@ class RequirementModel {
       'category_id': categoryId,
       'property_type_id': propertyTypeId,
       'configuration_id': configurationId,
+      'budget': (minBudget + maxBudget) / 2,
       'budget_from': minBudget,
       'budget_to': maxBudget,
       'min_area': minArea,

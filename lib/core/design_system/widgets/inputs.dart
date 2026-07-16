@@ -12,6 +12,9 @@ class CRMTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffixIcon;
   final FormFieldValidator<String>? validator;
+  final int? maxLength;
+  final int? maxLines;
+  final ValueChanged<String>? onChanged;
 
   const CRMTextField({
     super.key,
@@ -23,6 +26,9 @@ class CRMTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.validator,
+    this.maxLength,
+    this.maxLines = 1,
+    this.onChanged,
   });
 
   @override
@@ -79,6 +85,9 @@ class CRMTextField extends StatelessWidget {
             ),
           ),
           validator: validator,
+          maxLength: maxLength,
+          maxLines: maxLines,
+          onChanged: onChanged,
         ),
       ],
     );

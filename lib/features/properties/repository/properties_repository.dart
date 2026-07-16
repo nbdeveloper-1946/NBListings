@@ -148,4 +148,9 @@ class PropertiesRepository {
     }
     return LookupItem.fromJson(item);
   }
+
+  Future<Map<String, dynamic>> checkDuplicate(Map<String, dynamic> checkParams) async {
+    final response = await _propertiesService.checkDuplicate(checkParams);
+    return response['data'] as Map<String, dynamic>? ?? {};
+  }
 }
