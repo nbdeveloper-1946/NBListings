@@ -1,15 +1,18 @@
-import '../models/requirement_model.dart';
-import '../services/requirements_service.dart';
+import 'dart:convert';
+import 'package:nblistings/features/requirements/models/requirement_model.dart';
+import 'package:nblistings/features/requirements/services/requirements_service.dart';
+import 'package:nblistings/core/storage/repository_coordinator.dart';
+import 'package:nblistings/core/storage/isar_collections.dart';
+import 'package:nblistings/core/storage/model_mappers.dart';
+import 'package:nblistings/core/storage/performance_logger.dart';
 
 class RequirementsRepository {
   final RequirementsService _requirementsService = RequirementsService();
-
-  static final Map<String, List<RequirementModel>> _requirementsCache = {};
-  static final Map<String, DateTime> _requirementsCacheTime = {};
+  final RepositoryCoordinator _coordinator = RepositoryCoordinator();
 
   void invalidateCache() {
-    _requirementsCache.clear();
-    _requirementsCacheTime.clear();
+    _coordinator.requirementLocal.saveRequirements([]);
+    _coordinator.refreshRequirements();
   }
 
   Future<List<RequirementModel>> getRequirements({
@@ -18,62 +21,158 @@ class RequirementsRepository {
     String? status,
     String? listingTypeId,
   }) async {
-    final cacheKey = '$search|$configurationId|$status|$listingTypeId';
-    final cached = _requirementsCache[cacheKey];
-    final cacheTime = _requirementsCacheTime[cacheKey];
+    final start = DateTime.now();
 
-    if (cached != null && cacheTime != null && DateTime.now().difference(cacheTime).inSeconds < 30) {
-      return cached;
-    }
+    final localList = await _coordinator.requirementLocal.getRequirements(
+      search: search,
+      configurationId: configurationId,
+      status: status,
+    );
+    final isarReadMs = DateTime.now().difference(start).inMilliseconds;
 
-    if (cached != null) {
-      _requirementsService.getRequirements(
-        search: search,
-        configurationId: configurationId,
-        status: status,
-        listingTypeId: listingTypeId,
-      ).then((response) {
-        final data = response['data'] as Map<String, dynamic>? ?? {};
-        final list = data['requirements'] as List? ?? [];
-        final freshList = list.map((item) => RequirementModel.fromJson(item)).toList();
-        _requirementsCache[cacheKey] = freshList;
-        _requirementsCacheTime[cacheKey] = DateTime.now();
-      }).catchError((_) {});
+    final parseStart = DateTime.now();
+    final requirements = localList.map((item) => item.toModel()).toList();
+    final jsonParseMs = DateTime.now().difference(parseStart).inMilliseconds;
 
-      return cached;
-    }
+    final totalMs = DateTime.now().difference(start).inMilliseconds;
+    PerformanceLogger().logMetric(
+      operation: 'RequirementsRepository.getRequirements (local)',
+      isarReadMs: isarReadMs,
+      jsonParseMs: jsonParseMs,
+      totalMs: totalMs,
+    );
 
-    final response = await _requirementsService.getRequirements(
+    _triggerBackgroundRequirementsRefresh(
       search: search,
       configurationId: configurationId,
       status: status,
       listingTypeId: listingTypeId,
     );
-    final data = response['data'] as Map<String, dynamic>? ?? {};
-    final list = data['requirements'] as List? ?? [];
-    final requirements = list.map((item) => RequirementModel.fromJson(item)).toList();
 
-    _requirementsCache[cacheKey] = requirements;
-    _requirementsCacheTime[cacheKey] = DateTime.now();
     return requirements;
   }
 
+  void _triggerBackgroundRequirementsRefresh({
+    String? search,
+    String? configurationId,
+    String? status,
+    String? listingTypeId,
+  }) {
+    final start = DateTime.now();
+    _requirementsService.getRequirements(
+      search: search,
+      configurationId: configurationId,
+      status: status,
+      listingTypeId: listingTypeId,
+    ).then((response) async {
+      final networkMs = DateTime.now().difference(start).inMilliseconds;
+
+      final parseStart = DateTime.now();
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final list = data['requirements'] as List? ?? [];
+      final freshList = list.map((item) => RequirementModel.fromJson(item)).toList();
+      final jsonParseMs = DateTime.now().difference(parseStart).inMilliseconds;
+
+      final writeStart = DateTime.now();
+      final localEntities = freshList.map((r) => r.toLocal()).toList();
+      await _coordinator.requirementLocal.saveRequirements(localEntities);
+      final isarWriteMs = DateTime.now().difference(writeStart).inMilliseconds;
+
+      final totalMs = DateTime.now().difference(start).inMilliseconds;
+      PerformanceLogger().logMetric(
+        operation: 'RequirementsRepository.getRequirements (background refresh)',
+        networkMs: networkMs,
+        jsonParseMs: jsonParseMs,
+        isarWriteMs: isarWriteMs,
+        totalMs: totalMs,
+      );
+
+      _coordinator.refreshRequirements();
+    }).catchError((_) {});
+  }
+
   Future<RequirementModel> createRequirement(RequirementModel req) async {
-    invalidateCache();
-    final response = await _requirementsService.createRequirement(req.toBackendJson());
-    final data = response['data'] as Map<String, dynamic>? ?? {};
-    return RequirementModel.fromJson(data['requirement'] ?? {});
+    try {
+      final response = await _requirementsService.createRequirement(req.toBackendJson());
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final fresh = RequirementModel.fromJson(data['requirement'] ?? {});
+
+      await _coordinator.requirementLocal.saveRequirements([fresh.toLocal()]);
+      _coordinator.refreshRequirements();
+      return fresh;
+    } catch (e) {
+      final tempId = 'temp_req_${DateTime.now().millisecondsSinceEpoch}';
+      final json = req.toBackendJson();
+      json['id'] = tempId;
+      json['created_at'] = DateTime.now().toIso8601String();
+      json['updated_at'] = DateTime.now().toIso8601String();
+
+      final fresh = RequirementModel.fromJson(json);
+      await _coordinator.requirementLocal.saveRequirements([fresh.toLocal()]);
+
+      final outboxItem = OutboxLocal()
+        ..id = 'outbox_${DateTime.now().millisecondsSinceEpoch}'
+        ..endpoint = '/requirements'
+        ..method = 'POST'
+        ..payloadJson = jsonEncode(req.toBackendJson())
+        ..createdAt = DateTime.now()
+        ..deviceId = 'device_crm_123';
+      await _coordinator.outboxLocal.queueRequest(outboxItem);
+
+      _coordinator.refreshRequirements();
+      return fresh;
+    }
   }
 
   Future<RequirementModel> updateRequirement(RequirementModel req) async {
-    invalidateCache();
-    final response = await _requirementsService.updateRequirement(req.id, req.toBackendJson());
-    final data = response['data'] as Map<String, dynamic>? ?? {};
-    return RequirementModel.fromJson(data['requirement'] ?? {});
+    try {
+      final response = await _requirementsService.updateRequirement(req.id, req.toBackendJson());
+      final data = response['data'] as Map<String, dynamic>? ?? {};
+      final fresh = RequirementModel.fromJson(data['requirement'] ?? {});
+
+      await _coordinator.requirementLocal.saveRequirements([fresh.toLocal()]);
+      _coordinator.refreshRequirements();
+      return fresh;
+    } catch (e) {
+      final json = req.toBackendJson();
+      json['id'] = req.id;
+      json['updated_at'] = DateTime.now().toIso8601String();
+
+      final fresh = RequirementModel.fromJson(json);
+      await _coordinator.requirementLocal.saveRequirements([fresh.toLocal()]);
+
+      final outboxItem = OutboxLocal()
+        ..id = 'outbox_${DateTime.now().millisecondsSinceEpoch}'
+        ..endpoint = '/requirements/${req.id}'
+        ..method = 'PUT'
+        ..payloadJson = jsonEncode(req.toBackendJson())
+        ..createdAt = DateTime.now()
+        ..deviceId = 'device_crm_123';
+      await _coordinator.outboxLocal.queueRequest(outboxItem);
+
+      _coordinator.refreshRequirements();
+      return fresh;
+    }
   }
 
   Future<void> deleteRequirement(String id) async {
-    invalidateCache();
-    await _requirementsService.deleteRequirement(id);
+    try {
+      await _requirementsService.deleteRequirement(id);
+      await _coordinator.requirementLocal.deleteRequirement(id);
+      _coordinator.refreshRequirements();
+    } catch (e) {
+      await _coordinator.requirementLocal.deleteRequirement(id);
+
+      final outboxItem = OutboxLocal()
+        ..id = 'outbox_${DateTime.now().millisecondsSinceEpoch}'
+        ..endpoint = '/requirements/$id'
+        ..method = 'DELETE'
+        ..payloadJson = '{}'
+        ..createdAt = DateTime.now()
+        ..deviceId = 'device_crm_123';
+      await _coordinator.outboxLocal.queueRequest(outboxItem);
+
+      _coordinator.refreshRequirements();
+    }
   }
 }

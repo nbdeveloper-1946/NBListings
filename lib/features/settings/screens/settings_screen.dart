@@ -9,6 +9,7 @@ import '../../../core/theme/theme_manager.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../properties/models/property_model.dart';
 import '../../properties/services/properties_service.dart';
+import 'sync_debug_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -188,32 +189,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildAppearanceCard() {
     final isDark = ThemeManager().isDarkMode;
     return CRMCard(
-      title: 'Appearance',
-      subtitle: 'Customize the visual theme of the application',
+      title: 'System & Appearance',
+      subtitle: 'Customize visual themes and view diagnostic logs',
       child: Padding(
         padding: const EdgeInsets.only(top: CRMSpacing.xs),
-        child: SwitchListTile(
-          title: Text(
-            'Dark Mode',
-            style: CRMTypography.bodyMedium.copyWith(
-              color: CRMColors.text,
-              fontWeight: FontWeight.bold,
+        child: Column(
+          children: [
+            SwitchListTile(
+              title: Text(
+                'Dark Mode',
+                style: CRMTypography.bodyMedium.copyWith(
+                  color: CRMColors.text,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                'Toggle between light and dark visual themes',
+                style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+              ),
+              secondary: Icon(
+                isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                color: isDark ? CRMColors.primary : CRMColors.textSecondary,
+              ),
+              value: isDark,
+              activeColor: CRMColors.primary,
+              onChanged: (val) {
+                ThemeManager().toggleTheme();
+              },
+              contentPadding: EdgeInsets.zero,
             ),
-          ),
-          subtitle: Text(
-            'Toggle between light and dark visual themes',
-            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
-          ),
-          secondary: Icon(
-            isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-            color: isDark ? CRMColors.primary : CRMColors.textSecondary,
-          ),
-          value: isDark,
-          activeColor: CRMColors.primary,
-          onChanged: (val) {
-            ThemeManager().toggleTheme();
-          },
-          contentPadding: EdgeInsets.zero,
+            const Divider(height: CRMSpacing.l),
+            ListTile(
+              title: Text(
+                'Sync Diagnostics',
+                style: CRMTypography.bodyMedium.copyWith(
+                  color: CRMColors.text,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                'View network logs, outbox status, and realtime diagnostics',
+                style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+              ),
+              leading: Icon(Icons.sync_rounded, color: CRMColors.primary),
+              trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: CRMColors.textSecondary),
+              contentPadding: EdgeInsets.zero,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SyncDebugScreen()),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );

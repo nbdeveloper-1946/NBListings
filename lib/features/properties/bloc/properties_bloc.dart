@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nblistings/core/storage/repository_coordinator.dart';
 import '../models/property_model.dart';
 import '../repository/properties_repository.dart';
 
@@ -114,9 +116,13 @@ class PropertySavedState extends PropertiesState {
 }
 
 // --- BLoC ---
+
 class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
   final PropertiesRepository _repository = PropertiesRepository();
   PropertyMetadataModel? _cachedMetadata;
+  LoadPropertiesEvent? _lastLoadEvent;
+  StreamSubscription? _propertiesSubscription;
+  StreamSubscription? _lookupsSubscription;
 
   PropertiesBloc() : super(PropertiesInitial()) {
     on<LoadPropertiesEvent>(_onLoadProperties);
@@ -127,6 +133,25 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
     on<DeletePropertyEvent>(_onDeleteProperty);
     on<RestorePropertyEvent>(_onRestoreProperty);
     on<ToggleBookmarkEvent>(_onToggleBookmark);
+
+    _propertiesSubscription = RepositoryCoordinator().propertiesStream.listen((_) {
+      if (_lastLoadEvent != null) {
+        add(_lastLoadEvent!);
+      }
+    });
+
+    _lookupsSubscription = RepositoryCoordinator().lookupsStream.listen((_) {
+      if (_lastLoadEvent != null) {
+        add(_lastLoadEvent!);
+      }
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _propertiesSubscription?.cancel();
+    _lookupsSubscription?.cancel();
+    return super.close();
   }
 
   Future<Set<String>> _getBookmarkedIds() async {
@@ -144,6 +169,7 @@ class PropertiesBloc extends Bloc<PropertiesEvent, PropertiesState> {
     LoadPropertiesEvent event,
     Emitter<PropertiesState> emit,
   ) async {
+    _lastLoadEvent = event;
     emit(PropertiesLoading());
     try {
       final bookmarked = await _getBookmarkedIds();

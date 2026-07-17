@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nblistings/core/storage/repository_coordinator.dart';
 import '../models/requirement_model.dart';
 import '../repository/requirements_repository.dart';
 
@@ -51,20 +53,36 @@ class RequirementsSuccess extends RequirementsState {
 }
 
 // --- BLoC ---
+
 class RequirementsBloc extends Bloc<RequirementsEvent, RequirementsState> {
   final RequirementsRepository requirementsRepository;
+  FetchRequirementsEvent? _lastFetchEvent;
+  StreamSubscription? _requirementsSubscription;
 
   RequirementsBloc({required this.requirementsRepository}) : super(RequirementsInitial()) {
     on<FetchRequirementsEvent>(_onFetchRequirements);
     on<CreateRequirementEvent>(_onCreateRequirement);
     on<UpdateRequirementEvent>(_onUpdateRequirement);
     on<DeleteRequirementEvent>(_onDeleteRequirement);
+
+    _requirementsSubscription = RepositoryCoordinator().requirementsStream.listen((_) {
+      if (_lastFetchEvent != null) {
+        add(_lastFetchEvent!);
+      }
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _requirementsSubscription?.cancel();
+    return super.close();
   }
 
   Future<void> _onFetchRequirements(
     FetchRequirementsEvent event,
     Emitter<RequirementsState> emit,
   ) async {
+    _lastFetchEvent = event;
     emit(RequirementsLoading());
     try {
       final list = await requirementsRepository.getRequirements(

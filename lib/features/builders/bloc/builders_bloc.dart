@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nblistings/core/storage/repository_coordinator.dart';
 import '../models/builder_model.dart';
 import '../repository/builders_repository.dart';
 
@@ -49,20 +51,36 @@ class BuildersSuccess extends BuildersState {
 }
 
 // --- BLoC ---
+
 class BuildersBloc extends Bloc<BuildersEvent, BuildersState> {
   final BuildersRepository buildersRepository;
+  FetchBuildersEvent? _lastFetchEvent;
+  StreamSubscription? _buildersSubscription;
 
   BuildersBloc({required this.buildersRepository}) : super(BuildersInitial()) {
     on<FetchBuildersEvent>(_onFetchBuilders);
     on<CreateBuilderEvent>(_onCreateBuilder);
     on<UpdateBuilderEvent>(_onUpdateBuilder);
     on<DeleteBuilderEvent>(_onDeleteBuilder);
+
+    _buildersSubscription = RepositoryCoordinator().buildersStream.listen((_) {
+      if (_lastFetchEvent != null) {
+        add(_lastFetchEvent!);
+      }
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _buildersSubscription?.cancel();
+    return super.close();
   }
 
   Future<void> _onFetchBuilders(
     FetchBuildersEvent event,
     Emitter<BuildersState> emit,
   ) async {
+    _lastFetchEvent = event;
     emit(BuildersLoading());
     try {
       final list = await buildersRepository.getBuilders(

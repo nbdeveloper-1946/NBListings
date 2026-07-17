@@ -19,8 +19,15 @@ import 'core/design_system/tokens/app_colors.dart';
 import 'core/design_system/tokens/app_typography.dart';
 import 'core/theme/theme_manager.dart';
 
-void main() {
+import 'core/storage/isar_service.dart';
+import 'core/storage/performance_logger.dart';
+import 'core/network/sync_manager.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await IsarService().initialize();
+  await PerformanceLogger().initialize();
+  await SyncManager().initialize();
 
   final authRepository = AuthRepository();
 

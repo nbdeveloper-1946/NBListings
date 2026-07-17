@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nblistings/core/storage/repository_coordinator.dart';
 import '../models/owner_model.dart';
 import '../repository/owners_repository.dart';
 
@@ -48,20 +50,36 @@ class OwnersSuccess extends OwnersState {
 }
 
 // --- BLoC ---
+
 class OwnersBloc extends Bloc<OwnersEvent, OwnersState> {
   final OwnersRepository ownersRepository;
+  FetchOwnersEvent? _lastFetchEvent;
+  StreamSubscription? _ownersSubscription;
 
   OwnersBloc({required this.ownersRepository}) : super(OwnersInitial()) {
     on<FetchOwnersEvent>(_onFetchOwners);
     on<CreateOwnerEvent>(_onCreateOwner);
     on<UpdateOwnerEvent>(_onUpdateOwner);
     on<DeleteOwnerEvent>(_onDeleteOwner);
+
+    _ownersSubscription = RepositoryCoordinator().ownersStream.listen((_) {
+      if (_lastFetchEvent != null) {
+        add(_lastFetchEvent!);
+      }
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _ownersSubscription?.cancel();
+    return super.close();
   }
 
   Future<void> _onFetchOwners(
     FetchOwnersEvent event,
     Emitter<OwnersState> emit,
   ) async {
+    _lastFetchEvent = event;
     emit(OwnersLoading());
     try {
       final list = await ownersRepository.getOwners(search: event.search);

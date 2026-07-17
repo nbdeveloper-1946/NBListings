@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:nblistings/core/storage/repository_coordinator.dart';
 import '../models/dashboard_summary.dart';
 import '../repository/dashboard_repository.dart';
 
@@ -55,14 +57,26 @@ class DashboardError extends DashboardState {
 }
 
 // BLoC
+
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final DashboardRepository _dashboardRepository;
+  StreamSubscription? _dashboardSubscription;
 
   DashboardBloc({required DashboardRepository dashboardRepository})
       : _dashboardRepository = dashboardRepository,
         super(DashboardInitial()) {
     on<LoadDashboard>(_onLoadDashboard);
     on<RefreshDashboard>(_onRefreshDashboard);
+
+    _dashboardSubscription = RepositoryCoordinator().dashboardStream.listen((_) {
+      add(LoadDashboard());
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _dashboardSubscription?.cancel();
+    return super.close();
   }
 
   Future<void> _onLoadDashboard(
