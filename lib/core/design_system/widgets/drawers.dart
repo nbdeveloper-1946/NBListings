@@ -87,7 +87,7 @@ void showCRMPropertyDrawer(BuildContext context, PropertyModel property) {
                           _buildDetailRow('Area Size', '${property.superBuiltupArea?.toStringAsFixed(0) ?? "N/A"} Sq.Ft'),
                           _buildDetailRow('Location', '${property.areaName}, ${property.cityName}'),
                           _buildDetailRow('Verification', property.isVerified ? 'Verified' : 'Pending Verification'),
-                          _buildDetailRow('Status', property.propertyStatusName),
+                          _buildDetailRow('Status', property.statusDisplayName),
                           const SizedBox(height: CRMSpacing.m),
                           Divider(color: CRMColors.border),
                           const SizedBox(height: CRMSpacing.s),

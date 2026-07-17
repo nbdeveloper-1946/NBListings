@@ -111,15 +111,15 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: p.propertyStatusName.toLowerCase() == 'available' 
+                    color: p.isStatusAvailable 
                         ? CRMColors.success.withOpacity(0.1) 
                         : CRMColors.warning.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
                   ),
                   child: Text(
-                    p.propertyStatusName,
+                    p.statusDisplayName,
                     style: TextStyle(
-                      color: p.propertyStatusName.toLowerCase() == 'available' 
+                      color: p.isStatusAvailable 
                           ? CRMColors.success 
                           : CRMColors.warning,
                       fontSize: 10,
@@ -389,14 +389,15 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     showCheckboxColumn: false,
                     columns: const [
                       DataColumn(label: Text('Code')),
+                      DataColumn(label: Text('Society/Property Name')),
+                      DataColumn(label: Text('Owner')),
+                      DataColumn(label: Text('Area')),
+                      DataColumn(label: Text('BHK')),
+                      DataColumn(label: Text('Price')),
+                      DataColumn(label: Text('Category')),
+                      DataColumn(label: Text('Status')),
                       DataColumn(label: Text('Shortlist')),
                       DataColumn(label: Text('Actions')),
-                      DataColumn(label: Text('Verified')),
-                      DataColumn(label: Text('Title')),
-                      DataColumn(label: Text('City')),
-                      DataColumn(label: Text('Area')),
-                      DataColumn(label: Text('Price')),
-                      DataColumn(label: Text('Status')),
                     ],
                     rows: pagedProperties.map((p) {
                       final isMine = p.createdBy == currentUserId;
@@ -411,6 +412,43 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                         onSelectChanged: (_) => showCRMPropertyDrawer(context, p),
                         cells: [
                           DataCell(Text(p.propertyCode, style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataCell(Text(p.title)),
+                          DataCell(
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(p.ownerName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                  Text(p.ownerMobile, style: TextStyle(color: CRMColors.textMuted, fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          DataCell(Text(p.areaName)),
+                          DataCell(Text('${p.bedrooms} BHK')),
+                          DataCell(Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))),
+                          DataCell(Text(p.listingTypeName)),
+                          DataCell(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: p.isStatusAvailable 
+                                    ? CRMColors.success.withOpacity(0.1) 
+                                    : CRMColors.warning.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                              ),
+                              child: Text(
+                                p.statusDisplayName,
+                                style: TextStyle(
+                                  color: p.isStatusAvailable ? CRMColors.success : CRMColors.warning,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold
+                                ),
+                              ),
+                            ),
+                          ),
                           DataCell(
                             IconButton(
                               icon: Icon(
@@ -461,43 +499,6 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                   tooltip: 'Contact on WhatsApp',
                                 ),
                               ],
-                            ),
-                          ),
-                          DataCell(
-                            Transform.scale(
-                              scale: 0.9,
-                              child: Switch(
-                                value: p.isVerified,
-                                activeColor: CRMColors.success,
-                                onChanged: (val) {
-                                  context.read<PropertiesBloc>().add(
-                                    ToggleVerificationEvent(p.id, val, activeTab: _activeTab),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          DataCell(Text(p.title)),
-                          DataCell(Text(p.cityName)),
-                          DataCell(Text(p.areaName)),
-                          DataCell(Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))),
-                          DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: p.propertyStatusName.toLowerCase() == 'available' 
-                                    ? CRMColors.success.withOpacity(0.1) 
-                                    : CRMColors.warning.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                              ),
-                              child: Text(
-                                p.propertyStatusName,
-                                style: TextStyle(
-                                  color: p.propertyStatusName.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold
-                                ),
-                              ),
                             ),
                           ),
                         ],

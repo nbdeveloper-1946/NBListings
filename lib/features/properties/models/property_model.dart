@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class PropertyModel {
   final String id;
   final String propertyCode;
@@ -247,6 +249,28 @@ class PropertyModel {
       'amenities': amenities,
       'images': images,
     };
+  }
+
+  String get statusDisplayName {
+    if (propertyStatusId == 'to_be_available') {
+      if (possessionDate != null) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final avail = DateTime(possessionDate!.year, possessionDate!.month, possessionDate!.day);
+        if (today.isAfter(avail) || today.isAtSameMomentAs(avail)) {
+          return 'Available';
+        } else {
+          final df = DateFormat('dd-MM-yyyy');
+          return 'To Be Available (${df.format(possessionDate!)})';
+        }
+      }
+      return 'To Be Available';
+    }
+    return propertyStatusName;
+  }
+
+  bool get isStatusAvailable {
+    return statusDisplayName.toLowerCase() == 'available';
   }
 }
 

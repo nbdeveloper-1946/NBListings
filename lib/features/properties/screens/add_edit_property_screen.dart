@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/design_system/crm_design_system.dart';
+import '../../../core/design_system/widgets/form/crm_date_picker.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
 import '../services/properties_service.dart';
@@ -71,6 +72,9 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   bool _isSaved = false;
   String? _selectedParkingType;
   String? _selectedParkingOption;
+  bool _isVerified = false;
+  DateTime? _availableDate;
+  String? _selectedParkingSlot;
 
   final List<String> _selectedAmenities = [];
   List<AreaLookup> _filteredAreas = [];
@@ -85,6 +89,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     super.initState();
     _initializeForm();
     _priceController.addListener(_onPriceChanged);
+    _remarksController.addListener(() => setState(() {}));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.property == null && CRMDraftRepository().hasDraft('property')) {
         _showRestoreDraftDialog();
@@ -127,15 +132,32 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
 
   void _initializeParkingFields() {
     final parkingVal = int.tryParse(_parkingController.text) ?? 0;
-    if (parkingVal == 1) {
+    if (parkingVal >= 11) {
       _selectedParkingType = 'Allocated';
-      _selectedParkingOption = 'Basement';
+      final optIndex = parkingVal ~/ 10;
+      final slotVal = parkingVal % 10;
+      if (optIndex == 1) {
+        _selectedParkingOption = 'Basement 1';
+      } else if (optIndex == 2) {
+        _selectedParkingOption = 'Basement 2';
+      } else if (optIndex == 3) {
+        _selectedParkingOption = 'Ground Floor';
+      } else {
+        _selectedParkingOption = 'Basement 1';
+      }
+      _selectedParkingSlot = (slotVal >= 1 && slotVal <= 5) ? slotVal.toString() : '1';
+    } else if (parkingVal == 1) {
+      _selectedParkingType = 'Allocated';
+      _selectedParkingOption = 'Basement 1';
+      _selectedParkingSlot = '1';
     } else if (parkingVal == 2) {
       _selectedParkingType = 'Allocated';
       _selectedParkingOption = 'Ground Floor';
+      _selectedParkingSlot = '1';
     } else {
       _selectedParkingType = 'Open';
       _selectedParkingOption = null;
+      _selectedParkingSlot = null;
     }
   }
 
@@ -143,13 +165,16 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     if (_selectedParkingType == 'Open') {
       _parkingController.text = '0';
     } else if (_selectedParkingType == 'Allocated') {
-      if (_selectedParkingOption == 'Basement') {
-        _parkingController.text = '1';
+      int optIndex = 1;
+      if (_selectedParkingOption == 'Basement 1') {
+        optIndex = 1;
+      } else if (_selectedParkingOption == 'Basement 2') {
+        optIndex = 2;
       } else if (_selectedParkingOption == 'Ground Floor') {
-        _parkingController.text = '2';
-      } else {
-        _parkingController.text = '1'; // Default option when Allocated is selected
+        optIndex = 3;
       }
+      final slotVal = int.tryParse(_selectedParkingSlot ?? '1') ?? 1;
+      _parkingController.text = '${optIndex * 10 + slotVal}';
     } else {
       _parkingController.text = '0';
     }
@@ -186,6 +211,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _selectedConfig = p.configurationId;
       _selectedListingType = p.listingTypeId;
       _selectedStatus = p.propertyStatusId;
+      _isVerified = p.isVerified;
+      _availableDate = p.possessionDate;
       _selectedCity = p.cityId;
       _updateAreasForCity(p.cityId);
       _selectedArea = p.areaId;
@@ -762,6 +789,10 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         'remarks': _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
         'amenities': _selectedAmenities,
         'images': _propertyImages,
+        'is_verified': _isVerified,
+        'possession_date': _selectedStatus == 'to_be_available'
+            ? _availableDate?.toIso8601String().substring(0, 10)
+            : null,
       };
 
       if (widget.property == null) {
@@ -987,9 +1018,51 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _selectedConfig = null;
     }
 
+    final filteredStatuses = widget.metadata.statuses.where((s) {
+      final name = s.name.toLowerCase();
+      return !name.contains('do not disturb') && !name.contains('inactive');
+    }).toList();
+
+    if (_selectedStatus != null && _selectedStatus != 'to_be_available') {
+      final exists = filteredStatuses.any((s) => s.id == _selectedStatus);
+      if (!exists) {
+        final originalStatus = widget.metadata.statuses.firstWhere(
+          (s) => s.id == _selectedStatus,
+          orElse: () => LookupItem(id: _selectedStatus!, name: 'Inactive / Hidden'),
+        );
+        filteredStatuses.add(originalStatus);
+      }
+    }
+
+    if (!filteredStatuses.any((s) => s.id == 'to_be_available')) {
+      filteredStatuses.add(LookupItem(id: 'to_be_available', name: 'To Be Available'));
+    }
+
     return CRMCard(
       title: 'Basic Property Setup',
       subtitle: 'Complete listing definitions and categories',
+      headerAction: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Verified',
+            style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondaryOf(context)),
+          ),
+          const SizedBox(width: CRMSpacing.xs),
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(
+              value: _isVerified,
+              activeColor: CRMColors.success,
+              onChanged: (val) {
+                setState(() {
+                  _isVerified = val;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
       padding: isMobile ? const EdgeInsets.all(CRMSpacing.s) : const EdgeInsets.all(CRMSpacing.m),
       child: Column(
         children: [
@@ -1231,16 +1304,75 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
           ],
           const SizedBox(height: CRMSpacing.m),
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            value: _selectedStatus,
-            decoration: InputDecoration(
-              labelText: 'Property Status *',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+          if (isMobile && _selectedStatus == 'to_be_available') ...[
+            DropdownButtonFormField<String>(
+              isExpanded: true,
+              value: _selectedStatus,
+              decoration: InputDecoration(
+                labelText: 'Property Status *',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+              ),
+              items: filteredStatuses.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
+              onChanged: (v) {
+                setState(() {
+                  _selectedStatus = v;
+                  if (v == 'to_be_available' && _availableDate == null) {
+                    _availableDate = DateTime.now();
+                  }
+                });
+              },
             ),
-            items: widget.metadata.statuses.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
-            onChanged: (v) => setState(() => _selectedStatus = v),
-          ),
+            const SizedBox(height: CRMSpacing.m),
+            CRMDatePicker(
+              labelText: 'Available Date',
+              initialDate: _availableDate,
+              isRequired: true,
+              onDateSelected: (date) {
+                setState(() {
+                  _availableDate = date;
+                });
+              },
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _selectedStatus,
+                    decoration: InputDecoration(
+                      labelText: 'Property Status *',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                    ),
+                    items: filteredStatuses.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        _selectedStatus = v;
+                        if (v == 'to_be_available' && _availableDate == null) {
+                          _availableDate = DateTime.now();
+                        }
+                      });
+                    },
+                  ),
+                ),
+                if (_selectedStatus == 'to_be_available') ...[
+                  const SizedBox(width: CRMSpacing.m),
+                  Expanded(
+                    child: CRMDatePicker(
+                      labelText: 'Available Date',
+                      initialDate: _availableDate,
+                      isRequired: true,
+                      onDateSelected: (date) {
+                        setState(() {
+                          _availableDate = date;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
           CRMImagePicker(
             imageUrls: _propertyImages,
             onImageAdded: (url) {
@@ -1538,8 +1670,14 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                 _selectedParkingType = val;
                 if (val == 'Open') {
                   _selectedParkingOption = null;
-                } else if (_selectedParkingOption == null) {
-                  _selectedParkingOption = 'Basement';
+                  _selectedParkingSlot = null;
+                } else {
+                  if (_selectedParkingOption == null) {
+                    _selectedParkingOption = 'Basement 1';
+                  }
+                  if (_selectedParkingSlot == null) {
+                    _selectedParkingSlot = '1';
+                  }
                 }
                 _updateParkingController();
               });
@@ -1556,13 +1694,38 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
             ),
             items: const [
-              DropdownMenuItem(value: 'Basement', child: Text('Basement')),
+              DropdownMenuItem(value: 'Basement 1', child: Text('Basement 1')),
+              DropdownMenuItem(value: 'Basement 2', child: Text('Basement 2')),
               DropdownMenuItem(value: 'Ground Floor', child: Text('Ground Floor')),
             ],
             onChanged: (val) {
               if (val != null) {
                 setState(() {
                   _selectedParkingOption = val;
+                  _updateParkingController();
+                });
+              }
+            },
+          ),
+          const SizedBox(height: CRMSpacing.s),
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            value: _selectedParkingSlot,
+            decoration: InputDecoration(
+              labelText: 'Parking Slot',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+            ),
+            items: const [
+              DropdownMenuItem(value: '1', child: Text('1')),
+              DropdownMenuItem(value: '2', child: Text('2')),
+              DropdownMenuItem(value: '3', child: Text('3')),
+              DropdownMenuItem(value: '4', child: Text('4')),
+              DropdownMenuItem(value: '5', child: Text('5')),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                setState(() {
+                  _selectedParkingSlot = val;
                   _updateParkingController();
                 });
               }
@@ -2170,7 +2333,20 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             decoration: InputDecoration(
               labelText: 'Operational CRM internal remarks',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+              helperText: '${_getWordCount(_remarksController.text)} / 250 words',
+              helperStyle: TextStyle(
+                color: _getWordCount(_remarksController.text) > 250 ? CRMColors.danger : CRMColors.textMuted,
+              ),
             ),
+            validator: (val) {
+              if (val != null && val.trim().isNotEmpty) {
+                final words = val.trim().split(RegExp(r'\s+'));
+                if (words.length > 250) {
+                  return 'Limit exceeded: ${words.length}/250 words';
+                }
+              }
+              return null;
+            },
           ),
         ],
       ),
@@ -2231,5 +2407,10 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         ],
       ),
     );
+  }
+
+  int _getWordCount(String text) {
+    if (text.trim().isEmpty) return 0;
+    return text.trim().split(RegExp(r'\s+')).length;
   }
 }
