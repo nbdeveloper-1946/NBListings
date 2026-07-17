@@ -35,6 +35,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   String? _selectedCategoryId;
   String? _selectedTypeId;
   String? _selectedConfigId;
+  String? _selectedListingTypeId;
+  String? _selectedFurnishing = 'None';
   String _selectedStatus = "Live";
   final List<String> _selectedAreaIds = [];
   bool _isSaved = false;
@@ -45,6 +47,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   List<LookupItem> _configurations = [];
   List<AreaLookup> _areas = [];
   List<LookupItem> _cities = [];
+  List<LookupItem> _listingTypes = [];
 
   @override
   void initState() {
@@ -80,10 +83,12 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
         _configurations = metadata.configurations;
         _areas = metadata.areas;
         _cities = metadata.cities;
+        _listingTypes = metadata.listingTypes;
         
         if (widget.requirement == null) {
           if (_categories.isNotEmpty) _selectedCategoryId = _categories.first.id;
           if (_types.isNotEmpty) _selectedTypeId = _types.first.id;
+          if (_listingTypes.isNotEmpty) _selectedListingTypeId = _listingTypes.first.id;
         } else {
           final req = widget.requirement!;
           _nameController.text = req.clientName;
@@ -92,10 +97,23 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
           _budgetController.text = CRMCurrencyFormatter.format(avgBudget);
           _minAreaController.text = req.minArea?.toStringAsFixed(0) ?? '';
           _maxAreaController.text = req.maxArea?.toStringAsFixed(0) ?? '';
-          _remarksController.text = req.remarks ?? '';
+          
+          String remarks = req.remarks ?? '';
+          String? extractedFurnishing = 'None';
+          if (remarks.startsWith('[Furnishing: ')) {
+            final endIdx = remarks.indexOf(']');
+            if (endIdx != -1) {
+              extractedFurnishing = remarks.substring('[Furnishing: '.length, endIdx);
+              remarks = remarks.substring(endIdx + 1).trim();
+            }
+          }
+          _remarksController.text = remarks;
+          _selectedFurnishing = extractedFurnishing;
+
           _selectedCategoryId = req.categoryId;
           _selectedTypeId = req.propertyTypeId;
           _selectedConfigId = req.configurationId;
+          _selectedListingTypeId = req.listingTypeId;
           
           String mappedStatus = req.status;
           if (mappedStatus == 'Active') mappedStatus = 'Live';
@@ -123,6 +141,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       'category_id': _selectedCategoryId,
       'property_type_id': _selectedTypeId,
       'configuration_id': _selectedConfigId,
+      'listing_type_id': _selectedListingTypeId,
+      'furnishing': _selectedFurnishing,
       'budget': _budgetController.text,
       'minArea': _minAreaController.text,
       'maxArea': _maxAreaController.text,
@@ -158,6 +178,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                   _selectedCategoryId = draft['category_id'];
                   _selectedTypeId = draft['property_type_id'];
                   _selectedConfigId = draft['configuration_id'];
+                  _selectedListingTypeId = draft['listing_type_id'];
+                  _selectedFurnishing = draft['furnishing'] ?? 'None';
                   _budgetController.text = draft['budget'] ?? '';
                   _minAreaController.text = draft['minArea'] ?? '';
                   _maxAreaController.text = draft['maxArea'] ?? '';
@@ -296,6 +318,16 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
     }).toList();
 
     final budgetVal = CRMCurrencyFormatter.parse(_budgetController.text);
+    final String remarksText = _remarksController.text.trim();
+    final String? finalRemarks = (_selectedFurnishing != null && _selectedFurnishing != 'None')
+        ? '[Furnishing: $_selectedFurnishing] $remarksText'
+        : (remarksText.isEmpty ? null : remarksText);
+
+    final listingType = _listingTypes.firstWhere(
+      (lt) => lt.id == _selectedListingTypeId,
+      orElse: () => LookupItem(id: '', name: 'N/A'),
+    );
+
     final req = RequirementModel(
       id: widget.requirement?.id ?? '',
       clientName: _nameController.text.trim(),
@@ -306,13 +338,15 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       propertyTypeName: type.name,
       configurationId: _selectedConfigId,
       configurationName: config.id.isNotEmpty ? config.name : null,
+      listingTypeId: _selectedListingTypeId,
+      listingTypeName: listingType.id.isNotEmpty ? listingType.name : null,
       minBudget: budgetVal * 0.8,
       maxBudget: budgetVal * 1.2,
       minArea: double.tryParse(_minAreaController.text),
       maxArea: double.tryParse(_maxAreaController.text),
       areaIds: _selectedAreaIds,
       areaNames: areaNames,
-      remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
+      remarks: finalRemarks,
       status: _selectedStatus,
       createdAt: widget.requirement?.createdAt ?? DateTime.now(),
     );
@@ -528,6 +562,63 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                       ],
                     ),
                   ],
+                  const SizedBox(height: CRMSpacing.m),
+
+                  // Listing Type & Furnishing
+                  if (isMobile) ...[
+                    _buildDropdown(
+                      label: 'Listing Type',
+                      value: _selectedListingTypeId,
+                      items: (_listingTypes.isNotEmpty ? _listingTypes : [
+                        LookupItem(id: 'rent', name: 'Rent'),
+                        LookupItem(id: 'resale', name: 'Re-Sale'),
+                      ]).map((lt) => DropdownMenuItem(value: lt.id, child: Text(lt.name))).toList(),
+                      onChanged: (val) => setState(() => _selectedListingTypeId = val),
+                    ),
+                    const SizedBox(height: CRMSpacing.m),
+                    _buildDropdown(
+                      label: 'Furnishing',
+                      value: _selectedFurnishing,
+                      items: const [
+                        DropdownMenuItem(value: 'None', child: Text('None')),
+                        DropdownMenuItem(value: 'Unfurnished', child: Text('Unfurnished')),
+                        DropdownMenuItem(value: 'Semi-Furnished', child: Text('Semi-Furnished')),
+                        DropdownMenuItem(value: 'Fully Furnished', child: Text('Fully Furnished')),
+                      ],
+                      onChanged: (val) => setState(() => _selectedFurnishing = val),
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDropdown(
+                            label: 'Listing Type',
+                            value: _selectedListingTypeId,
+                            items: (_listingTypes.isNotEmpty ? _listingTypes : [
+                              LookupItem(id: 'rent', name: 'Rent'),
+                              LookupItem(id: 'resale', name: 'Re-Sale'),
+                            ]).map((lt) => DropdownMenuItem(value: lt.id, child: Text(lt.name))).toList(),
+                            onChanged: (val) => setState(() => _selectedListingTypeId = val),
+                          ),
+                        ),
+                        const SizedBox(width: CRMSpacing.m),
+                        Expanded(
+                          child: _buildDropdown(
+                            label: 'Furnishing',
+                            value: _selectedFurnishing,
+                            items: const [
+                              DropdownMenuItem(value: 'None', child: Text('None')),
+                              DropdownMenuItem(value: 'Unfurnished', child: Text('Unfurnished')),
+                              DropdownMenuItem(value: 'Semi-Furnished', child: Text('Semi-Furnished')),
+                              DropdownMenuItem(value: 'Fully Furnished', child: Text('Fully Furnished')),
+                            ],
+                            onChanged: (val) => setState(() => _selectedFurnishing = val),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
                   const SizedBox(height: CRMSpacing.m),
 
                   CRMCurrencyField(
