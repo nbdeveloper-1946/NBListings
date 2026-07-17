@@ -67,6 +67,8 @@ extension PropertyLocalExtensions on PropertyLocal {
       googlePlaceId: googlePlaceId,
       brokerageTypeId: brokerageTypeId,
       brokerageTypeName: brokerageTypeName,
+      adminId: null,
+      organizationId: null,
     );
   }
 }

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:nblistings/core/api/dio_client.dart';
 import '../../tokens/app_colors.dart';
 import '../../tokens/app_spacing.dart';
 import '../../tokens/app_typography.dart';
@@ -70,34 +73,51 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
     });
 
     try {
-      final File file = File(pickedFile.path);
-      
-      // Perform recompression
-      final String targetPath = "${Directory.systemTemp.path}/compressed_img_${DateTime.now().millisecondsSinceEpoch}.jpg";
-      
-      XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
-        file.absolute.path,
-        targetPath,
-        quality: 80,
-        minWidth: 1200,
-        minHeight: 1200,
-      );
+      MultipartFile multipartFile;
 
-      File uploadFile = file;
-      if (compressedFile != null) {
-        uploadFile = File(compressedFile.path);
-        int compressedSize = await uploadFile.length();
-        if (compressedSize > 5 * 1024 * 1024) {
-          throw Exception("Compressed image exceeds the 5 MB file limit.");
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        if (bytes.length > 5 * 1024 * 1024) {
+          throw Exception("Image size exceeds the 5 MB file limit.");
         }
+        multipartFile = MultipartFile.fromBytes(
+          bytes,
+          filename: pickedFile.name,
+          contentType: MediaType('image', 'jpeg'),
+        );
+      } else {
+        final File file = File(pickedFile.path);
+        final String targetPath = "${Directory.systemTemp.path}/compressed_img_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        
+        XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
+          file.absolute.path,
+          targetPath,
+          quality: 80,
+          minWidth: 1200,
+          minHeight: 1200,
+        );
+
+        File uploadFile = file;
+        if (compressedFile != null) {
+          uploadFile = File(compressedFile.path);
+          int compressedSize = await uploadFile.length();
+          if (compressedSize > 5 * 1024 * 1024) {
+            throw Exception("Compressed image exceeds the 5 MB file limit.");
+          }
+        }
+
+        multipartFile = await MultipartFile.fromFile(
+          uploadFile.path, 
+          filename: 'upload_image.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        );
       }
 
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(uploadFile.path, filename: 'upload_image.jpg'),
+        'file': multipartFile,
       });
 
-      // Use active HTTP client to upload
-      final response = await Dio(BaseOptions(baseUrl: 'http://localhost:5000/api/v1')).post(
+      final response = await DioClient.dio.post(
         widget.uploadEndpoint,
         data: formData,
       );

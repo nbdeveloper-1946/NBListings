@@ -102,7 +102,8 @@ class _CRMAddressInputState extends State<CRMAddressInput> {
           _suggestions = response.data['data'] ?? [];
           _isLoadingSuggestions = false;
         });
-      } catch (_) {
+      } catch (e) {
+        debugPrint("Error fetching places autocomplete: $e");
         setState(() {
           _isLoadingSuggestions = false;
         });
@@ -118,7 +119,10 @@ class _CRMAddressInputState extends State<CRMAddressInput> {
 
     try {
       final client = ApiClient();
-      final response = await client.get('/places/details', queryParameters: {'placeId': placeId});
+      final response = await client.get('/places/details', queryParameters: {
+        'placeId': placeId,
+        'query': _addressController.text,
+      });
       final data = response.data['data'];
 
       final String address = data['formattedAddress'] ?? '';
@@ -152,8 +156,10 @@ class _CRMAddressInputState extends State<CRMAddressInput> {
         country: country,
         pincode: pincode,
       ));
-    } catch (_) {
+    } catch (e) {
+      debugPrint("Error fetching place details: $e");
       setState(() {
+        _suggestions = [];
         _isLoadingSuggestions = false;
       });
     }

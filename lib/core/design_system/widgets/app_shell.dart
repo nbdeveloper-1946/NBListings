@@ -9,6 +9,7 @@ import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
 import '../../api/dio_client.dart';
 import '../../utils/budget_formatter.dart';
+import '../../network/sync_manager.dart';
 import 'dart:async';
 
 class CRMAppShell extends StatefulWidget {
@@ -434,85 +435,135 @@ class _CRMAppShellState extends State<CRMAppShell> {
     final showSidebar = isDesktop || isTablet;
     final sidebarWidth = _isSidebarExpanded ? 260.0 : 78.0;
 
-    return Scaffold(
-      backgroundColor: CRMColors.background,
-      drawer: isMobile ? Drawer(child: _buildSidebarContent(location, isMobile: true)) : null,
-      bottomNavigationBar: isMobile
-          ? Style3BottomNavBar(
-              navBarConfig: NavBarConfig(
-                selectedIndex: _tabController.index,
-                items: [
-                  ItemConfig(
-                    icon: const Icon(Icons.dashboard_rounded),
-                    title: 'Dashboard',
-                    activeForegroundColor: CRMColors.primary,
-                    inactiveForegroundColor: CRMColors.textSecondary,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: CRMColors.background,
+          drawer: isMobile ? Drawer(child: _buildSidebarContent(location, isMobile: true)) : null,
+          bottomNavigationBar: isMobile
+              ? Style3BottomNavBar(
+                  navBarConfig: NavBarConfig(
+                    selectedIndex: _tabController.index,
+                    items: [
+                      ItemConfig(
+                        icon: const Icon(Icons.dashboard_rounded),
+                        title: 'Dashboard',
+                        activeForegroundColor: CRMColors.primary,
+                        inactiveForegroundColor: CRMColors.textSecondary,
+                      ),
+                      ItemConfig(
+                        icon: const Icon(Icons.home_work_rounded),
+                        title: 'Properties',
+                        activeForegroundColor: CRMColors.primary,
+                        inactiveForegroundColor: CRMColors.textSecondary,
+                      ),
+                      ItemConfig(
+                        icon: const Icon(Icons.add_circle_rounded, size: 36),
+                        title: 'Add',
+                        activeForegroundColor: CRMColors.primary,
+                        inactiveForegroundColor: CRMColors.textSecondary,
+                      ),
+                      ItemConfig(
+                        icon: const Icon(Icons.assignment_rounded),
+                        title: 'Requirements',
+                        activeForegroundColor: CRMColors.primary,
+                        inactiveForegroundColor: CRMColors.textSecondary,
+                      ),
+                      ItemConfig(
+                        icon: const Icon(Icons.person_rounded),
+                        title: 'Profile',
+                        activeForegroundColor: CRMColors.primary,
+                        inactiveForegroundColor: CRMColors.textSecondary,
+                      ),
+                    ],
+                    onItemSelected: (index) {
+                      _tabController.jumpToTab(index);
+                    },
                   ),
-                  ItemConfig(
-                    icon: const Icon(Icons.home_work_rounded),
-                    title: 'Properties',
-                    activeForegroundColor: CRMColors.primary,
-                    inactiveForegroundColor: CRMColors.textSecondary,
+                  navBarDecoration: NavBarDecoration(
+                    color: CRMColors.cardBg,
+                    border: Border(top: BorderSide(color: CRMColors.border, width: 1.5)),
                   ),
-                  ItemConfig(
-                    icon: const Icon(Icons.add_circle_rounded, size: 36),
-                    title: 'Add',
-                    activeForegroundColor: CRMColors.primary,
-                    inactiveForegroundColor: CRMColors.textSecondary,
+                )
+              : null,
+          body: Row(
+            children: [
+              if (showSidebar)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: sidebarWidth,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: CRMColors.sidebarBg,
+                      border: Border(right: BorderSide(color: CRMColors.border, width: 1.5)),
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return _buildSidebarContent(location, sidebarWidth: constraints.maxWidth);
+                      },
+                    ),
                   ),
-                  ItemConfig(
-                    icon: const Icon(Icons.assignment_rounded),
-                    title: 'Requirements',
-                    activeForegroundColor: CRMColors.primary,
-                    inactiveForegroundColor: CRMColors.textSecondary,
-                  ),
-                  ItemConfig(
-                    icon: const Icon(Icons.person_rounded),
-                    title: 'Profile',
-                    activeForegroundColor: CRMColors.primary,
-                    inactiveForegroundColor: CRMColors.textSecondary,
-                  ),
-                ],
-                onItemSelected: (index) {
-                  _tabController.jumpToTab(index);
-                },
-              ),
-              navBarDecoration: NavBarDecoration(
-                color: CRMColors.cardBg,
-                border: Border(top: BorderSide(color: CRMColors.border, width: 1.5)),
-              ),
-            )
-          : null,
-      body: Row(
-        children: [
-          if (showSidebar)
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: sidebarWidth,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: CRMColors.sidebarBg,
-                  border: Border(right: BorderSide(color: CRMColors.border, width: 1.5)),
                 ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return _buildSidebarContent(location, sidebarWidth: constraints.maxWidth);
-                  },
-                ),
-              ),
-            ),
-          Expanded(
-            child: Column(
-              children: [
-                _buildTopBar(context, isMobile),
-                Expanded(
-                  child: widget.child,
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildTopBar(context, isMobile),
+                    Expanded(
+                      child: widget.child,
                 ),
               ],
             ),
           ),
         ],
       ),
+    ),
+        ValueListenableBuilder<bool>(
+          valueListenable: SyncManager().isSyncing,
+          builder: (context, isSyncing, _) {
+            if (!isSyncing) return const SizedBox.shrink();
+            return Container(
+              color: Colors.black.withOpacity(0.65),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(32),
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xff090D16),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xff688A75).withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: Color(0xff688A75)),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Updating lookup lists...',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Synchronizing database metadata...',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          decoration: TextDecoration.none,
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 

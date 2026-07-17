@@ -22,12 +22,18 @@ import 'core/theme/theme_manager.dart';
 import 'core/storage/isar_service.dart';
 import 'core/storage/performance_logger.dart';
 import 'core/network/sync_manager.dart';
+import 'core/storage/repository_coordinator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await IsarService().initialize();
   await PerformanceLogger().initialize();
   await SyncManager().initialize();
+
+  final lookupCount = await RepositoryCoordinator().lookupLocal.getLookupsCount();
+  if (lookupCount > 0) {
+    SyncManager().isSyncCompleted = true;
+  }
 
   final authRepository = AuthRepository();
 

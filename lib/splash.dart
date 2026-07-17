@@ -1,22 +1,165 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/bloc/auth_bloc.dart';
+import 'core/network/sync_manager.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  bool _isSyncing = false;
+  String? _syncError;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthAndStartSync();
+  }
+
+  void _checkAuthAndStartSync() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authState = context.read<AuthBloc>().state;
+      if (authState is Authenticated) {
+        if (SyncManager().isSyncCompleted) {
+          // Warm start: trigger background refresh and enter app immediately
+          SyncManager().performStartupSync().catchError((e) {
+            print("Background sync error: $e");
+          });
+          context.go('/dashboard');
+        } else {
+          // First install: run blocking sync
+          _runSync();
+        }
+      }
+    });
+  }
+
+  Future<void> _runSync() async {
+    setState(() {
+      _isSyncing = true;
+      _syncError = null;
+    });
+
+    try {
+      await SyncManager().performStartupSync();
+      if (mounted) {
+        context.go('/dashboard');
+      }
+    } catch (e) {
+      setState(() {
+        _isSyncing = false;
+        _syncError = "Failed to synchronize setup data. Please check your internet connection and try again.";
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.darkBg,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth >= 960) {
-            return _buildLaptopLayout(context, constraints);
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is Authenticated) {
+          if (SyncManager().isSyncCompleted) {
+            context.go('/dashboard');
           } else {
-            return _buildMobileLayout(context, constraints);
+            _runSync();
           }
-        },
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.darkBg,
+        body: Stack(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 960) {
+                  return _buildLaptopLayout(context, constraints);
+                } else {
+                  return _buildMobileLayout(context, constraints);
+                }
+              },
+            ),
+            if (_isSyncing)
+              Container(
+                color: Colors.black.withOpacity(0.6),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkBg.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.input),
+                      border: Border.all(color: AppColors.brandGreen.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(color: AppColors.brandGreen),
+                        const SizedBox(height: AppSpacing.l),
+                        const Text(
+                          'Wait a sec...',
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: AppSpacing.s),
+                        const Text(
+                          'Syncing latest data...',
+                          style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            if (_syncError != null)
+              Container(
+                color: Colors.black.withOpacity(0.65),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkBg.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.input),
+                      border: Border.all(color: Colors.red.withOpacity(0.4)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.wifi_off_rounded, color: Colors.red, size: 48),
+                        const SizedBox(height: AppSpacing.l),
+                        const Text(
+                          'Sync Failed',
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: AppSpacing.s),
+                        Text(
+                          _syncError!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.brandGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text("Retry Sync"),
+                          onPressed: _runSync,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -25,7 +168,6 @@ class SplashScreen extends StatelessWidget {
   Widget _buildLaptopLayout(BuildContext context, BoxConstraints constraints) {
     return Stack(
       children: [
-        // Full screen background image, shifted to align the tower on the right side
         Positioned.fill(
           child: Image.asset(
             'assets/images/nbbg.png',
@@ -45,8 +187,6 @@ class SplashScreen extends StatelessWidget {
             },
           ),
         ),
-
-        // Elegant gradient fading to solid dark slate on the left side
         Positioned.fill(
           child: Container(
             decoration: const BoxDecoration(
@@ -54,22 +194,20 @@ class SplashScreen extends StatelessWidget {
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.darkBg, // Solid dark slate/black on left
-                  Color(0xF2090D16), // 95% opacity
-                  Color(0xBF090D16), // 75% opacity
-                  Color(0x00090D16), // Fully transparent on the right
+                  AppColors.darkBg,
+                  Color(0xF2090D16),
+                  Color(0xBF090D16),
+                  Color(0x00090D16),
                 ],
                 stops: [0.0, 0.4, 0.65, 1.0],
               ),
             ),
           ),
         ),
-
-        // Left-aligned Content
         SafeArea(
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: constraints.maxWidth * 0.08, // Responsive side padding
+              horizontal: constraints.maxWidth * 0.08,
               vertical: AppSpacing.xxl,
             ),
             child: Align(
@@ -80,7 +218,6 @@ class SplashScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Premium Tag/Badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
@@ -102,15 +239,11 @@ class SplashScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xl),
-
-                    // Big Elegant Title Typography
                     Text(
                       'Treasure of listed\nproperties in your area',
                       style: AppTextStyles.display.copyWith(color: Colors.white),
                     ),
                     const SizedBox(height: AppSpacing.l),
-
-                    // Subtitle
                     const Text(
                       'Find your dream home effortlessly. The ultimate real estate platform designed to streamline your property search and connect you with top listings.',
                       style: TextStyle(
@@ -120,8 +253,6 @@ class SplashScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxxl),
-
-                    // Unified Premium Design System Button
                     PremiumButton(
                       label: 'Get Started',
                       width: 220,
@@ -141,7 +272,6 @@ class SplashScreen extends StatelessWidget {
   Widget _buildMobileLayout(BuildContext context, BoxConstraints constraints) {
     return Stack(
       children: [
-        // Full screen background image
         Positioned.fill(
           child: Image.asset(
             'assets/images/nbbg.png',
@@ -161,8 +291,6 @@ class SplashScreen extends StatelessWidget {
             },
           ),
         ),
-
-        // Dark gradient overlay from top to bottom (solid black at bottom)
         Positioned.fill(
           child: Container(
             decoration: const BoxDecoration(
@@ -170,17 +298,15 @@ class SplashScreen extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0x33090D16), // 20% opacity at top
-                  Color(0xCC090D16), // 80% opacity
-                  AppColors.darkBg,  // 100% opacity at bottom
+                  Color(0x33090D16),
+                  Color(0xCC090D16),
+                  AppColors.darkBg,
                 ],
                 stops: [0.0, 0.5, 0.85],
               ),
             ),
           ),
         ),
-
-        // Content positioned at the bottom
         SafeArea(
           child: Align(
             alignment: Alignment.bottomCenter,
@@ -191,7 +317,6 @@ class SplashScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Premium Tag/Badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
@@ -213,8 +338,6 @@ class SplashScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.m),
-
-                    // Title
                     const Text(
                       'Treasure of listed\nproperties in your area',
                       style: TextStyle(
@@ -225,8 +348,6 @@ class SplashScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.m),
-
-                    // Subtitle
                     const Text(
                       'Find your dream home effortlessly. The ultimate real estate platform designed to streamline your property search.',
                       style: TextStyle(
@@ -236,8 +357,6 @@ class SplashScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xl),
-
-                    // Unified Premium Design System Button
                     PremiumButton(
                       label: 'Get Started',
                       onPressed: () => context.go('/login'),

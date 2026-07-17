@@ -17,6 +17,7 @@ import '../design_system/widgets/app_shell.dart';
 import '../design_system/widgets/placeholder_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../network/sync_manager.dart';
 
 
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -130,7 +131,13 @@ class AppRouter {
       final onSplash = state.matchedLocation == '/splash';
 
       if (authState is Authenticated) {
-        if (loggingIn || onSplash) {
+        if (loggingIn) {
+          return '/dashboard';
+        }
+        if (onSplash) {
+          if (!SyncManager().isSyncCompleted) {
+            return null; // Stay on splash screen until sync completes
+          }
           return '/dashboard';
         }
       } else if (authState is Unauthenticated) {

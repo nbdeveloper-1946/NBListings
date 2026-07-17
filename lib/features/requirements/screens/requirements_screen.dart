@@ -12,6 +12,12 @@ import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/data_table.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart';
+import '../../../core/api/dio_client.dart';
 import '../../../core/utils/budget_formatter.dart';
 
 class RequirementsScreen extends StatefulWidget {
@@ -730,6 +736,82 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
   final PropertiesRepository _propertiesRepository = PropertiesRepository();
   bool _isLoading = true;
   List<PropertyModel> _matchedProperties = [];
+  bool _includePhotos = false;
+
+  Future<void> _shareProperty(PropertyModel p) async {
+    final BHK = p.configurationName ?? "${p.bedrooms} BHK";
+    final size = p.superBuiltupArea != null ? "${p.superBuiltupArea} sq ft" : "${p.plotArea ?? '-'} sq ft";
+    final price = '₹${BudgetFormatter.format(p.price)}';
+    
+    final message = "Dear Customer,\n\n"
+        "We found a property matching your requirements.\n\n"
+        "Reference ID: ${p.propertyCode}\n\n"
+        "📍 Location: ${p.areaName}\n\n"
+        "🏠 Configuration: $BHK\n\n"
+        "📐 Size: $size\n\n"
+        "💰 Price: $price\n\n"
+        "📞 For more details, please contact NB Prop Tech.";
+
+    if (_includePhotos && p.images != null && p.images!.isNotEmpty) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        final directory = await getTemporaryDirectory();
+        final List<XFile> xFiles = [];
+        final limit = p.images!.length > 3 ? 3 : p.images!.length;
+        for (int i = 0; i < limit; i++) {
+          final imgUrl = p.images![i];
+          final ext = imgUrl.split('.').last.split('?').first;
+          final filePath = '${directory.path}/share_${p.propertyCode}_$i.$ext';
+          await Dio().download(imgUrl, filePath);
+          xFiles.add(XFile(filePath));
+        }
+        
+        Navigator.pop(context);
+        
+        await Share.shareXFiles(xFiles, text: message);
+        await _logShareAction(p, true);
+      } catch (e) {
+        Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to download images: $e')),
+          );
+        }
+      }
+    } else {
+      final phone = widget.requirement.clientMobile;
+      final url = 'https://wa.me/$phone?text=${Uri.encodeComponent(message)}';
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        await _logShareAction(p, false);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not launch WhatsApp')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _logShareAction(PropertyModel p, bool isPhotoIncluded) async {
+    try {
+      await DioClient.dio.post('/audit/share', data: {
+        'recordId': p.id,
+        'clientMobile': widget.requirement.clientMobile,
+        'requirementId': widget.requirement.id,
+        'isPhotoIncluded': isPhotoIncluded,
+      });
+    } catch (e) {
+      print("Failed to log share action: $e");
+    }
+  }
 
   @override
   void initState() {
@@ -804,7 +886,30 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
             "Showing properties that match criteria: ${widget.requirement.configurationName ?? '-'} ${widget.requirement.propertyTypeName} in ${widget.requirement.areaNames.join(', ')}",
             style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
           ),
-          const Divider(height: CRMSpacing.xl),
+          const SizedBox(height: CRMSpacing.s),
+          Row(
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: _includePhotos,
+                  onChanged: (val) {
+                    setState(() {
+                      _includePhotos = val ?? false;
+                    });
+                  },
+                  activeColor: CRMColors.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "Include Property Photos in WhatsApp Share",
+                style: CRMTypography.body.copyWith(fontSize: 13),
+              ),
+            ],
+          ),
+          const Divider(height: CRMSpacing.m),
 
           if (_isLoading)
             const Padding(
@@ -873,6 +978,85 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
                               Icon(Icons.phone_iphone_rounded, size: 14, color: CRMColors.textSecondary),
                               const SizedBox(width: 4),
                               Text('${p.ownerName} (${p.ownerMobile})', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  foregroundColor: CRMColors.primary,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                icon: const Icon(Icons.share_rounded, size: 14),
+                                label: const Text('Share', style: TextStyle(fontSize: 11)),
+                                onPressed: () => _shareProperty(p),
+                              ),
+                              const SizedBox(width: 4),
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  foregroundColor: CRMColors.success,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                icon: const Icon(Icons.phone_rounded, size: 14),
+                                label: const Text('Call', style: TextStyle(fontSize: 11)),
+                                onPressed: () async {
+                                  final url = Uri.parse('tel:${p.ownerMobile}');
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url);
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 4),
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  foregroundColor: CRMColors.textSecondary,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                icon: const Icon(Icons.copy_rounded, size: 14),
+                                label: const Text('Copy', style: TextStyle(fontSize: 11)),
+                                onPressed: () {
+                                  final BHK = p.configurationName ?? "${p.bedrooms} BHK";
+                                  final size = p.superBuiltupArea != null ? "${p.superBuiltupArea} sq ft" : "${p.plotArea ?? '-'} sq ft";
+                                  final price = '₹${BudgetFormatter.format(p.price)}';
+                                  final message = "Dear Customer,\n\n"
+                                      "We found a property matching your requirements.\n\n"
+                                      "Reference ID: ${p.propertyCode}\n\n"
+                                      "📍 Location: ${p.areaName}\n\n"
+                                      "🏠 Configuration: $BHK\n\n"
+                                      "📐 Size: $size\n\n"
+                                      "💰 Price: $price\n\n"
+                                      "📞 For more details, please contact NB Prop Tech.";
+                                  Clipboard.setData(ClipboardData(text: message));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Copied to clipboard')),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 4),
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  foregroundColor: Colors.blue,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                icon: const Icon(Icons.directions_rounded, size: 14),
+                                label: const Text('Route', style: TextStyle(fontSize: 11)),
+                                onPressed: () async {
+                                  final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(p.title + ", " + p.areaName)}');
+                                  if (await canLaunchUrl(url)) {
+                                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                                  }
+                                },
+                              ),
                             ],
                           ),
                         ],

@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:nblistings/core/api/dio_client.dart';
 import '../../tokens/app_colors.dart';
 import '../../tokens/app_spacing.dart';
 import '../../tokens/app_typography.dart';
@@ -47,8 +49,7 @@ class _CRMDocumentPickerState extends State<CRMDocumentPicker> {
     if (result == null || result.files.isEmpty) return;
 
     final file = result.files.first;
-    final path = file.path;
-    if (path == null) return;
+    if (!kIsWeb && file.path == null) return;
 
     setState(() {
       _isUploading = true;
@@ -56,17 +57,33 @@ class _CRMDocumentPickerState extends State<CRMDocumentPicker> {
     });
 
     try {
-      final File uploadFile = File(path);
-      final int size = await uploadFile.length();
-      if (size > 10 * 1024 * 1024) {
-        throw Exception("Document size exceeds the 10 MB limit.");
+      MultipartFile multipartFile;
+
+      if (kIsWeb) {
+        if (file.bytes == null) {
+          throw Exception("Could not read file data.");
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          throw Exception("Document size exceeds the 10 MB limit.");
+        }
+        multipartFile = MultipartFile.fromBytes(
+          file.bytes!,
+          filename: file.name,
+        );
+      } else {
+        final File uploadFile = File(file.path!);
+        final int size = await uploadFile.length();
+        if (size > 10 * 1024 * 1024) {
+          throw Exception("Document size exceeds the 10 MB limit.");
+        }
+        multipartFile = await MultipartFile.fromFile(uploadFile.path, filename: file.name);
       }
 
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(uploadFile.path, filename: file.name),
+        'file': multipartFile,
       });
 
-      final response = await Dio(BaseOptions(baseUrl: 'http://localhost:5000/api/v1')).post(
+      final response = await DioClient.dio.post(
         widget.uploadEndpoint,
         data: formData,
       );

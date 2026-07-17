@@ -10,6 +10,7 @@ import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/data_table.dart';
 import '../../../core/design_system/widgets/drawers.dart';
 import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/models/user_model.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
 import 'add_edit_property_screen.dart';
@@ -63,7 +64,16 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   }
 
   Future<void> _launchWhatsApp(PropertyModel property) async {
-    final text = 'Hello, I am interested in your property ${property.propertyCode} (${property.title}) located at ${property.areaName}.';
+    final authState = context.read<AuthBloc>().state;
+    String userName = 'User';
+    if (authState is Authenticated) {
+      userName = authState.user.fullName;
+    }
+
+    final text = 'Hello,\n'
+        'I am $userName from NB Prop Tech.\n'
+        'Is your property still available?\n'
+        'Thank you.';
     final url = 'https://wa.me/${property.ownerMobile}?text=${Uri.encodeComponent(text)}';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -77,8 +87,17 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     }
   }
 
-  Widget _buildMobilePropertyCard(PropertyModel p, String? currentUserId, Set<String> bookmarkedIds, PropertyMetadataModel? metadata) {
-    final isMine = p.createdBy == currentUserId;
+  bool _hasEditAccess(PropertyModel p, UserModel? currentUser) {
+    if (currentUser == null) return false;
+    if (currentUser.role == 'Super Admin') return true;
+    if (p.createdBy == currentUser.id) return true;
+    if (p.adminId != null && p.adminId == currentUser.adminId) return true;
+    if (currentUser.role == 'Admin' && p.adminId == currentUser.id) return true;
+    return false;
+  }
+
+  Widget _buildMobilePropertyCard(PropertyModel p, UserModel? currentUser, Set<String> bookmarkedIds, PropertyMetadataModel? metadata) {
+    final isMine = _hasEditAccess(p, currentUser);
     final isBookmarked = bookmarkedIds.contains(p.id);
     final isHighlighted = p.id == _highlightedPropertyId;
 
@@ -269,8 +288,10 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
     String? currentUserId;
+    UserModel? currentUser;
     if (authState is Authenticated) {
       currentUserId = authState.user.id;
+      currentUser = authState.user;
     }
     final double screenWidth = MediaQuery.of(context).size.width;
 
@@ -377,7 +398,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       children: pagedProperties.map((p) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: CRMSpacing.m),
-                          child: _buildMobilePropertyCard(p, currentUserId, bookmarkedIds, metadata),
+                          child: _buildMobilePropertyCard(p, currentUser, bookmarkedIds, metadata),
                         );
                       }).toList(),
                     ),
@@ -400,7 +421,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       DataColumn(label: Text('Actions')),
                     ],
                     rows: pagedProperties.map((p) {
-                      final isMine = p.createdBy == currentUserId;
+                      final isMine = _hasEditAccess(p, currentUser);
                       final isBookmarked = bookmarkedIds.contains(p.id);
                       return DataRow(
                         color: WidgetStateProperty.resolveWith<Color?>((states) {

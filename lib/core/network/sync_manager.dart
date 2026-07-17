@@ -21,6 +21,8 @@ import 'package:nblistings/features/builders/services/builders_service.dart';
 import 'package:nblistings/features/owners/models/owner_model.dart';
 import 'package:nblistings/features/owners/services/owners_service.dart';
 import 'package:nblistings/core/storage/model_mappers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:nblistings/features/properties/repository/properties_repository.dart';
 
 enum SyncState {
   disconnected,
@@ -45,6 +47,45 @@ class SyncManager {
 
   SyncState _state = SyncState.disconnected;
   SyncState get state => _state;
+
+  bool isSyncCompleted = false;
+  final ValueNotifier<bool> isSyncing = ValueNotifier<bool>(false);
+
+  Future<void> performStartupSync() async {
+    isSyncing.value = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final clientVersion = prefs.getInt('last_lookup_version') ?? 0;
+      
+      int serverVersion = 0;
+      try {
+        final response = await ApiClient().get('/sync/status');
+        serverVersion = response.data['schemaVersion'] ?? 0;
+      } catch (e) {
+        print("⚠️ [SYNC ENGINE] Failed to fetch sync status: $e");
+        final lookupCount = await _coordinator.lookupLocal.getLookupsCount();
+        if (lookupCount == 0) {
+          rethrow;
+        }
+      }
+      
+      final lookupCount = await _coordinator.lookupLocal.getLookupsCount();
+      if (lookupCount == 0 || serverVersion != clientVersion) {
+        print("🔄 [SYNC ENGINE] Lookup version mismatch or empty. Downloading lookup tables...");
+        await PropertiesRepository().fetchAndSaveMetadata();
+        if (serverVersion > 0) {
+          await prefs.setInt('last_lookup_version', serverVersion);
+        }
+      } else {
+        print("✅ [SYNC ENGINE] Lookup tables up to date (version: $clientVersion). Skipping lookup sync.");
+      }
+      
+      await triggerDeltaSync();
+      isSyncCompleted = true;
+    } finally {
+      isSyncing.value = false;
+    }
+  }
 
   final _stateController = StreamController<SyncState>.broadcast();
   Stream<SyncState> get stateStream => _stateController.stream;

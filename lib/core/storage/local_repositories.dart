@@ -324,6 +324,13 @@ class LookupLocalRepository {
       await _isar.lookupItemLocals.put(item);
     });
   }
+
+  Future<int> getLookupsCount() async {
+    if (kIsWeb) {
+      return inMemory.length;
+    }
+    return await _isar.lookupItemLocals.count();
+  }
 }
 
 class OutboxLocalRepository {

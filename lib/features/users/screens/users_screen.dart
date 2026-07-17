@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/users_bloc.dart';
@@ -15,6 +16,7 @@ import 'package:dio/dio.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:http_parser/http_parser.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -1583,60 +1585,92 @@ class _UsersScreenState extends State<UsersScreen> {
     });
 
     try {
-      final File file = File(pickedFile.path);
-      final int sizeInBytes = await file.length();
-      
-      File uploadFile = file;
+      MultipartFile multipartFile;
 
-      // Deterministic compression pipeline
-      if (sizeInBytes > 0) {
-        final String targetPath = "${Directory.systemTemp.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg";
-        
-        // Step 1: Compress with 80% quality and resize max 800x800 px
-        XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
-          file.absolute.path,
-          targetPath,
-          quality: 80,
-          minWidth: 800,
-          minHeight: 800,
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        if (bytes.length > 2 * 1024 * 1024) {
+          throw Exception("Image size must be less than 2 MB.");
+        }
+        multipartFile = MultipartFile.fromBytes(
+          bytes,
+          filename: pickedFile.name,
+          contentType: MediaType('image', 'jpeg'),
         );
+      } else {
+        final File file = File(pickedFile.path);
+        final int sizeInBytes = await file.length();
+        
+        File uploadFile = file;
 
-        if (compressedFile != null) {
-          uploadFile = File(compressedFile.path);
-          int compressedSize = await uploadFile.length();
+        // Deterministic compression pipeline
+        if (sizeInBytes > 0) {
+          final String targetPath = "${Directory.systemTemp.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg";
+          
+          // Step 1: Compress with 80% quality and resize max 800x800 px
+          XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
+            file.absolute.path,
+            targetPath,
+            quality: 80,
+            minWidth: 800,
+            minHeight: 800,
+          );
 
-          // Step 2: If size exceeds 500 KB limit, re-compress with 70% quality
-          if (compressedSize > 500 * 1024) {
-            final String secondPath = "${Directory.systemTemp.path}/compressed_70_${DateTime.now().millisecondsSinceEpoch}.jpg";
-            final XFile? secondCompressed = await FlutterImageCompress.compressAndGetFile(
-              file.absolute.path,
-              secondPath,
-              quality: 70,
-              minWidth: 800,
-              minHeight: 800,
-            );
-            if (secondCompressed != null) {
-              uploadFile = File(secondCompressed.path);
-              compressedSize = await uploadFile.length();
+          if (compressedFile != null) {
+            uploadFile = File(compressedFile.path);
+            int compressedSize = await uploadFile.length();
+
+            // Step 2: If size exceeds 500 KB limit, re-compress with 70% quality
+            if (compressedSize > 500 * 1024) {
+              final String secondPath = "${Directory.systemTemp.path}/compressed_70_${DateTime.now().millisecondsSinceEpoch}.jpg";
+              final XFile? secondCompressed = await FlutterImageCompress.compressAndGetFile(
+                file.absolute.path,
+                secondPath,
+                quality: 70,
+                minWidth: 800,
+                minHeight: 800,
+              );
+              if (secondCompressed != null) {
+                uploadFile = File(secondCompressed.path);
+                compressedSize = await uploadFile.length();
+              }
+            }
+
+            // Step 3: Assert ultimate limit of 2 MB
+            if (compressedSize > 2 * 1024 * 1024) {
+              throw Exception("Compressed image size exceeds the required 2 MB limit.");
             }
           }
+        }
 
-          // Step 3: Assert ultimate limit of 2 MB
-          if (compressedSize > 2 * 1024 * 1024) {
-            throw Exception("Compressed image size exceeds the required 2 MB limit.");
-          }
+        multipartFile = await MultipartFile.fromFile(
+          uploadFile.path, 
+          filename: 'profile_photo.jpg',
+          contentType: MediaType('image', 'jpeg'),
+        );
+      }
+
+      final formData = FormData.fromMap({
+        'file': multipartFile,
+      });
+
+      Response? response;
+      int retries = 3;
+      while (retries > 0) {
+        try {
+          response = await DioClient.dio.post('/users/upload-profile', data: formData);
+          break;
+        } catch (e) {
+          retries--;
+          if (retries == 0) rethrow;
+          await Future.delayed(const Duration(milliseconds: 500));
         }
       }
 
-      // Upload to backend
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(uploadFile.path, filename: 'profile_photo.jpg'),
-      });
-
-      final response = await DioClient.dio.post('/users/upload-profile', data: formData);
-      final publicUrl = response.data['data']['publicUrl'];
-      
-      onUploaded(publicUrl);
+      if (response != null && response.data != null) {
+        final publicUrl = response.data['data']['publicUrl'];
+        onUploaded(publicUrl);
+      }
 
     } catch (e) {
       String errorMsg = 'Failed to upload photo.';

@@ -53,6 +53,8 @@ class PropertyModel {
   final String? googlePlaceId;
   final String? brokerageTypeId;
   final String? brokerageTypeName;
+  final String? adminId;
+  final String? organizationId;
   final bool isVerified;
   final String createdBy;
   final String createdByName;
@@ -119,6 +121,8 @@ class PropertyModel {
     this.googlePlaceId,
     this.brokerageTypeId,
     this.brokerageTypeName,
+    this.adminId,
+    this.organizationId,
   });
 
   factory PropertyModel.fromJson(Map<String, dynamic> json) {
@@ -147,26 +151,26 @@ class PropertyModel {
         .toList();
 
     return PropertyModel(
-      id: json['id'] as String,
-      propertyCode: json['property_code'] as String,
-      title: json['title'] as String,
+      id: json['id'] as String? ?? '',
+      propertyCode: json['property_code'] as String? ?? '',
+      title: json['title'] as String? ?? '',
       description: json['description'] as String?,
-      categoryId: json['category_id'] as String,
-      categoryName: category != null ? category['name'] as String : 'N/A',
-      propertyTypeId: json['property_type_id'] as String,
-      propertyTypeName: propType != null ? propType['name'] as String : 'N/A',
+      categoryId: json['category_id'] as String? ?? '',
+      categoryName: category != null ? category['name'] as String? ?? 'N/A' : 'N/A',
+      propertyTypeId: json['property_type_id'] as String? ?? '',
+      propertyTypeName: propType != null ? propType['name'] as String? ?? 'N/A' : 'N/A',
       configurationId: json['configuration_id'] as String?,
-      configurationName: config != null ? config['name'] as String : null,
-      listingTypeId: json['listing_type_id'] as String,
-      listingTypeName: listing != null ? listing['name'] as String : 'N/A',
-      propertyStatusId: json['property_status_id'] as String,
-      propertyStatusName: status != null ? status['name'] as String : 'N/A',
-      cityId: json['city_id'] as String,
-      cityName: city != null ? city['city_name'] as String : 'N/A',
-      areaId: json['area_id'] as String,
-      areaName: area != null ? area['area_name'] as String : 'N/A',
-      pincode: area != null ? area['pincode'] as String : 'N/A',
-      address: json['address'] as String,
+      configurationName: config != null ? config['name'] as String? : null,
+      listingTypeId: json['listing_type_id'] as String? ?? '',
+      listingTypeName: listing != null ? listing['name'] as String? ?? 'N/A' : 'N/A',
+      propertyStatusId: json['property_status_id'] as String? ?? '',
+      propertyStatusName: status != null ? status['name'] as String? ?? 'N/A' : 'N/A',
+      cityId: json['city_id'] as String? ?? '',
+      cityName: city != null ? city['city_name'] as String? ?? 'N/A' : 'N/A',
+      areaId: json['area_id'] as String? ?? '',
+      areaName: area != null ? area['area_name'] as String? ?? 'N/A' : 'N/A',
+      pincode: area != null ? area['pincode'] as String? ?? 'N/A' : 'N/A',
+      address: json['address'] as String? ?? '',
       landmark: json['landmark'] as String?,
       latitude: json['latitude'] != null ? double.tryParse(json['latitude'].toString()) : null,
       longitude: json['longitude'] != null ? double.tryParse(json['longitude'].toString()) : null,
@@ -177,14 +181,14 @@ class PropertyModel {
       deposit: double.tryParse(json['deposit'].toString()) ?? 0.0,
       maintenance: double.tryParse(json['maintenance'].toString()) ?? 0.0,
       furnishingTypeId: json['furnishing_type_id'] as String?,
-      furnishingTypeName: furnishing != null ? furnishing['name'] as String : null,
+      furnishingTypeName: furnishing != null ? furnishing['name'] as String? : null,
       facingTypeId: json['facing_type_id'] as String?,
-      facingTypeName: facing != null ? facing['name'] as String : null,
+      facingTypeName: facing != null ? facing['name'] as String? : null,
       ownershipTypeId: json['ownership_type_id'] as String?,
-      ownershipTypeName: ownership != null ? ownership['name'] as String : null,
+      ownershipTypeName: ownership != null ? ownership['name'] as String? : null,
       googlePlaceId: json['google_place_id'] as String?,
       brokerageTypeId: json['brokerage_type_id'] as String?,
-      brokerageTypeName: brokerage != null ? brokerage['name'] as String : null,
+      brokerageTypeName: brokerage != null ? brokerage['name'] as String? : null,
       bedrooms: json['bedrooms'] as int? ?? 0,
       bathrooms: json['bathrooms'] as int? ?? 0,
       balconies: json['balconies'] as int? ?? 0,
@@ -193,18 +197,20 @@ class PropertyModel {
       totalFloor: json['total_floor'] as int?,
       ageOfProperty: json['age_of_property'] as int?,
       possessionDate: json['possession_date'] != null ? DateTime.tryParse(json['possession_date'] as String) : null,
-      ownerName: json['owner_name'] as String,
-      ownerMobile: json['owner_mobile'] as String,
+      ownerName: json['owner_name'] as String? ?? '',
+      ownerMobile: json['owner_mobile'] as String? ?? '',
       brokerName: json['broker_name'] as String?,
       remarks: json['remarks'] as String?,
       blockWing: json['block_wing'] as String?,
       flatNo: json['flat_no'] as String?,
       isVerified: json['is_verified'] as bool? ?? false,
-      createdBy: json['created_by'] as String,
-      createdByName: creator != null ? creator['full_name'] as String : 'N/A',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdBy: json['created_by'] as String? ?? '',
+      createdByName: creator != null ? creator['full_name'] as String? ?? 'N/A' : 'N/A',
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : DateTime.now(),
       images: imageList,
       amenities: amenityList,
+      adminId: json['admin_id'] as String?,
+      organizationId: json['organization_id'] as String?,
     );
   }
 

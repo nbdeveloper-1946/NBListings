@@ -28,6 +28,8 @@ class UserModel {
   final bool isActive;
   final String? profilePhoto;
   final String? createdAt;
+  final String? adminId;
+  final String? organizationId;
 
   const UserModel({
     required this.id,
@@ -39,6 +41,8 @@ class UserModel {
     required this.isActive,
     this.profilePhoto,
     this.createdAt,
+    this.adminId,
+    this.organizationId,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -59,6 +63,8 @@ class UserModel {
       isActive: json['is_active'] ?? true,
       profilePhoto: json['profile_photo'],
       createdAt: json['created_at'],
+      adminId: json['admin_id'] as String?,
+      organizationId: json['organization_id'] as String?,
     );
   }
 }
