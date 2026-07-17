@@ -96,7 +96,7 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
         'file': await MultipartFile.fromFile(uploadFile.path, filename: 'upload_image.jpg'),
       });
 
-      // Use active HTTP client to upload (assuming a global base config exists)
+      // Use active HTTP client to upload
       final response = await Dio(BaseOptions(baseUrl: 'http://localhost:5000/api/v1')).post(
         widget.uploadEndpoint,
         data: formData,
@@ -124,6 +124,8 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
 
   @override
   Widget build(BuildContext context) {
+    final showUploadField = widget.imageUrls.length < widget.maxImages;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -131,7 +133,7 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Photos / Attachments (Max ${widget.maxImages})',
+              'Photos / Attachments (${widget.imageUrls.length}/${widget.maxImages})',
               style: CRMTypography.captionBold.copyWith(color: CRMColors.textOf(context)),
             ),
             if (_isUploading)
@@ -143,69 +145,234 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
           ],
         ),
         const SizedBox(height: CRMSpacing.s),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(widget.maxImages, (index) {
-            final hasImage = index < widget.imageUrls.length;
-            final imageUrl = hasImage ? widget.imageUrls[index] : null;
-
-            return Column(
-              children: [
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: CRMColors.background,
-                    borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                    border: Border.all(color: CRMColors.borderOf(context), width: 1.5),
-                  ),
-                  child: hasImage
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(CRMBorderRadius.s - 1.5),
-                          child: Image.network(
-                            imageUrl!,
-                            fit: BoxFit.cover,
-                            width: 90,
-                            height: 90,
-                          ),
-                        )
-                      : Icon(Icons.add_photo_alternate_outlined, color: CRMColors.textSecondaryOf(context), size: 28),
+        
+        // Horizontal Upload Button/Field
+        if (showUploadField) ...[
+          InkWell(
+            onTap: _isUploading ? null : () => _showSourceDialog(widget.imageUrls.length),
+            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+            child: CustomPaint(
+              painter: DashedBorderPainter(
+                color: CRMColors.primaryOf(context).withOpacity(0.4),
+                radius: CRMBorderRadius.s,
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: CRMSpacing.m, horizontal: CRMSpacing.m),
+                decoration: BoxDecoration(
+                  color: CRMColors.primaryOf(context).withOpacity(0.02),
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                 ),
-                const SizedBox(height: CRMSpacing.xs),
-                if (hasImage) ...[
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.edit_outlined, size: 16, color: CRMColors.primaryOf(context)),
-                        onPressed: () => _showSourceDialog(index),
-                        constraints: const BoxConstraints(),
-                        padding: const EdgeInsets.all(4),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, size: 16, color: CRMColors.danger),
-                        onPressed: () => widget.onImageRemoved(index),
-                        constraints: const BoxConstraints(),
-                        padding: const EdgeInsets.all(4),
-                      ),
-                    ],
-                  )
-                ] else ...[
-                  TextButton(
-                    onPressed: () => _showSourceDialog(index),
-                    child: const Text('Add', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.cloud_upload_outlined, 
+                      size: 32, 
+                      color: _isUploading ? CRMColors.textMutedOf(context) : CRMColors.primaryOf(context),
                     ),
-                  )
-                ],
-              ],
-            );
-          }),
-        ),
+                    const SizedBox(height: CRMSpacing.xs),
+                    Text(
+                      'Click to upload photo',
+                      style: CRMTypography.body.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: _isUploading ? CRMColors.textMutedOf(context) : CRMColors.primaryOf(context),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Supports JPEG, PNG up to 5MB (Max ${widget.maxImages} photos)',
+                      style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ] else ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(CRMSpacing.m),
+            decoration: BoxDecoration(
+              color: CRMColors.backgroundOf(context),
+              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              border: Border.all(color: CRMColors.borderOf(context)),
+            ),
+            child: Center(
+              child: Text(
+                'Maximum limit of ${widget.maxImages} photos reached',
+                style: CRMTypography.body.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: CRMColors.textSecondaryOf(context),
+                ),
+              ),
+            ),
+          ),
+        ],
+
+        if (_isUploading) ...[
+          const SizedBox(height: CRMSpacing.s),
+          Center(
+            child: Text(
+              'Uploading image... Please wait.',
+              style: CRMTypography.caption.copyWith(color: CRMColors.primaryOf(context)),
+            ),
+          ),
+        ],
+
+        if (widget.imageUrls.isNotEmpty) ...[
+          const SizedBox(height: CRMSpacing.m),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isMobile = constraints.maxWidth < 600;
+              final crossAxisCount = isMobile ? 1 : (constraints.maxWidth > 900 ? 4 : 3);
+              final itemSpacing = CRMSpacing.s;
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: widget.imageUrls.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: itemSpacing,
+                  mainAxisSpacing: itemSpacing,
+                  childAspectRatio: isMobile ? 16 / 10 : 4 / 3.5,
+                ),
+                itemBuilder: (context, index) {
+                  final imageUrl = widget.imageUrls[index];
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: CRMColors.cardBgOf(context),
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                      border: Border.all(color: CRMColors.borderOf(context), width: 1),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.s - 1)),
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: CRMColors.backgroundOf(context),
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color: CRMColors.textSecondaryOf(context),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.xs, vertical: CRMSpacing.xxs),
+                          decoration: BoxDecoration(
+                            border: Border(top: BorderSide(color: CRMColors.borderOf(context), width: 0.5)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4.0),
+                                child: Text(
+                                  'Photo ${index + 1}',
+                                  style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondaryOf(context)),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.edit_outlined, size: 16, color: CRMColors.primaryOf(context)),
+                                    onPressed: () => _showSourceDialog(index),
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.all(4),
+                                    tooltip: 'Replace Photo',
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: CRMColors.danger),
+                                    onPressed: () => widget.onImageRemoved(index),
+                                    constraints: const BoxConstraints(),
+                                    padding: const EdgeInsets.all(4),
+                                    tooltip: 'Delete Photo',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ],
     );
+  }
+}
+
+class DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double gap;
+  final double dashLength;
+  final double radius;
+
+  DashedBorderPainter({
+    required this.color,
+    this.strokeWidth = 1.5,
+    this.gap = 4.0,
+    this.dashLength = 6.0,
+    this.radius = 8.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    path.addRRect(RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    ));
+
+    final dashPath = Path();
+    double distance = 0.0;
+    for (final pathMetric in path.computeMetrics()) {
+      while (distance < pathMetric.length) {
+        final len = dashLength;
+        if (distance + len > pathMetric.length) {
+          dashPath.addPath(
+            pathMetric.extractPath(distance, pathMetric.length),
+            Offset.zero,
+          );
+        } else {
+          dashPath.addPath(
+            pathMetric.extractPath(distance, distance + len),
+            Offset.zero,
+          );
+        }
+        distance += len + gap;
+      }
+    }
+    canvas.drawPath(dashPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant DashedBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.gap != gap ||
+        oldDelegate.dashLength != dashLength ||
+        oldDelegate.radius != radius;
   }
 }

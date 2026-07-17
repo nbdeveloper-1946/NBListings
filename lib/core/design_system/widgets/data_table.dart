@@ -12,6 +12,7 @@ class CRMDataTable extends StatelessWidget {
   final String emptyTitle;
   final String emptyDescription;
   final IconData emptyIcon;
+  final bool showCheckboxColumn;
 
   const CRMDataTable({
     super.key,
@@ -21,6 +22,7 @@ class CRMDataTable extends StatelessWidget {
     this.emptyTitle = 'No entries found',
     this.emptyDescription = 'Try adjusting your search filters or add a new record.',
     this.emptyIcon = Icons.folder_open_rounded,
+    this.showCheckboxColumn = true,
   });
 
   @override
@@ -76,6 +78,7 @@ class CRMDataTable extends StatelessWidget {
                 columnSpacing: spacing,
                 columns: columns,
                 rows: rows,
+                showCheckboxColumn: showCheckboxColumn,
               ),
             ),
           );

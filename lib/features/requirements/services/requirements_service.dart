@@ -9,6 +9,7 @@ class RequirementsService {
     String? search,
     String? configurationId,
     String? status,
+    String? listingTypeId,
   }) async {
     try {
       final Map<String, dynamic> queryParameters = {};
@@ -20,6 +21,9 @@ class RequirementsService {
       }
       if (status != null && status != 'All') {
         queryParameters['status'] = status;
+      }
+      if (listingTypeId != null && listingTypeId.isNotEmpty) {
+        queryParameters['listingTypeId'] = listingTypeId;
       }
 
       final response = await _apiClient.get(

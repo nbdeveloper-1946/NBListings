@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:dio/dio.dart';
-import 'dart:io';
 import '../../../core/design_system/crm_design_system.dart';
-import '../../../core/api/dio_client.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
 import '../services/properties_service.dart';
 import '../repository/properties_repository.dart';
-import '../../../core/utils/budget_formatter.dart';
 import '../../../core/storage/crm_draft_repository.dart';
 
 class AddEditPropertyScreen extends StatefulWidget {
@@ -43,8 +37,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   final _priceController = TextEditingController();
   final _depositController = TextEditingController();
   final _maintenanceController = TextEditingController();
-  final _bedroomsController = TextEditingController(text: '0');
-  final _bathroomsController = TextEditingController(text: '0');
+  final _bedroomsController = TextEditingController(text: '1');
+  final _bathroomsController = TextEditingController(text: '1');
   final _balconiesController = TextEditingController(text: '0');
   final _parkingController = TextEditingController(text: '0');
   final _floorNoController = TextEditingController();
@@ -59,7 +53,6 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   TextEditingController _facingController = TextEditingController();
   
   final List<String> _propertyImages = [];
-  bool _isUploadingImage = false;
 
   String? _selectedCategory;
   String? _selectedType;
@@ -76,17 +69,22 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   double? _longitude;
   String? _selectedBrokerage;
   bool _isSaved = false;
+  String? _selectedParkingType;
+  String? _selectedParkingOption;
 
   final List<String> _selectedAmenities = [];
   List<AreaLookup> _filteredAreas = [];
   List<LookupItem> _cities = [];
   List<AreaLookup> _areas = [];
   List<LookupItem> _localAmenities = [];
+  final List<String> _depositMonthOptions = ['1 Month', '2 Month', '3 Month', '4 Month', '5 Month', '6 Month'];
+  String? _selectedDepositMonth;
 
   @override
   void initState() {
     super.initState();
     _initializeForm();
+    _priceController.addListener(_onPriceChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.property == null && CRMDraftRepository().hasDraft('property')) {
         _showRestoreDraftDialog();
@@ -96,6 +94,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
 
   @override
   void dispose() {
+    _priceController.removeListener(_onPriceChanged);
     _titleController.dispose();
     _descriptionController.dispose();
     _addressController.dispose();
@@ -126,6 +125,36 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     super.dispose();
   }
 
+  void _initializeParkingFields() {
+    final parkingVal = int.tryParse(_parkingController.text) ?? 0;
+    if (parkingVal == 1) {
+      _selectedParkingType = 'Allocated';
+      _selectedParkingOption = 'Basement';
+    } else if (parkingVal == 2) {
+      _selectedParkingType = 'Allocated';
+      _selectedParkingOption = 'Ground Floor';
+    } else {
+      _selectedParkingType = 'Open';
+      _selectedParkingOption = null;
+    }
+  }
+
+  void _updateParkingController() {
+    if (_selectedParkingType == 'Open') {
+      _parkingController.text = '0';
+    } else if (_selectedParkingType == 'Allocated') {
+      if (_selectedParkingOption == 'Basement') {
+        _parkingController.text = '1';
+      } else if (_selectedParkingOption == 'Ground Floor') {
+        _parkingController.text = '2';
+      } else {
+        _parkingController.text = '1'; // Default option when Allocated is selected
+      }
+    } else {
+      _parkingController.text = '0';
+    }
+  }
+
   void _initializeForm() {
     _cities = List.from(widget.metadata.cities);
     _areas = List.from(widget.metadata.areas);
@@ -134,7 +163,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     if (widget.metadata.categories.isNotEmpty) _selectedCategory = widget.metadata.categories.first.id;
     if (widget.metadata.types.isNotEmpty) _selectedType = widget.metadata.types.first.id;
     if (widget.metadata.listingTypes.isNotEmpty) _selectedListingType = widget.metadata.listingTypes.first.id;
-    if (widget.metadata.statuses.isNotEmpty) _selectedStatus = widget.metadata.statuses.first.id;
+    if (widget.metadata.statuses.isNotEmpty) {
+      final statuses = widget.metadata.statuses;
+      final availIndex = statuses.indexWhere((s) => s.name.trim().toLowerCase() == 'available');
+      if (availIndex != -1) {
+        final avail = statuses.removeAt(availIndex);
+        statuses.insert(0, avail);
+      }
+      _selectedStatus = statuses.first.id;
+    }
     if (_cities.isNotEmpty) {
       _selectedCity = _cities.first.id;
       _updateAreasForCity(_selectedCity!);
@@ -158,8 +195,18 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _carpetController.text = p.carpetArea?.toStringAsFixed(0) ?? '';
       _plotController.text = p.plotArea?.toStringAsFixed(0) ?? '';
       _priceController.text = CRMCurrencyFormatter.format(p.price);
-      _depositController.text = p.deposit.toStringAsFixed(0);
+      _depositController.text = CRMCurrencyFormatter.format(p.deposit);
       _maintenanceController.text = p.maintenance.toStringAsFixed(0);
+      final price = p.price;
+      final deposit = p.deposit;
+      if (price > 0 && deposit > 0) {
+        final months = deposit / price;
+        final formattedOption = months % 1 == 0 ? '${months.toInt()} Month' : '${months.toStringAsFixed(1)} Month';
+        if (!_depositMonthOptions.contains(formattedOption)) {
+          _depositMonthOptions.add(formattedOption);
+        }
+        _selectedDepositMonth = formattedOption;
+      }
       _selectedFurnishing = p.furnishingTypeId;
       _selectedFacing = p.facingTypeId;
       if (p.facingTypeId != null) {
@@ -183,6 +230,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _bathroomsController.text = p.bathrooms.toString();
       _balconiesController.text = p.balconies.toString();
       _parkingController.text = p.parking.toString();
+      _initializeParkingFields();
       _floorNoController.text = p.floorNo?.toString() ?? '';
       _totalFloorController.text = p.totalFloor?.toString() ?? '';
       _ageController.text = p.ageOfProperty?.toString() ?? '';
@@ -200,6 +248,10 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
           _selectedAmenities.add(matched.id);
         }
       }
+    } else {
+      _selectedParkingType = 'Open';
+      _selectedParkingOption = null;
+      _parkingController.text = '0';
     }
   }
 
@@ -454,6 +506,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                   _bathroomsController.text = draft['bathrooms'] ?? '0';
                   _balconiesController.text = draft['balconies'] ?? '0';
                   _parkingController.text = draft['parking'] ?? '0';
+                  _initializeParkingFields();
                   _floorNoController.text = draft['floor_no'] ?? '';
                   _totalFloorController.text = draft['total_floor'] ?? '';
                   _ageController.text = draft['age_of_property'] ?? '';
@@ -500,7 +553,72 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     return widget.metadata.configurations.where((c) => c.categoryId == _selectedCategory).toList();
   }
 
+  void _onPriceChanged() {
+    _calculateDeposit();
+  }
 
+  void _calculateDeposit() {
+    if (_selectedDepositMonth == null) return;
+    final numberStr = _selectedDepositMonth!.replaceAll(RegExp(r'[^0-9.]'), '');
+    final months = double.tryParse(numberStr) ?? 0.0;
+    final price = CRMCurrencyFormatter.parse(_priceController.text);
+    if (price > 0 && months > 0) {
+      final deposit = price * months;
+      _depositController.text = CRMCurrencyFormatter.format(deposit);
+    }
+  }
+
+  void _showAddCustomMonthsDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: CRMColors.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.m)),
+          title: Text("Custom Deposit Month", style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
+          content: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: CRMTypography.body.copyWith(color: CRMColors.text),
+            decoration: InputDecoration(
+              hintText: "Enter number of months (e.g. 8, 12 or 2.5)",
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+            ),
+          ),
+          actions: [
+            CRMButton(
+              label: "Cancel",
+              variant: CRMButtonVariant.outline,
+              onPressed: () => Navigator.pop(dialogContext),
+            ),
+            CRMButton(
+              label: "Add",
+              onPressed: () {
+                final text = controller.text.trim();
+                final val = double.tryParse(text);
+                if (val != null && val > 0) {
+                  final option = val % 1 == 0 ? '${val.toInt()} Month' : '$val Month';
+                  setState(() {
+                    if (!_depositMonthOptions.contains(option)) {
+                      _depositMonthOptions.add(option);
+                    }
+                    _selectedDepositMonth = option;
+                    _calculateDeposit();
+                  });
+                  Navigator.pop(dialogContext);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid positive number')),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void _showAddMasterDialog(String masterType) {
     final controller = TextEditingController();
@@ -752,35 +870,39 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.property != null;
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(isEdit ? 'Edit CRM Listing' : 'Add New Property', style: CRMTypography.sectionTitle),
-        backgroundColor: CRMColors.cardBg,
-        elevation: 0,
-      ),
-      body: CRMForm(
-        formKey: _formKey,
-        isDirty: true,
-        onSave: () async {
-          _submitForm();
-          return true;
-        },
-        child: Column(
-          children: [
-            _buildWizardProgress(isMobile),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(CRMSpacing.l),
-                child: _buildActiveStepContent(isMobile),
-              ),
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            title: Text(isEdit ? 'Edit CRM Listing' : 'Add New Property', style: CRMTypography.sectionTitle),
+            backgroundColor: CRMColors.cardBg,
+            elevation: 0,
+          ),
+          body: CRMForm(
+            formKey: _formKey,
+            isDirty: true,
+            onSave: () async {
+              _submitForm();
+              return true;
+            },
+            child: Column(
+              children: [
+                _buildWizardProgress(isMobile),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isMobile ? CRMSpacing.s : CRMSpacing.l),
+                    child: _buildActiveStepContent(isMobile),
+                  ),
+                ),
+                _buildWizardActions(isEdit),
+              ],
             ),
-            _buildWizardActions(isEdit),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -789,7 +911,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       color: CRMColors.cardBg,
       padding: EdgeInsets.symmetric(
         vertical: CRMSpacing.m,
-        horizontal: isMobile ? CRMSpacing.m : CRMSpacing.l,
+        horizontal: isMobile ? CRMSpacing.s : CRMSpacing.l,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -868,6 +990,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     return CRMCard(
       title: 'Basic Property Setup',
       subtitle: 'Complete listing definitions and categories',
+      padding: isMobile ? const EdgeInsets.all(CRMSpacing.s) : const EdgeInsets.all(CRMSpacing.m),
       child: Column(
         children: [
           TextFormField(
@@ -876,6 +999,11 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             decoration: InputDecoration(
               labelText: 'Location / Property Name *',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+              suffixIcon: IconButton(
+                icon: Icon(Icons.search, color: CRMColors.primaryOf(context)),
+                onPressed: _showSearchPropertyDialog,
+                tooltip: 'Search existing properties',
+              ),
             ),
             validator: (v) => v!.isEmpty ? 'Location / Property Name is required' : null,
           ),
@@ -886,6 +1014,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedCategory,
                     decoration: InputDecoration(
                       labelText: 'Category *',
@@ -914,6 +1043,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedListingType,
                     decoration: InputDecoration(
                       labelText: 'Listing Type *',
@@ -939,6 +1069,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           value: _selectedCategory,
                           decoration: InputDecoration(
                             labelText: 'Category *',
@@ -969,6 +1100,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           value: _selectedListingType,
                           decoration: InputDecoration(
                             labelText: 'Listing Type *',
@@ -996,6 +1128,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedType,
                     decoration: InputDecoration(
                       labelText: 'Property Type *',
@@ -1018,6 +1151,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     value: _selectedConfig,
                     decoration: InputDecoration(
                       labelText: 'Configuration',
@@ -1046,6 +1180,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           value: _selectedType,
                           decoration: InputDecoration(
                             labelText: 'Property Type *',
@@ -1070,6 +1205,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           value: _selectedConfig,
                           decoration: InputDecoration(
                             labelText: 'Configuration',
@@ -1096,6 +1232,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
           ],
           const SizedBox(height: CRMSpacing.m),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             value: _selectedStatus,
             decoration: InputDecoration(
               labelText: 'Property Status *',
@@ -1121,7 +1258,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                 _propertyImages[index] = url;
               });
             },
-            maxImages: 3,
+            maxImages: 10,
             uploadEndpoint: '/properties/upload-media',
           ),
         ],
@@ -1134,6 +1271,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       children: [
         Expanded(
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
             value: _selectedCity,
             decoration: InputDecoration(
               labelText: 'City *',
@@ -1158,6 +1296,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       children: [
         Expanded(
           child: DropdownButtonFormField<String>(
+            isExpanded: true,
             value: _selectedArea,
             decoration: InputDecoration(
               labelText: 'Area *',
@@ -1196,6 +1335,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     return CRMCard(
       title: 'Location Mapping',
       subtitle: 'Specify geo-coordinates and landmark directions',
+      padding: isMobile ? const EdgeInsets.all(CRMSpacing.s) : const EdgeInsets.all(CRMSpacing.m),
       child: Column(
         children: [
           if (isMobile) ...[
@@ -1282,6 +1422,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     final depositField = CRMCurrencyField(
       controller: _depositController,
       labelText: 'Deposit Amount',
+      enabled: false,
     );
 
     final superBuiltupField = TextFormField(
@@ -1305,10 +1446,131 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       ),
     );
 
-    final bedroomsField = _buildNumberField(_bedroomsController, 'Bedrooms');
-    final bathroomsField = _buildNumberField(_bathroomsController, 'Bathrooms');
-    final balconiesField = _buildNumberField(_balconiesController, 'Balconies');
-    final parkingField = _buildNumberField(_parkingController, 'Parking');
+    final bedroomValue = _bedroomsController.text.isNotEmpty && int.tryParse(_bedroomsController.text) != null
+        ? '${_bedroomsController.text} BHK'
+        : '1 BHK';
+    final bedroomOptions = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5 BHK'];
+    final bedroomItems = bedroomOptions.contains(bedroomValue)
+        ? bedroomOptions
+        : [...bedroomOptions, bedroomValue];
+
+    final bedroomsField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: bedroomValue,
+      decoration: InputDecoration(
+        labelText: 'Bedrooms',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      items: bedroomItems.map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
+      onChanged: (val) {
+        if (val != null) {
+          setState(() {
+            _bedroomsController.text = val.split(' ')[0];
+          });
+        }
+      },
+    );
+
+    final bathroomValue = _bathroomsController.text.isNotEmpty ? _bathroomsController.text : '1';
+    final bathroomOptions = ['1', '2', '3', '4', '5', '6'];
+    final bathroomItems = bathroomOptions.contains(bathroomValue)
+        ? bathroomOptions
+        : [...bathroomOptions, bathroomValue];
+
+    final bathroomsField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: bathroomValue,
+      decoration: InputDecoration(
+        labelText: 'Bathrooms',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      items: bathroomItems.map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
+      onChanged: (val) {
+        if (val != null) {
+          setState(() {
+            _bathroomsController.text = val;
+          });
+        }
+      },
+    );
+
+    final balconyValue = _balconiesController.text.isNotEmpty ? _balconiesController.text : '0';
+    final balconyOptions = ['0', '1', '2', '3'];
+    final balconyItems = balconyOptions.contains(balconyValue)
+        ? balconyOptions
+        : [...balconyOptions, balconyValue];
+
+    final balconiesField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: balconyValue,
+      decoration: InputDecoration(
+        labelText: 'Balconies',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      items: balconyItems.map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
+      onChanged: (val) {
+        if (val != null) {
+          setState(() {
+            _balconiesController.text = val;
+          });
+        }
+      },
+    );
+
+    final parkingField = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DropdownButtonFormField<String>(
+          isExpanded: true,
+          value: _selectedParkingType,
+          decoration: InputDecoration(
+            labelText: 'Parking',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'Allocated', child: Text('Allocated')),
+            DropdownMenuItem(value: 'Open', child: Text('Open')),
+          ],
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _selectedParkingType = val;
+                if (val == 'Open') {
+                  _selectedParkingOption = null;
+                } else if (_selectedParkingOption == null) {
+                  _selectedParkingOption = 'Basement';
+                }
+                _updateParkingController();
+              });
+            }
+          },
+        ),
+        if (_selectedParkingType == 'Allocated') ...[
+          const SizedBox(height: CRMSpacing.s),
+          DropdownButtonFormField<String>(
+            isExpanded: true,
+            value: _selectedParkingOption,
+            decoration: InputDecoration(
+              labelText: 'Parking Option',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'Basement', child: Text('Basement')),
+              DropdownMenuItem(value: 'Ground Floor', child: Text('Ground Floor')),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                setState(() {
+                  _selectedParkingOption = val;
+                  _updateParkingController();
+                });
+              }
+            },
+          ),
+        ],
+      ],
+    );
 
     final floorNoField = TextFormField(
       controller: _floorNoController,
@@ -1320,27 +1582,75 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       ),
     );
 
-    final totalFloorField = TextFormField(
-      controller: _totalFloorController,
-      style: CRMTypography.body.copyWith(color: CRMColors.text),
-      keyboardType: TextInputType.number,
+    final totalFloorField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: _totalFloorController.text.isEmpty ? null : _totalFloorController.text,
       decoration: InputDecoration(
         labelText: 'Total Floors',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
       ),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('None')),
+        ...List.generate(50, (index) {
+          final val = (index + 1).toString();
+          return DropdownMenuItem(value: val, child: Text(val));
+        }),
+      ],
+      onChanged: (v) {
+        setState(() {
+          _totalFloorController.text = v ?? '';
+        });
+      },
     );
 
-    final ageField = TextFormField(
-      controller: _ageController,
-      style: CRMTypography.body.copyWith(color: CRMColors.text),
-      keyboardType: TextInputType.number,
+    final ageField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: _ageController.text.isEmpty ? null : () {
+        final ageVal = int.tryParse(_ageController.text);
+        if (ageVal == null) return null;
+        if (ageVal <= 1) return '0 to 1 years';
+        if (ageVal <= 5) return '1 to 5 years';
+        if (ageVal <= 10) return '5 to 10 years';
+        if (ageVal <= 14) return '10+ years';
+        if (ageVal <= 19) return '15+ years';
+        return '20+ years';
+      }(),
       decoration: InputDecoration(
         labelText: 'Age (years)',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
       ),
+      items: const [
+        DropdownMenuItem(value: null, child: Text('None')),
+        DropdownMenuItem(value: '0 to 1 years', child: Text('0 to 1 years')),
+        DropdownMenuItem(value: '1 to 5 years', child: Text('1 to 5 years')),
+        DropdownMenuItem(value: '5 to 10 years', child: Text('5 to 10 years')),
+        DropdownMenuItem(value: '10+ years', child: Text('10+ years')),
+        DropdownMenuItem(value: '15+ years', child: Text('15+ years')),
+        DropdownMenuItem(value: '20+ years', child: Text('20+ years')),
+      ],
+      onChanged: (v) {
+        setState(() {
+          if (v == null) {
+            _ageController.text = '';
+          } else if (v == '0 to 1 years') {
+            _ageController.text = '1';
+          } else if (v == '1 to 5 years') {
+            _ageController.text = '3';
+          } else if (v == '5 to 10 years') {
+            _ageController.text = '7';
+          } else if (v == '10+ years') {
+            _ageController.text = '12';
+          } else if (v == '15+ years') {
+            _ageController.text = '17';
+          } else if (v == '20+ years') {
+            _ageController.text = '22';
+          }
+        });
+      },
     );
 
     final furnishingField = DropdownButtonFormField<String>(
+      isExpanded: true,
       value: _selectedFurnishing,
       decoration: InputDecoration(
         labelText: 'Furnishing',
@@ -1392,18 +1702,6 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       },
     );
 
-    final ownershipField = DropdownButtonFormField<String>(
-      value: _selectedOwnership,
-      decoration: InputDecoration(
-        labelText: 'Ownership',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
-      items: [
-        const DropdownMenuItem(value: null, child: Text('None')),
-        ...widget.metadata.ownerships.map((o) => DropdownMenuItem(value: o.id, child: Text(o.name))),
-      ],
-      onChanged: (v) => setState(() => _selectedOwnership = v),
-    );
 
     final brokerageField = CRMSearchableDropdown(
       labelText: 'Brokerage Confirmation',
@@ -1413,20 +1711,57 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       onAddPressed: _showAddBrokerageDialog,
     );
 
+    final depositMonthsField = Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            value: _selectedDepositMonth,
+            decoration: InputDecoration(
+              labelText: 'Deposit Months *',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('None')),
+              ..._depositMonthOptions.map((m) => DropdownMenuItem(value: m, child: Text(m))),
+            ],
+            validator: (v) => v == null || v.isEmpty ? 'Deposit months required' : null,
+            onChanged: (v) {
+              setState(() {
+                _selectedDepositMonth = v;
+                _calculateDeposit();
+              });
+            },
+          ),
+        ),
+        const SizedBox(width: CRMSpacing.xs),
+        IconButton(
+          icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
+          onPressed: _showAddCustomMonthsDialog,
+          tooltip: 'Add Custom Months',
+        ),
+      ],
+    );
+
     return CRMCard(
       title: 'Pricing & Sizing Sockets',
       subtitle: 'Complete budget calculations and builtup area parameters',
+      padding: isMobile ? const EdgeInsets.all(CRMSpacing.s) : const EdgeInsets.all(CRMSpacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (isMobile) ...[
             priceField,
             const SizedBox(height: CRMSpacing.m),
+            depositMonthsField,
+            const SizedBox(height: CRMSpacing.m),
             depositField,
           ] else ...[
             Row(
               children: [
                 Expanded(child: priceField),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(child: depositMonthsField),
                 const SizedBox(width: CRMSpacing.s),
                 Expanded(child: depositField),
               ],
@@ -1524,8 +1859,6 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             const SizedBox(height: CRMSpacing.m),
             facingField,
             const SizedBox(height: CRMSpacing.m),
-            ownershipField,
-            const SizedBox(height: CRMSpacing.m),
             brokerageField,
           ] else ...[
             Row(
@@ -1533,16 +1866,12 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                 Expanded(child: furnishingField),
                 const SizedBox(width: CRMSpacing.s),
                 Expanded(child: facingField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: ownershipField),
               ],
             ),
             const SizedBox(height: CRMSpacing.m),
             Row(
               children: [
                 Expanded(child: brokerageField),
-                const SizedBox(width: CRMSpacing.s),
-                const Expanded(child: SizedBox()),
                 const SizedBox(width: CRMSpacing.s),
                 const Expanded(child: SizedBox()),
               ],
@@ -1641,43 +1970,183 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
   }
 
-  Widget _buildNumberField(TextEditingController controller, String label) {
-    return TextFormField(
-      controller: controller,
-      style: CRMTypography.body.copyWith(color: CRMColors.text),
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
+  void _showSearchPropertyDialog() {
+    final propertiesBloc = context.read<PropertiesBloc>();
+    final state = propertiesBloc.state;
+    List<PropertyModel> allProperties = [];
+    if (state is PropertiesLoaded) {
+      allProperties = state.properties;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        final queryController = TextEditingController();
+        List<PropertyModel> filteredProperties = allProperties;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: CRMColors.cardBgOf(context),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.m)),
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.9,
+                constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+                padding: const EdgeInsets.all(CRMSpacing.m),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Search Properties',
+                          style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(dialogContext),
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: CRMSpacing.m),
+                    TextField(
+                      controller: queryController,
+                      style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
+                      decoration: InputDecoration(
+                        hintText: 'Type to search properties...',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: queryController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  queryController.clear();
+                                  setDialogState(() {
+                                    filteredProperties = allProperties;
+                                  });
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                      ),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          filteredProperties = allProperties
+                              .where((p) => p.title.toLowerCase().contains(value.toLowerCase()) ||
+                                            p.propertyCode.toLowerCase().contains(value.toLowerCase()) ||
+                                            p.areaName.toLowerCase().contains(value.toLowerCase()))
+                              .toList();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: CRMSpacing.m),
+                    Expanded(
+                      child: filteredProperties.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No matching properties found',
+                                style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(context)),
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: filteredProperties.length,
+                              separatorBuilder: (context, index) => Divider(color: CRMColors.borderOf(context)),
+                              itemBuilder: (context, index) {
+                                final property = filteredProperties[index];
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: CRMSpacing.xxs),
+                                  title: Text(
+                                    property.title,
+                                    style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context)),
+                                  ),
+                                  subtitle: Text(
+                                    '${property.propertyCode} • ${property.areaName}, ${property.cityName}',
+                                    style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                                  ),
+                                  onTap: () {
+                                    setState(() {
+                                      _titleController.text = property.title;
+                                      _selectedCity = property.cityId;
+                                      _updateAreasForCity(property.cityId);
+                                      _selectedArea = property.areaId;
+                                    });
+                                    Navigator.pop(dialogContext);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   Widget _buildContactsStep(bool isMobile) {
+    final selectedOwnershipName = () {
+      if (_selectedOwnership == null) return 'Owner';
+      final match = widget.metadata.ownerships.firstWhere(
+        (o) => o.id == _selectedOwnership,
+        orElse: () => LookupItem(id: '', name: 'Owner'),
+      );
+      return match.name;
+    }();
+
+    final ownershipField = DropdownButtonFormField<String>(
+      isExpanded: true,
+      value: _selectedOwnership,
+      decoration: InputDecoration(
+        labelText: 'Ownership *',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('None')),
+        ...widget.metadata.ownerships.map((o) => DropdownMenuItem(value: o.id, child: Text(o.name))),
+      ],
+      validator: (v) => v == null || v.isEmpty ? 'Ownership required' : null,
+      onChanged: (v) {
+        setState(() {
+          _selectedOwnership = v;
+        });
+      },
+    );
+
     final ownerNameField = CRMTextField(
       controller: _ownerNameController,
-      labelText: 'Owner Name',
-      validator: (v) => v == null || v.isEmpty ? 'Owner name required' : null,
+      labelText: '$selectedOwnershipName Name *',
+      validator: (v) => v == null || v.isEmpty ? '$selectedOwnershipName name required' : null,
     );
 
     final ownerMobileField = CRMPhoneField(
       controller: _ownerMobileController,
-      labelText: 'Owner Mobile',
+      labelText: '$selectedOwnershipName Mobile',
       isRequired: true,
     );
 
     return CRMCard(
       title: 'Contacts Info & Visibility',
       subtitle: 'Verify owner profiles and direct remarks',
+      padding: isMobile ? const EdgeInsets.all(CRMSpacing.s) : const EdgeInsets.all(CRMSpacing.m),
       child: Column(
         children: [
           if (isMobile) ...[
+            ownershipField,
+            const SizedBox(height: CRMSpacing.m),
             ownerNameField,
             const SizedBox(height: CRMSpacing.m),
             ownerMobileField,
           ] else ...[
             Row(
               children: [
+                Expanded(child: ownershipField),
+                const SizedBox(width: CRMSpacing.s),
                 Expanded(child: ownerNameField),
                 const SizedBox(width: CRMSpacing.s),
                 Expanded(child: ownerMobileField),
@@ -1689,7 +2158,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             controller: _brokerNameController,
             style: CRMTypography.body.copyWith(color: CRMColors.text),
             decoration: InputDecoration(
-              labelText: 'Broker Referrer Name',
+              labelText: 'Reffer name/Key Collect',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
             ),
           ),
@@ -1733,7 +2202,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                 ),
                 const SizedBox(width: CRMSpacing.s),
               ],
-              if (_currentStep < 3)
+              if (_currentStep < 3) ...[
+                if (isEdit) ...[
+                  CRMButton(
+                    label: 'Save Changes',
+                    variant: CRMButtonVariant.outline,
+                    onPressed: _submitForm,
+                  ),
+                  const SizedBox(width: CRMSpacing.s),
+                ],
                 CRMButton(
                   label: 'Next Step',
                   variant: CRMButtonVariant.primary,
@@ -1742,8 +2219,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                       setState(() => _currentStep++);
                     }
                   },
-                )
-              else
+                ),
+              ] else
                 CRMButton(
                   label: isEdit ? 'Save Changes' : 'Publish Property',
                   variant: CRMButtonVariant.primary,

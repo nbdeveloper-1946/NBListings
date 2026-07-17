@@ -386,11 +386,12 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     isLoading: isLoading,
                     emptyTitle: 'No Properties Found',
                     emptyDescription: 'No records match your active search terms.',
+                    showCheckboxColumn: false,
                     columns: const [
+                      DataColumn(label: Text('Code')),
                       DataColumn(label: Text('Shortlist')),
                       DataColumn(label: Text('Actions')),
                       DataColumn(label: Text('Verified')),
-                      DataColumn(label: Text('Code')),
                       DataColumn(label: Text('Title')),
                       DataColumn(label: Text('City')),
                       DataColumn(label: Text('Area')),
@@ -409,6 +410,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                         }),
                         onSelectChanged: (_) => showCRMPropertyDrawer(context, p),
                         cells: [
+                          DataCell(Text(p.propertyCode, style: const TextStyle(fontWeight: FontWeight.bold))),
                           DataCell(
                             IconButton(
                               icon: Icon(
@@ -475,7 +477,6 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                               ),
                             ),
                           ),
-                          DataCell(Text(p.propertyCode, style: const TextStyle(fontWeight: FontWeight.bold))),
                           DataCell(Text(p.title)),
                           DataCell(Text(p.cityName)),
                           DataCell(Text(p.areaName)),
@@ -960,17 +961,24 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
 
   void _showAddEditPropertyDialog(BuildContext context, PropertyMetadataModel metadata, [PropertyModel? property]) {
     final propertiesBloc = context.read<PropertiesBloc>();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 12.0 : 40.0,
+          vertical: isMobile ? 16.0 : 24.0,
+        ),
         child: Container(
           decoration: BoxDecoration(
             color: CRMColors.cardBg,
             borderRadius: BorderRadius.circular(CRMBorderRadius.m),
           ),
-          width: MediaQuery.of(context).size.width * 0.95,
+          width: isMobile ? screenWidth - 24 : screenWidth * 0.95,
           height: MediaQuery.of(context).size.height * 0.95,
           constraints: const BoxConstraints(maxWidth: 800, maxHeight: 750),
           clipBehavior: Clip.antiAlias,

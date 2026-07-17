@@ -276,17 +276,25 @@ class _CRMAddressInputState extends State<CRMAddressInput> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            TextButton.icon(
-              icon: Icon(
-                _showOverrides ? Icons.unfold_less_rounded : Icons.tune_rounded,
-                size: 16,
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: TextButton.icon(
+                    icon: Icon(
+                      _showOverrides ? Icons.unfold_less_rounded : Icons.tune_rounded,
+                      size: 16,
+                    ),
+                    label: Text(_showOverrides ? 'Hide Overrides' : 'Manual Coordinates & Landmark'),
+                    onPressed: () {
+                      setState(() {
+                        _showOverrides = !_showOverrides;
+                      });
+                    },
+                  ),
+                ),
               ),
-              label: Text(_showOverrides ? 'Hide Overrides' : 'Manual Coordinates & Landmark'),
-              onPressed: () {
-                setState(() {
-                  _showOverrides = !_showOverrides;
-                });
-              },
             ),
           ],
         ),

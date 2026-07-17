@@ -21,7 +21,7 @@ class AppConstants {
     r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
   );
   static final RegExp phoneRegex = RegExp(r'^\+?[0-9]{10,14}$');
-  static final RegExp indianMobileRegex = RegExp(r'^[6-9]\d{9}$');
+  static final RegExp indianMobileRegex = RegExp(r'^\d{10}$');
   static final RegExp numericOnlyRegex = RegExp(r'^[0-9]+$');
 
   // Format Patterns

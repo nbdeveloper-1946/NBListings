@@ -8,6 +8,8 @@ class RequirementModel {
   final String propertyTypeName;
   final String? configurationId;
   final String? configurationName;
+  final String? listingTypeId;
+  final String? listingTypeName;
   final double minBudget;
   final double maxBudget;
   final double? minArea;
@@ -28,6 +30,8 @@ class RequirementModel {
     required this.propertyTypeName,
     this.configurationId,
     this.configurationName,
+    this.listingTypeId,
+    this.listingTypeName,
     required this.minBudget,
     required this.maxBudget,
     this.minArea,
@@ -64,6 +68,14 @@ class RequirementModel {
       configName = json['configuration']['name'];
     }
 
+    // Handle listing type name from joined object
+    String? listingName;
+    if (json['listingTypeName'] != null) {
+      listingName = json['listingTypeName'];
+    } else if (json['listing_type'] != null && json['listing_type'] is Map) {
+      listingName = json['listing_type']['name'];
+    }
+
     // Handle target areas
     List<String> aIds = [];
     if (json['areaIds'] != null) {
@@ -89,6 +101,8 @@ class RequirementModel {
       propertyTypeName: typeName,
       configurationId: json['configurationId'] ?? json['configuration_id'],
       configurationName: configName,
+      listingTypeId: json['listingTypeId'] ?? json['listing_type_id'],
+      listingTypeName: listingName,
       minBudget: (json['minBudget'] ?? json['budget_from'] as num?)?.toDouble() ?? 0.0,
       maxBudget: (json['maxBudget'] ?? json['budget_to'] as num?)?.toDouble() ?? 0.0,
       minArea: (json['minArea'] ?? json['min_area'] as num?)?.toDouble(),
@@ -116,6 +130,8 @@ class RequirementModel {
       'propertyTypeName': propertyTypeName,
       'configurationId': configurationId,
       'configurationName': configurationName,
+      'listingTypeId': listingTypeId,
+      'listingTypeName': listingTypeName,
       'minBudget': minBudget,
       'maxBudget': maxBudget,
       'minArea': minArea,
@@ -135,6 +151,7 @@ class RequirementModel {
       'category_id': categoryId,
       'property_type_id': propertyTypeId,
       'configuration_id': configurationId,
+      'listing_type_id': listingTypeId,
       'budget': (minBudget + maxBudget) / 2,
       'budget_from': minBudget,
       'budget_to': maxBudget,
@@ -156,6 +173,8 @@ class RequirementModel {
     String? propertyTypeName,
     String? configurationId,
     String? configurationName,
+    String? listingTypeId,
+    String? listingTypeName,
     double? minBudget,
     double? maxBudget,
     double? minArea,
@@ -176,6 +195,8 @@ class RequirementModel {
       propertyTypeName: propertyTypeName ?? this.propertyTypeName,
       configurationId: configurationId ?? this.configurationId,
       configurationName: configurationName ?? this.configurationName,
+      listingTypeId: listingTypeId ?? this.listingTypeId,
+      listingTypeName: listingTypeName ?? this.listingTypeName,
       minBudget: minBudget ?? this.minBudget,
       maxBudget: maxBudget ?? this.maxBudget,
       minArea: minArea ?? this.minArea,

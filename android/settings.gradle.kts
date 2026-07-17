@@ -1,3 +1,20 @@
+// Add shim for Gradle 9+ compatibility with older plugins using jcenter()
+try {
+    val registry = groovy.lang.GroovySystem.getMetaClassRegistry()
+    val targetClass = org.gradle.api.artifacts.dsl.RepositoryHandler::class.java
+    val expando = groovy.lang.ExpandoMetaClass(targetClass, true, true)
+    expando.initialize()
+    expando.registerInstanceMethod("jcenter", object : groovy.lang.Closure<Any>(null) {
+        fun doCall(): Any {
+            val handler = delegate as org.gradle.api.artifacts.dsl.RepositoryHandler
+            return handler.mavenCentral()
+        }
+    })
+    registry.setMetaClass(targetClass, expando)
+} catch (e: Throwable) {
+    // Fail-silent
+}
+
 pluginManagement {
     val flutterSdkPath =
         run {

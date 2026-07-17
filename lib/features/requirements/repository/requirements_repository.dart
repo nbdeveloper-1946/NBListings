@@ -16,8 +16,9 @@ class RequirementsRepository {
     String? search,
     String? configurationId,
     String? status,
+    String? listingTypeId,
   }) async {
-    final cacheKey = '$search|$configurationId|$status';
+    final cacheKey = '$search|$configurationId|$status|$listingTypeId';
     final cached = _requirementsCache[cacheKey];
     final cacheTime = _requirementsCacheTime[cacheKey];
 
@@ -30,6 +31,7 @@ class RequirementsRepository {
         search: search,
         configurationId: configurationId,
         status: status,
+        listingTypeId: listingTypeId,
       ).then((response) {
         final data = response['data'] as Map<String, dynamic>? ?? {};
         final list = data['requirements'] as List? ?? [];
@@ -45,6 +47,7 @@ class RequirementsRepository {
       search: search,
       configurationId: configurationId,
       status: status,
+      listingTypeId: listingTypeId,
     );
     final data = response['data'] as Map<String, dynamic>? ?? {};
     final list = data['requirements'] as List? ?? [];

@@ -66,9 +66,15 @@ class CRMPhoneField extends StatelessWidget {
               borderSide: BorderSide(color: CRMColors.primaryOf(context), width: 1.5),
             ),
           ),
-          validator: isRequired
-              ? (v) => CRMValidators.indianMobile(v)
-              : validator,
+          validator: (v) {
+            if (isRequired) {
+              if (v == null || v.trim().isEmpty) {
+                return '$labelText is required';
+              }
+              return CRMValidators.indianMobile(v);
+            }
+            return validator?.call(v);
+          },
         ),
       ],
     );

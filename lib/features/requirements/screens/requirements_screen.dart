@@ -25,6 +25,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String? _selectedConfigId;
   String _selectedStatus = "All";
+  String? _selectedListingTypeId;
   final PropertiesRepository _propertiesRepository = PropertiesRepository();
   PropertyMetadataModel? _metadata;
   bool _isLoadingMetadata = true;
@@ -67,6 +68,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
         search: _searchController.text.trim(),
         configurationId: _selectedConfigId,
         status: _selectedStatus,
+        listingTypeId: _selectedListingTypeId,
       ),
     );
   }
@@ -76,6 +78,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       _searchController.clear();
       _selectedConfigId = null;
       _selectedStatus = "All";
+      _selectedListingTypeId = null;
     });
     _triggerFetch();
   }
@@ -256,8 +259,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
         if (state is RequirementsLoaded) {
           total = state.requirements.length;
-          active = state.requirements.where((r) => r.status == 'Active').length;
-          closed = state.requirements.where((r) => r.status == 'Closed').length;
+          active = state.requirements.where((r) => r.status == 'Active' || r.status == 'Live').length;
+          closed = state.requirements.where((r) => r.status == 'Closed' || r.status == 'Won').length;
         }
 
         final cards = [
@@ -370,11 +373,23 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
               _buildDropdownFilter(
                 label: 'Status',
                 value: _selectedStatus,
-                items: ["All", "Active", "Closed", "Suspended"].map((s) {
+                items: ["All", "Live", "Won", "Dead"].map((s) {
                   return DropdownMenuItem(value: s, child: Text(s));
                 }).toList(),
                 onChanged: (val) {
                   setState(() => _selectedStatus = val ?? "All");
+                  _triggerFetch();
+                },
+              ),
+              _buildDropdownFilter<String?>(
+                label: 'Listing Type',
+                value: _selectedListingTypeId,
+                items: [
+                  const DropdownMenuItem(value: null, child: Text("All")),
+                  ...?_metadata?.listingTypes.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
+                ],
+                onChanged: (val) {
+                  setState(() => _selectedListingTypeId = val);
                   _triggerFetch();
                 },
               ),
@@ -460,7 +475,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                 DataColumn(label: Text('Actions')),
               ],
               rows: requirements.map((req) {
-                final isActive = req.status == 'Active';
+                final isActive = req.status == 'Active' || req.status == 'Live';
 
                 return DataRow(
                   cells: [
@@ -571,7 +586,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
     return Column(
       children: requirements.map((req) {
-        final isActive = req.status == 'Active';
+        final isActive = req.status == 'Active' || req.status == 'Live';
         final budget = '₹${BudgetFormatter.format(req.minBudget)} - ₹${BudgetFormatter.format(req.maxBudget)}';
 
         return Container(

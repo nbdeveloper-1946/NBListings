@@ -9,7 +9,8 @@ class FetchRequirementsEvent extends RequirementsEvent {
   final String? search;
   final String? configurationId;
   final String? status;
-  FetchRequirementsEvent({this.search, this.configurationId, this.status});
+  final String? listingTypeId;
+  FetchRequirementsEvent({this.search, this.configurationId, this.status, this.listingTypeId});
 }
 
 class CreateRequirementEvent extends RequirementsEvent {
@@ -70,6 +71,7 @@ class RequirementsBloc extends Bloc<RequirementsEvent, RequirementsState> {
         search: event.search,
         configurationId: event.configurationId,
         status: event.status,
+        listingTypeId: event.listingTypeId,
       );
       emit(RequirementsLoaded(requirements: list));
     } catch (e) {
