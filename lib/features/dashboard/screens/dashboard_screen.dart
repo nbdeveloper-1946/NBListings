@@ -1,7 +1,15 @@
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../properties/repository/properties_repository.dart';
+import '../../properties/services/properties_service.dart';
+import '../../properties/models/property_model.dart';
+import '../../../core/storage/repository_coordinator.dart';
+import '../../../core/storage/isar_collections.dart';
+import '../../../core/storage/model_mappers.dart';
+import '../../../core/design_system/widgets/drawers.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
@@ -1231,10 +1239,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 return TableRow(
                                   children: [
                                     _buildTableDataCell(
-                                      Text(p.code, style: TextStyle(fontWeight: FontWeight.bold, color: CRMColors.primary)),
+                                      InkWell(
+                                        onTap: () => _openPropertyDetails(p.id),
+                                        child: MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: Text(
+                                            p.code, 
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold, 
+                                              color: CRMColors.primary,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                     _buildTableDataCell(
-                                      Text(p.title, style: TextStyle(color: CRMColors.textOf(context))),
+                                      InkWell(
+                                        onTap: () => _openPropertyDetails(p.id),
+                                        child: MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: Text(p.title, style: TextStyle(color: CRMColors.textOf(context))),
+                                        ),
+                                      ),
                                     ),
                                     _buildTableDataCell(
                                       Text(p.areaName, style: TextStyle(color: CRMColors.textSecondaryOf(context))),
@@ -1298,84 +1325,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildMobilePropertyCard(RecentProperty p) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: CRMSpacing.s),
-      padding: const EdgeInsets.all(CRMSpacing.m),
-      decoration: BoxDecoration(
-        color: CRMColors.backgroundOf(context).withOpacity(0.4),
-        borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-        border: Border.all(color: CRMColors.backgroundOf(context)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                p.code,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: CRMColors.primary,
-                  fontSize: 14,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: p.status.toLowerCase() == 'available' 
-                      ? CRMColors.success.withOpacity(0.1) 
-                      : CRMColors.warning.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                ),
-                child: Text(
-                  p.status, 
+    return InkWell(
+      onTap: () => _openPropertyDetails(p.id),
+      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: CRMSpacing.s),
+        padding: const EdgeInsets.all(CRMSpacing.m),
+        decoration: BoxDecoration(
+          color: CRMColors.backgroundOf(context).withOpacity(0.4),
+          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+          border: Border.all(color: CRMColors.backgroundOf(context)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  p.code,
                   style: TextStyle(
-                    color: p.status.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold
-                  )
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: CRMSpacing.xs),
-          Text(
-            p.title,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: CRMColors.textOf(context),
-              fontSize: 15,
-            ),
-          ),
-          const SizedBox(height: CRMSpacing.xs),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
-                  const SizedBox(width: 4),
-                  Text(
-                    p.areaName,
-                    style: TextStyle(
-                      color: CRMColors.textSecondaryOf(context),
-                      fontSize: 13,
-                    ),
+                    fontWeight: FontWeight.bold,
+                    color: CRMColors.primary,
+                    fontSize: 14,
                   ),
-                ],
-              ),
-              Text(
-                '₹${p.price.toStringAsFixed(0)}',
-                style: TextStyle(
-                  color: CRMColors.textOf(context),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
                 ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: p.status.toLowerCase() == 'available' 
+                        ? CRMColors.success.withOpacity(0.1) 
+                        : CRMColors.warning.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                  ),
+                  child: Text(
+                    p.status, 
+                    style: TextStyle(
+                      color: p.status.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold
+                    )
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.xs),
+            Text(
+              p.title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: CRMColors.textOf(context),
+                fontSize: 15,
               ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: CRMSpacing.xs),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
+                    const SizedBox(width: 4),
+                    Text(
+                      p.areaName,
+                      style: TextStyle(
+                        color: CRMColors.textSecondaryOf(context),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '₹${p.price.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: CRMColors.textOf(context),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1516,6 +1547,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _openPropertyDetails(String propertyId) async {
+    if (kIsWeb) {
+      final url = '${Uri.base.origin}/#/properties/$propertyId';
+      launchUrl(Uri.parse(url));
+    } else {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+      try {
+        final repository = PropertiesRepository();
+        var prop = await repository.getPropertyById(propertyId);
+        
+        if (prop == null) {
+          final response = await PropertiesService().getProperties();
+          final data = response['data'] as Map<String, dynamic>? ?? {};
+          final list = data['properties'] as List? ?? [];
+          final freshList = list.map((item) => PropertyModel.fromJson(item)).toList();
+          
+          final localEntities = freshList.map((p) => p.toLocal()).toList();
+          await RepositoryCoordinator().propertyLocal.saveProperties(localEntities);
+          
+          prop = freshList.firstWhere(
+            (p) => p.id == propertyId,
+            orElse: () => null as dynamic,
+          );
+        }
+        
+        Navigator.pop(context);
+        
+        if (prop != null && mounted) {
+          showCRMPropertyDrawer(context, prop);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Property details not found.')),
+            );
+          }
+        }
+      } catch (e) {
+        Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to load property details: $e')),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildErrorState(String message) {

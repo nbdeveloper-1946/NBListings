@@ -57,6 +57,7 @@ class RecentActivity {
 }
 
 class RecentProperty {
+  final String id;
   final String code;
   final String title;
   final String area;
@@ -67,6 +68,7 @@ class RecentProperty {
   final String createdAt;
 
   const RecentProperty({
+    required this.id,
     required this.code,
     required this.title,
     required this.area,
@@ -79,6 +81,7 @@ class RecentProperty {
 
   factory RecentProperty.fromJson(Map<String, dynamic> json) {
     return RecentProperty(
+      id: json['id'] ?? '',
       code: json['code'] ?? '',
       title: json['title'] ?? '',
       area: json['area'] ?? 'N/A',

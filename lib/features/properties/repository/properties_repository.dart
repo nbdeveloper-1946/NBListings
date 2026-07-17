@@ -15,6 +15,14 @@ class PropertiesRepository {
     _coordinator.refreshProperties();
   }
 
+  Future<PropertyModel?> getPropertyById(String id) async {
+    final local = await _coordinator.propertyLocal.getPropertyById(id);
+    if (local != null) {
+      return local.toModel();
+    }
+    return null;
+  }
+
   Future<List<PropertyModel>> getProperties({
     String? search,
     String? categoryId,
@@ -312,7 +320,11 @@ class PropertiesRepository {
     try {
       final response = await _propertiesService.createProperty(propertyData);
       final data = response['data'] as Map<String, dynamic>? ?? {};
-      final fresh = PropertyModel.fromJson(data['property'] ?? {});
+      final propMap = Map<String, dynamic>.from(data['property'] ?? {});
+      if ((propMap['property_images'] == null || (propMap['property_images'] as List).isEmpty) && propertyData['images'] != null) {
+        propMap['images'] = propertyData['images'];
+      }
+      final fresh = PropertyModel.fromJson(propMap);
 
       await _coordinator.propertyLocal.saveProperties([fresh.toLocal()]);
       _coordinator.refreshProperties();
@@ -346,7 +358,11 @@ class PropertiesRepository {
     try {
       final response = await _propertiesService.updateProperty(id, propertyData);
       final data = response['data'] as Map<String, dynamic>? ?? {};
-      final fresh = PropertyModel.fromJson(data['property'] ?? {});
+      final propMap = Map<String, dynamic>.from(data['property'] ?? {});
+      if ((propMap['property_images'] == null || (propMap['property_images'] as List).isEmpty) && propertyData['images'] != null) {
+        propMap['images'] = propertyData['images'];
+      }
+      final fresh = PropertyModel.fromJson(propMap);
 
       await _coordinator.propertyLocal.saveProperties([fresh.toLocal()]);
       _coordinator.refreshProperties();

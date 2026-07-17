@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/design_system/widgets/drawers.dart';
 import '../bloc/requirements_bloc.dart';
 import '../models/requirement_model.dart';
 import 'add_edit_requirement_screen.dart';
@@ -277,13 +279,13 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             iconColor: CRMColors.primary,
           ),
           CRMKPICard(
-            title: "ACTIVE SEARCHES",
+            title: "LIVE SEARCHES",
             value: active.toString(),
             icon: Icons.hourglass_empty_rounded,
             iconColor: CRMColors.warning,
           ),
           CRMKPICard(
-            title: "MATCHED & CLOSED",
+            title: "WON",
             value: closed.toString(),
             icon: Icons.check_circle_outline_rounded,
             iconColor: CRMColors.success,
@@ -533,6 +535,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                       CRMButton(
                         label: "Run Matches",
                         prefixIcon: Icons.bolt_rounded,
+                        height: 32,
+                        padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s),
                         onPressed: () => _showMatchesDrawer(req),
                       ),
                     ),
@@ -946,6 +950,7 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
                       side: BorderSide(color: CRMColors.border),
                     ),
                     child: ListTile(
+                      onTap: () => _openPropertyDetails(context, p),
                       contentPadding: const EdgeInsets.all(CRMSpacing.m),
                       title: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1069,5 +1074,14 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
         ],
       ),
     );
+  }
+
+  void _openPropertyDetails(BuildContext context, PropertyModel p) {
+    if (kIsWeb) {
+      final url = '${Uri.base.origin}/#/properties/${p.id}';
+      launchUrl(Uri.parse(url));
+    } else {
+      showCRMPropertyDrawer(context, p);
+    }
   }
 }

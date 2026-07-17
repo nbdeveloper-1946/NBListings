@@ -12,6 +12,8 @@ class CRMButton extends StatelessWidget {
   final bool isLoading;
   final IconData? prefixIcon;
   final double? width;
+  final double? height;
+  final EdgeInsetsGeometry? padding;
 
   const CRMButton({
     super.key,
@@ -21,6 +23,8 @@ class CRMButton extends StatelessWidget {
     this.isLoading = false,
     this.prefixIcon,
     this.width,
+    this.height,
+    this.padding,
   });
 
   @override
@@ -69,19 +73,22 @@ class CRMButton extends StatelessWidget {
           ),
           const SizedBox(width: CRMSpacing.xs),
         ] else if (prefixIcon != null) ...[
-          Icon(prefixIcon, size: 18, color: fgColor),
+          Icon(prefixIcon, size: height != null && height! < 36 ? 14 : 18, color: fgColor),
           const SizedBox(width: CRMSpacing.xs),
         ],
         Text(
           label,
-          style: CRMTypography.button.copyWith(color: fgColor),
+          style: CRMTypography.button.copyWith(
+            color: fgColor,
+            fontSize: height != null && height! < 36 ? 12 : 14,
+          ),
         ),
       ],
     );
 
     return SizedBox(
       width: width,
-      height: 44,
+      height: height ?? 44,
       child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
@@ -89,7 +96,7 @@ class CRMButton extends StatelessWidget {
           foregroundColor: fgColor,
           side: borderSide,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m),
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: CRMSpacing.m),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
           ),

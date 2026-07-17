@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
@@ -113,7 +115,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
       child: CRMCard(
         padding: const EdgeInsets.all(CRMSpacing.m),
         child: InkWell(
-          onTap: () => showCRMPropertyDrawer(context, p),
+          onTap: () => _openPropertyDetails(context, p),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -305,7 +307,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
             );
           } else if (state is PropertySavedState) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              showCRMPropertyDrawer(context, state.property);
+              _openPropertyDetails(context, state.property);
               if (_scrollController.hasClients) {
                 _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
               }
@@ -416,6 +418,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       DataColumn(label: Text('BHK')),
                       DataColumn(label: Text('Price')),
                       DataColumn(label: Text('Category')),
+                      DataColumn(label: Text('Date')),
                       DataColumn(label: Text('Status')),
                       DataColumn(label: Text('Shortlist')),
                       DataColumn(label: Text('Actions')),
@@ -430,7 +433,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                           }
                           return null;
                         }),
-                        onSelectChanged: (_) => showCRMPropertyDrawer(context, p),
+                        onSelectChanged: (_) => _openPropertyDetails(context, p),
                         cells: [
                           DataCell(Text(p.propertyCode, style: const TextStyle(fontWeight: FontWeight.bold))),
                           DataCell(Text(p.title)),
@@ -451,6 +454,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                           DataCell(Text('${p.bedrooms} BHK')),
                           DataCell(Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))),
                           DataCell(Text(p.listingTypeName)),
+                          DataCell(Text(DateFormat('dd-MM-yyyy').format(p.createdAt))),
                           DataCell(
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1015,5 +1019,14 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
         ),
       ),
     );
+  }
+
+  void _openPropertyDetails(BuildContext context, PropertyModel p) {
+    if (kIsWeb) {
+      final url = '${Uri.base.origin}/#/properties/${p.id}';
+      launchUrl(Uri.parse(url));
+    } else {
+      showCRMPropertyDrawer(context, p);
+    }
   }
 }

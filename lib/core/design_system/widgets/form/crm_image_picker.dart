@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:nblistings/core/api/dio_client.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../tokens/app_colors.dart';
 import '../../tokens/app_spacing.dart';
 import '../../tokens/app_typography.dart';
@@ -15,6 +16,7 @@ class CRMImagePicker extends StatefulWidget {
   final Function(String url) onImageAdded;
   final Function(int index) onImageRemoved;
   final Function(int index, String url) onImageReplaced;
+  final Function(List<String> urls)? onImagesReordered;
   final int maxImages;
   final String uploadEndpoint;
 
@@ -24,6 +26,7 @@ class CRMImagePicker extends StatefulWidget {
     required this.onImageAdded,
     required this.onImageRemoved,
     required this.onImageReplaced,
+    this.onImagesReordered,
     this.maxImages = 3,
     this.uploadEndpoint = '/properties/upload-media',
   });
@@ -46,7 +49,7 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
               title: const Text('Take Photo (Camera)'),
               onTap: () {
                 Navigator.pop(context);
-                _pickImage(index, ImageSource.camera);
+                _pickImageSingle(index, ImageSource.camera);
               },
             ),
             ListTile(
@@ -54,7 +57,13 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
               title: const Text('Choose from Gallery'),
               onTap: () {
                 Navigator.pop(context);
-                _pickImage(index, ImageSource.gallery);
+                if (index < widget.imageUrls.length) {
+                  // If replacing, pick a single image
+                  _pickImageSingle(index, ImageSource.gallery);
+                } else {
+                  // If adding new, allow multiple image selection
+                  _pickImagesMultiple(ImageSource.gallery);
+                }
               },
             ),
           ],
@@ -63,7 +72,7 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
     );
   }
 
-  Future<void> _pickImage(int index, ImageSource source) async {
+  Future<void> _pickImageSingle(int index, ImageSource source) async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: source);
     if (pickedFile == null) return;
@@ -92,18 +101,19 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
         XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
           file.absolute.path,
           targetPath,
-          quality: 80,
-          minWidth: 1200,
-          minHeight: 1200,
+          quality: 70,
+          minWidth: 1000,
+          minHeight: 1000,
         );
 
         File uploadFile = file;
         if (compressedFile != null) {
           uploadFile = File(compressedFile.path);
-          int compressedSize = await uploadFile.length();
-          if (compressedSize > 5 * 1024 * 1024) {
-            throw Exception("Compressed image exceeds the 5 MB file limit.");
-          }
+        }
+
+        int compressedSize = await uploadFile.length();
+        if (compressedSize > 5 * 1024 * 1024) {
+          throw Exception("Compressed image exceeds the 5 MB file limit.");
         }
 
         multipartFile = await MultipartFile.fromFile(
@@ -136,10 +146,146 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
       setState(() {
         _isUploading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to upload image: $e"), backgroundColor: CRMColors.danger),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to upload image: $e"), backgroundColor: CRMColors.danger),
+        );
+      }
     }
+  }
+
+  Future<void> _pickImagesMultiple(ImageSource source) async {
+    final picker = ImagePicker();
+    final List<XFile> pickedFiles = [];
+    
+    if (source == ImageSource.gallery) {
+      final results = await picker.pickMultiImage();
+      if (results.isNotEmpty) {
+        pickedFiles.addAll(results);
+      }
+    } else {
+      final result = await picker.pickImage(source: source);
+      if (result != null) {
+        pickedFiles.add(result);
+      }
+    }
+    
+    if (pickedFiles.isEmpty) return;
+
+    final remainingSlots = widget.maxImages - widget.imageUrls.length;
+    if (remainingSlots <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Maximum limit of ${widget.maxImages} photos reached."),
+            backgroundColor: CRMColors.danger,
+          ),
+        );
+      }
+      return;
+    }
+
+    final filesToUpload = pickedFiles.take(remainingSlots).toList();
+    if (pickedFiles.length > remainingSlots) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Only uploading first $remainingSlots image(s). Limit is ${widget.maxImages}."),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      for (final pickedFile in filesToUpload) {
+        MultipartFile multipartFile;
+
+        if (kIsWeb) {
+          final bytes = await pickedFile.readAsBytes();
+          if (bytes.length > 5 * 1024 * 1024) {
+            throw Exception("Image size exceeds the 5 MB file limit.");
+          }
+          multipartFile = MultipartFile.fromBytes(
+            bytes,
+            filename: pickedFile.name,
+            contentType: MediaType('image', 'jpeg'),
+          );
+        } else {
+          final File file = File(pickedFile.path);
+          final String targetPath = "${Directory.systemTemp.path}/compressed_img_${DateTime.now().millisecondsSinceEpoch}.jpg";
+          
+          XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
+            file.absolute.path,
+            targetPath,
+            quality: 70,
+            minWidth: 1000,
+            minHeight: 1000,
+          );
+
+          File uploadFile = file;
+          if (compressedFile != null) {
+            uploadFile = File(compressedFile.path);
+          }
+
+          int compressedSize = await uploadFile.length();
+          if (compressedSize > 5 * 1024 * 1024) {
+            throw Exception("Compressed image exceeds the 5 MB file limit.");
+          }
+
+          multipartFile = await MultipartFile.fromFile(
+            uploadFile.path, 
+            filename: 'upload_image.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          );
+        }
+
+        final formData = FormData.fromMap({
+          'file': multipartFile,
+        });
+
+        final response = await DioClient.dio.post(
+          widget.uploadEndpoint,
+          data: formData,
+        );
+        
+        final publicUrl = response.data['data']['url'];
+        
+        if (mounted) {
+          widget.onImageAdded(publicUrl);
+        }
+      }
+      
+      setState(() {
+        _isUploading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to upload image: $e"), backgroundColor: CRMColors.danger),
+        );
+      }
+    }
+  }
+
+  void _moveImage(int index, int direction) {
+    if (widget.onImagesReordered == null) return;
+    final newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= widget.imageUrls.length) return;
+    
+    final List<String> list = List.from(widget.imageUrls);
+    final temp = list[index];
+    list[index] = list[newIndex];
+    list[newIndex] = temp;
+    
+    widget.onImagesReordered!(list);
   }
 
   @override
@@ -166,7 +312,6 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
         ),
         const SizedBox(height: CRMSpacing.s),
         
-        // Horizontal Upload Button/Field
         if (showUploadField) ...[
           InkWell(
             onTap: _isUploading ? null : () => _showSourceDialog(widget.imageUrls.length),
@@ -178,31 +323,26 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
               ),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: CRMSpacing.m, horizontal: CRMSpacing.m),
-                decoration: BoxDecoration(
-                  color: CRMColors.primaryOf(context).withOpacity(0.02),
-                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                ),
+                padding: const EdgeInsets.symmetric(vertical: CRMSpacing.l),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.cloud_upload_outlined, 
-                      size: 32, 
-                      color: _isUploading ? CRMColors.textMutedOf(context) : CRMColors.primaryOf(context),
+                      Icons.cloud_upload_outlined,
+                      size: 32,
+                      color: CRMColors.primaryOf(context),
                     ),
                     const SizedBox(height: CRMSpacing.xs),
                     Text(
-                      'Click to upload photo',
-                      style: CRMTypography.body.copyWith(
+                      'Tap to Upload Photos',
+                      style: CRMTypography.bodyMedium.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: _isUploading ? CRMColors.textMutedOf(context) : CRMColors.primaryOf(context),
+                        color: CRMColors.primaryOf(context),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      'Supports JPEG, PNG up to 5MB (Max ${widget.maxImages} photos)',
+                      'Supports multiple image selection (Max 10)',
                       style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
                     ),
                   ],
@@ -213,7 +353,7 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
         ] else ...[
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(CRMSpacing.m),
+            padding: const EdgeInsets.symmetric(vertical: CRMSpacing.s + 2),
             decoration: BoxDecoration(
               color: CRMColors.backgroundOf(context),
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
@@ -235,7 +375,7 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
           const SizedBox(height: CRMSpacing.s),
           Center(
             child: Text(
-              'Uploading image... Please wait.',
+              'Uploading images... Please wait.',
               style: CRMTypography.caption.copyWith(color: CRMColors.primaryOf(context)),
             ),
           ),
@@ -273,18 +413,63 @@ class _CRMImagePickerState extends State<CRMImagePicker> {
                         Expanded(
                           child: ClipRRect(
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.s - 1)),
-                            child: Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: CRMColors.backgroundOf(context),
-                                  child: Icon(
-                                    Icons.broken_image_outlined,
-                                    color: CRMColors.textSecondaryOf(context),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const Center(
+                                    child: CircularProgressIndicator(),
                                   ),
-                                );
-                              },
+                                  errorWidget: (context, url, error) => Container(
+                                    color: CRMColors.backgroundOf(context),
+                                    child: Icon(
+                                      Icons.broken_image_outlined,
+                                      color: CRMColors.textSecondaryOf(context),
+                                    ),
+                                  ),
+                                ),
+                                // Reorder Arrows stacked on top of the image preview
+                                if (index > 0)
+                                  Positioned(
+                                    left: 8,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: Center(
+                                      child: CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: Colors.black54,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 10),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          onPressed: () => _moveImage(index, -1),
+                                          tooltip: 'Move Left',
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (index < widget.imageUrls.length - 1)
+                                  Positioned(
+                                    right: 8,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: Center(
+                                      child: CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: Colors.black54,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 10),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          onPressed: () => _moveImage(index, 1),
+                                          tooltip: 'Move Right',
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),

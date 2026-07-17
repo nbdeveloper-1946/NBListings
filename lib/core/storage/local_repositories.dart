@@ -8,6 +8,13 @@ class PropertyLocalRepository {
 
   static final Map<String, PropertyLocal> inMemory = {};
 
+  Future<PropertyLocal?> getPropertyById(String id) async {
+    if (kIsWeb) {
+      return inMemory[id];
+    }
+    return await _isar.propertyLocals.filter().idEqualTo(id).findFirst();
+  }
+
   Future<List<PropertyLocal>> getProperties({
     String? search,
     String? categoryId,

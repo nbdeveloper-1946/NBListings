@@ -139,10 +139,25 @@ class PropertyModel {
     final brokerage = json['brokerage_type'] as Map<String, dynamic>?;
     final creator = json['creator'] as Map<String, dynamic>?;
 
-    final rawImages = json['property_images'] as List<dynamic>? ?? [];
-    final List<String> imageList = rawImages
-        .map((img) => img['image_url'] as String)
-        .toList();
+    final List<String> imageList = [];
+    final rawImages = json['property_images'] as List<dynamic>? ?? 
+                      json['images'] as List<dynamic>? ?? 
+                      [];
+    for (final img in rawImages) {
+      if (img == null) continue;
+      if (img is String) {
+        if (img.isNotEmpty) imageList.add(img);
+      } else if (img is Map) {
+        final url = img['image_url'] as String? ?? 
+                    img['url'] as String? ?? 
+                    img['path'] as String? ?? 
+                    '';
+        if (url.isNotEmpty) imageList.add(url);
+      } else {
+        final str = img.toString();
+        if (str.isNotEmpty) imageList.add(str);
+      }
+    }
 
     final rawAmenities = json['property_amenities'] as List<dynamic>? ?? [];
     final List<String> amenityList = rawAmenities

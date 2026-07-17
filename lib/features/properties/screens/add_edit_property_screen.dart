@@ -1390,6 +1390,12 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                 _propertyImages[index] = url;
               });
             },
+            onImagesReordered: (newUrls) {
+              setState(() {
+                _propertyImages.clear();
+                _propertyImages.addAll(newUrls);
+              });
+            },
             maxImages: 10,
             uploadEndpoint: '/properties/upload-media',
           ),

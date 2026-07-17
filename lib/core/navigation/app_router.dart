@@ -6,6 +6,7 @@ import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/properties/screens/properties_screen.dart';
+import '../../features/properties/screens/property_detail_screen.dart';
 import '../../features/properties/bloc/properties_bloc.dart';
 import '../../features/users/screens/users_screen.dart';
 import '../../features/requirements/screens/requirements_screen.dart';
@@ -123,6 +124,13 @@ class AppRouter {
             builder: (context, state) => const ProfileScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/properties/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return PropertyDetailScreen(propertyId: id);
+        },
       ),
     ],
     redirect: (context, state) {
