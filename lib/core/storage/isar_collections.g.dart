@@ -1591,288 +1591,298 @@ const PropertyLocalSchema = CollectionSchema(
       name: r'address',
       type: IsarType.string,
     ),
-    r'ageOfProperty': PropertySchema(
+    r'adminId': PropertySchema(
       id: 1,
+      name: r'adminId',
+      type: IsarType.string,
+    ),
+    r'ageOfProperty': PropertySchema(
+      id: 2,
       name: r'ageOfProperty',
       type: IsarType.long,
     ),
     r'amenities': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'amenities',
       type: IsarType.stringList,
     ),
     r'areaId': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'areaId',
       type: IsarType.string,
     ),
     r'areaName': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'areaName',
       type: IsarType.string,
     ),
     r'balconies': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'balconies',
       type: IsarType.long,
     ),
     r'bathrooms': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'bathrooms',
       type: IsarType.long,
     ),
     r'bedrooms': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'bedrooms',
       type: IsarType.long,
     ),
     r'blockWing': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'blockWing',
       type: IsarType.string,
     ),
     r'brokerName': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'brokerName',
       type: IsarType.string,
     ),
     r'brokerageTypeId': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'brokerageTypeId',
       type: IsarType.string,
     ),
     r'brokerageTypeName': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'brokerageTypeName',
       type: IsarType.string,
     ),
     r'carpetArea': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'carpetArea',
       type: IsarType.double,
     ),
     r'categoryId': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'categoryId',
       type: IsarType.string,
     ),
     r'categoryName': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'categoryName',
       type: IsarType.string,
     ),
     r'cityId': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'cityId',
       type: IsarType.string,
     ),
     r'cityName': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'cityName',
       type: IsarType.string,
     ),
     r'configurationId': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'configurationId',
       type: IsarType.string,
     ),
     r'configurationName': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'configurationName',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'createdBy': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'createdBy',
       type: IsarType.string,
     ),
     r'createdByName': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'createdByName',
       type: IsarType.string,
     ),
     r'deposit': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'deposit',
       type: IsarType.double,
     ),
     r'description': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'description',
       type: IsarType.string,
     ),
     r'facingTypeId': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'facingTypeId',
       type: IsarType.string,
     ),
     r'facingTypeName': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'facingTypeName',
       type: IsarType.string,
     ),
     r'flatNo': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'flatNo',
       type: IsarType.string,
     ),
     r'floorNo': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'floorNo',
       type: IsarType.long,
     ),
     r'furnishingTypeId': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'furnishingTypeId',
       type: IsarType.string,
     ),
     r'furnishingTypeName': PropertySchema(
-      id: 29,
+      id: 30,
       name: r'furnishingTypeName',
       type: IsarType.string,
     ),
     r'googlePlaceId': PropertySchema(
-      id: 30,
+      id: 31,
       name: r'googlePlaceId',
       type: IsarType.string,
     ),
     r'id': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'id',
       type: IsarType.string,
     ),
     r'images': PropertySchema(
-      id: 32,
+      id: 33,
       name: r'images',
       type: IsarType.stringList,
     ),
     r'isVerified': PropertySchema(
-      id: 33,
+      id: 34,
       name: r'isVerified',
       type: IsarType.bool,
     ),
     r'landmark': PropertySchema(
-      id: 34,
+      id: 35,
       name: r'landmark',
       type: IsarType.string,
     ),
     r'latitude': PropertySchema(
-      id: 35,
+      id: 36,
       name: r'latitude',
       type: IsarType.double,
     ),
     r'listingTypeId': PropertySchema(
-      id: 36,
+      id: 37,
       name: r'listingTypeId',
       type: IsarType.string,
     ),
     r'listingTypeName': PropertySchema(
-      id: 37,
+      id: 38,
       name: r'listingTypeName',
       type: IsarType.string,
     ),
     r'longitude': PropertySchema(
-      id: 38,
+      id: 39,
       name: r'longitude',
       type: IsarType.double,
     ),
     r'maintenance': PropertySchema(
-      id: 39,
+      id: 40,
       name: r'maintenance',
       type: IsarType.double,
     ),
+    r'organizationId': PropertySchema(
+      id: 41,
+      name: r'organizationId',
+      type: IsarType.string,
+    ),
     r'ownerMobile': PropertySchema(
-      id: 40,
+      id: 42,
       name: r'ownerMobile',
       type: IsarType.string,
     ),
     r'ownerName': PropertySchema(
-      id: 41,
+      id: 43,
       name: r'ownerName',
       type: IsarType.string,
     ),
     r'ownershipTypeId': PropertySchema(
-      id: 42,
+      id: 44,
       name: r'ownershipTypeId',
       type: IsarType.string,
     ),
     r'ownershipTypeName': PropertySchema(
-      id: 43,
+      id: 45,
       name: r'ownershipTypeName',
       type: IsarType.string,
     ),
     r'parking': PropertySchema(
-      id: 44,
+      id: 46,
       name: r'parking',
       type: IsarType.long,
     ),
     r'pincode': PropertySchema(
-      id: 45,
+      id: 47,
       name: r'pincode',
       type: IsarType.string,
     ),
     r'plotArea': PropertySchema(
-      id: 46,
+      id: 48,
       name: r'plotArea',
       type: IsarType.double,
     ),
     r'possessionDate': PropertySchema(
-      id: 47,
+      id: 49,
       name: r'possessionDate',
       type: IsarType.dateTime,
     ),
     r'price': PropertySchema(
-      id: 48,
+      id: 50,
       name: r'price',
       type: IsarType.double,
     ),
     r'propertyCode': PropertySchema(
-      id: 49,
+      id: 51,
       name: r'propertyCode',
       type: IsarType.string,
     ),
     r'propertyStatusId': PropertySchema(
-      id: 50,
+      id: 52,
       name: r'propertyStatusId',
       type: IsarType.string,
     ),
     r'propertyStatusName': PropertySchema(
-      id: 51,
+      id: 53,
       name: r'propertyStatusName',
       type: IsarType.string,
     ),
     r'propertyTypeId': PropertySchema(
-      id: 52,
+      id: 54,
       name: r'propertyTypeId',
       type: IsarType.string,
     ),
     r'propertyTypeName': PropertySchema(
-      id: 53,
+      id: 55,
       name: r'propertyTypeName',
       type: IsarType.string,
     ),
     r'remarks': PropertySchema(
-      id: 54,
+      id: 56,
       name: r'remarks',
       type: IsarType.string,
     ),
     r'superBuiltupArea': PropertySchema(
-      id: 55,
+      id: 57,
       name: r'superBuiltupArea',
       type: IsarType.double,
     ),
     r'title': PropertySchema(
-      id: 56,
+      id: 58,
       name: r'title',
       type: IsarType.string,
     ),
     r'totalFloor': PropertySchema(
-      id: 57,
+      id: 59,
       name: r'totalFloor',
       type: IsarType.long,
     )
@@ -1912,6 +1922,12 @@ int _propertyLocalEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.address.length * 3;
+  {
+    final value = object.adminId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.amenities.length * 3;
   {
     for (var i = 0; i < object.amenities.length; i++) {
@@ -2021,6 +2037,12 @@ int _propertyLocalEstimateSize(
   }
   bytesCount += 3 + object.listingTypeId.length * 3;
   bytesCount += 3 + object.listingTypeName.length * 3;
+  {
+    final value = object.organizationId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.ownerMobile.length * 3;
   bytesCount += 3 + object.ownerName.length * 3;
   {
@@ -2058,63 +2080,65 @@ void _propertyLocalSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.address);
-  writer.writeLong(offsets[1], object.ageOfProperty);
-  writer.writeStringList(offsets[2], object.amenities);
-  writer.writeString(offsets[3], object.areaId);
-  writer.writeString(offsets[4], object.areaName);
-  writer.writeLong(offsets[5], object.balconies);
-  writer.writeLong(offsets[6], object.bathrooms);
-  writer.writeLong(offsets[7], object.bedrooms);
-  writer.writeString(offsets[8], object.blockWing);
-  writer.writeString(offsets[9], object.brokerName);
-  writer.writeString(offsets[10], object.brokerageTypeId);
-  writer.writeString(offsets[11], object.brokerageTypeName);
-  writer.writeDouble(offsets[12], object.carpetArea);
-  writer.writeString(offsets[13], object.categoryId);
-  writer.writeString(offsets[14], object.categoryName);
-  writer.writeString(offsets[15], object.cityId);
-  writer.writeString(offsets[16], object.cityName);
-  writer.writeString(offsets[17], object.configurationId);
-  writer.writeString(offsets[18], object.configurationName);
-  writer.writeDateTime(offsets[19], object.createdAt);
-  writer.writeString(offsets[20], object.createdBy);
-  writer.writeString(offsets[21], object.createdByName);
-  writer.writeDouble(offsets[22], object.deposit);
-  writer.writeString(offsets[23], object.description);
-  writer.writeString(offsets[24], object.facingTypeId);
-  writer.writeString(offsets[25], object.facingTypeName);
-  writer.writeString(offsets[26], object.flatNo);
-  writer.writeLong(offsets[27], object.floorNo);
-  writer.writeString(offsets[28], object.furnishingTypeId);
-  writer.writeString(offsets[29], object.furnishingTypeName);
-  writer.writeString(offsets[30], object.googlePlaceId);
-  writer.writeString(offsets[31], object.id);
-  writer.writeStringList(offsets[32], object.images);
-  writer.writeBool(offsets[33], object.isVerified);
-  writer.writeString(offsets[34], object.landmark);
-  writer.writeDouble(offsets[35], object.latitude);
-  writer.writeString(offsets[36], object.listingTypeId);
-  writer.writeString(offsets[37], object.listingTypeName);
-  writer.writeDouble(offsets[38], object.longitude);
-  writer.writeDouble(offsets[39], object.maintenance);
-  writer.writeString(offsets[40], object.ownerMobile);
-  writer.writeString(offsets[41], object.ownerName);
-  writer.writeString(offsets[42], object.ownershipTypeId);
-  writer.writeString(offsets[43], object.ownershipTypeName);
-  writer.writeLong(offsets[44], object.parking);
-  writer.writeString(offsets[45], object.pincode);
-  writer.writeDouble(offsets[46], object.plotArea);
-  writer.writeDateTime(offsets[47], object.possessionDate);
-  writer.writeDouble(offsets[48], object.price);
-  writer.writeString(offsets[49], object.propertyCode);
-  writer.writeString(offsets[50], object.propertyStatusId);
-  writer.writeString(offsets[51], object.propertyStatusName);
-  writer.writeString(offsets[52], object.propertyTypeId);
-  writer.writeString(offsets[53], object.propertyTypeName);
-  writer.writeString(offsets[54], object.remarks);
-  writer.writeDouble(offsets[55], object.superBuiltupArea);
-  writer.writeString(offsets[56], object.title);
-  writer.writeLong(offsets[57], object.totalFloor);
+  writer.writeString(offsets[1], object.adminId);
+  writer.writeLong(offsets[2], object.ageOfProperty);
+  writer.writeStringList(offsets[3], object.amenities);
+  writer.writeString(offsets[4], object.areaId);
+  writer.writeString(offsets[5], object.areaName);
+  writer.writeLong(offsets[6], object.balconies);
+  writer.writeLong(offsets[7], object.bathrooms);
+  writer.writeLong(offsets[8], object.bedrooms);
+  writer.writeString(offsets[9], object.blockWing);
+  writer.writeString(offsets[10], object.brokerName);
+  writer.writeString(offsets[11], object.brokerageTypeId);
+  writer.writeString(offsets[12], object.brokerageTypeName);
+  writer.writeDouble(offsets[13], object.carpetArea);
+  writer.writeString(offsets[14], object.categoryId);
+  writer.writeString(offsets[15], object.categoryName);
+  writer.writeString(offsets[16], object.cityId);
+  writer.writeString(offsets[17], object.cityName);
+  writer.writeString(offsets[18], object.configurationId);
+  writer.writeString(offsets[19], object.configurationName);
+  writer.writeDateTime(offsets[20], object.createdAt);
+  writer.writeString(offsets[21], object.createdBy);
+  writer.writeString(offsets[22], object.createdByName);
+  writer.writeDouble(offsets[23], object.deposit);
+  writer.writeString(offsets[24], object.description);
+  writer.writeString(offsets[25], object.facingTypeId);
+  writer.writeString(offsets[26], object.facingTypeName);
+  writer.writeString(offsets[27], object.flatNo);
+  writer.writeLong(offsets[28], object.floorNo);
+  writer.writeString(offsets[29], object.furnishingTypeId);
+  writer.writeString(offsets[30], object.furnishingTypeName);
+  writer.writeString(offsets[31], object.googlePlaceId);
+  writer.writeString(offsets[32], object.id);
+  writer.writeStringList(offsets[33], object.images);
+  writer.writeBool(offsets[34], object.isVerified);
+  writer.writeString(offsets[35], object.landmark);
+  writer.writeDouble(offsets[36], object.latitude);
+  writer.writeString(offsets[37], object.listingTypeId);
+  writer.writeString(offsets[38], object.listingTypeName);
+  writer.writeDouble(offsets[39], object.longitude);
+  writer.writeDouble(offsets[40], object.maintenance);
+  writer.writeString(offsets[41], object.organizationId);
+  writer.writeString(offsets[42], object.ownerMobile);
+  writer.writeString(offsets[43], object.ownerName);
+  writer.writeString(offsets[44], object.ownershipTypeId);
+  writer.writeString(offsets[45], object.ownershipTypeName);
+  writer.writeLong(offsets[46], object.parking);
+  writer.writeString(offsets[47], object.pincode);
+  writer.writeDouble(offsets[48], object.plotArea);
+  writer.writeDateTime(offsets[49], object.possessionDate);
+  writer.writeDouble(offsets[50], object.price);
+  writer.writeString(offsets[51], object.propertyCode);
+  writer.writeString(offsets[52], object.propertyStatusId);
+  writer.writeString(offsets[53], object.propertyStatusName);
+  writer.writeString(offsets[54], object.propertyTypeId);
+  writer.writeString(offsets[55], object.propertyTypeName);
+  writer.writeString(offsets[56], object.remarks);
+  writer.writeDouble(offsets[57], object.superBuiltupArea);
+  writer.writeString(offsets[58], object.title);
+  writer.writeLong(offsets[59], object.totalFloor);
 }
 
 PropertyLocal _propertyLocalDeserialize(
@@ -2125,64 +2149,66 @@ PropertyLocal _propertyLocalDeserialize(
 ) {
   final object = PropertyLocal();
   object.address = reader.readString(offsets[0]);
-  object.ageOfProperty = reader.readLongOrNull(offsets[1]);
-  object.amenities = reader.readStringList(offsets[2]) ?? [];
-  object.areaId = reader.readString(offsets[3]);
-  object.areaName = reader.readString(offsets[4]);
-  object.balconies = reader.readLong(offsets[5]);
-  object.bathrooms = reader.readLong(offsets[6]);
-  object.bedrooms = reader.readLong(offsets[7]);
-  object.blockWing = reader.readStringOrNull(offsets[8]);
-  object.brokerName = reader.readStringOrNull(offsets[9]);
-  object.brokerageTypeId = reader.readStringOrNull(offsets[10]);
-  object.brokerageTypeName = reader.readStringOrNull(offsets[11]);
-  object.carpetArea = reader.readDoubleOrNull(offsets[12]);
-  object.categoryId = reader.readString(offsets[13]);
-  object.categoryName = reader.readString(offsets[14]);
-  object.cityId = reader.readString(offsets[15]);
-  object.cityName = reader.readString(offsets[16]);
-  object.configurationId = reader.readStringOrNull(offsets[17]);
-  object.configurationName = reader.readStringOrNull(offsets[18]);
-  object.createdAt = reader.readDateTime(offsets[19]);
-  object.createdBy = reader.readString(offsets[20]);
-  object.createdByName = reader.readString(offsets[21]);
-  object.deposit = reader.readDouble(offsets[22]);
-  object.description = reader.readStringOrNull(offsets[23]);
-  object.facingTypeId = reader.readStringOrNull(offsets[24]);
-  object.facingTypeName = reader.readStringOrNull(offsets[25]);
-  object.flatNo = reader.readStringOrNull(offsets[26]);
-  object.floorNo = reader.readLongOrNull(offsets[27]);
-  object.furnishingTypeId = reader.readStringOrNull(offsets[28]);
-  object.furnishingTypeName = reader.readStringOrNull(offsets[29]);
-  object.googlePlaceId = reader.readStringOrNull(offsets[30]);
-  object.id = reader.readString(offsets[31]);
-  object.images = reader.readStringList(offsets[32]) ?? [];
-  object.isVerified = reader.readBool(offsets[33]);
+  object.adminId = reader.readStringOrNull(offsets[1]);
+  object.ageOfProperty = reader.readLongOrNull(offsets[2]);
+  object.amenities = reader.readStringList(offsets[3]) ?? [];
+  object.areaId = reader.readString(offsets[4]);
+  object.areaName = reader.readString(offsets[5]);
+  object.balconies = reader.readLong(offsets[6]);
+  object.bathrooms = reader.readLong(offsets[7]);
+  object.bedrooms = reader.readLong(offsets[8]);
+  object.blockWing = reader.readStringOrNull(offsets[9]);
+  object.brokerName = reader.readStringOrNull(offsets[10]);
+  object.brokerageTypeId = reader.readStringOrNull(offsets[11]);
+  object.brokerageTypeName = reader.readStringOrNull(offsets[12]);
+  object.carpetArea = reader.readDoubleOrNull(offsets[13]);
+  object.categoryId = reader.readString(offsets[14]);
+  object.categoryName = reader.readString(offsets[15]);
+  object.cityId = reader.readString(offsets[16]);
+  object.cityName = reader.readString(offsets[17]);
+  object.configurationId = reader.readStringOrNull(offsets[18]);
+  object.configurationName = reader.readStringOrNull(offsets[19]);
+  object.createdAt = reader.readDateTime(offsets[20]);
+  object.createdBy = reader.readString(offsets[21]);
+  object.createdByName = reader.readString(offsets[22]);
+  object.deposit = reader.readDouble(offsets[23]);
+  object.description = reader.readStringOrNull(offsets[24]);
+  object.facingTypeId = reader.readStringOrNull(offsets[25]);
+  object.facingTypeName = reader.readStringOrNull(offsets[26]);
+  object.flatNo = reader.readStringOrNull(offsets[27]);
+  object.floorNo = reader.readLongOrNull(offsets[28]);
+  object.furnishingTypeId = reader.readStringOrNull(offsets[29]);
+  object.furnishingTypeName = reader.readStringOrNull(offsets[30]);
+  object.googlePlaceId = reader.readStringOrNull(offsets[31]);
+  object.id = reader.readString(offsets[32]);
+  object.images = reader.readStringList(offsets[33]) ?? [];
+  object.isVerified = reader.readBool(offsets[34]);
   object.isarId = id;
-  object.landmark = reader.readStringOrNull(offsets[34]);
-  object.latitude = reader.readDoubleOrNull(offsets[35]);
-  object.listingTypeId = reader.readString(offsets[36]);
-  object.listingTypeName = reader.readString(offsets[37]);
-  object.longitude = reader.readDoubleOrNull(offsets[38]);
-  object.maintenance = reader.readDouble(offsets[39]);
-  object.ownerMobile = reader.readString(offsets[40]);
-  object.ownerName = reader.readString(offsets[41]);
-  object.ownershipTypeId = reader.readStringOrNull(offsets[42]);
-  object.ownershipTypeName = reader.readStringOrNull(offsets[43]);
-  object.parking = reader.readLong(offsets[44]);
-  object.pincode = reader.readString(offsets[45]);
-  object.plotArea = reader.readDoubleOrNull(offsets[46]);
-  object.possessionDate = reader.readDateTimeOrNull(offsets[47]);
-  object.price = reader.readDouble(offsets[48]);
-  object.propertyCode = reader.readString(offsets[49]);
-  object.propertyStatusId = reader.readString(offsets[50]);
-  object.propertyStatusName = reader.readString(offsets[51]);
-  object.propertyTypeId = reader.readString(offsets[52]);
-  object.propertyTypeName = reader.readString(offsets[53]);
-  object.remarks = reader.readStringOrNull(offsets[54]);
-  object.superBuiltupArea = reader.readDoubleOrNull(offsets[55]);
-  object.title = reader.readString(offsets[56]);
-  object.totalFloor = reader.readLongOrNull(offsets[57]);
+  object.landmark = reader.readStringOrNull(offsets[35]);
+  object.latitude = reader.readDoubleOrNull(offsets[36]);
+  object.listingTypeId = reader.readString(offsets[37]);
+  object.listingTypeName = reader.readString(offsets[38]);
+  object.longitude = reader.readDoubleOrNull(offsets[39]);
+  object.maintenance = reader.readDouble(offsets[40]);
+  object.organizationId = reader.readStringOrNull(offsets[41]);
+  object.ownerMobile = reader.readString(offsets[42]);
+  object.ownerName = reader.readString(offsets[43]);
+  object.ownershipTypeId = reader.readStringOrNull(offsets[44]);
+  object.ownershipTypeName = reader.readStringOrNull(offsets[45]);
+  object.parking = reader.readLong(offsets[46]);
+  object.pincode = reader.readString(offsets[47]);
+  object.plotArea = reader.readDoubleOrNull(offsets[48]);
+  object.possessionDate = reader.readDateTimeOrNull(offsets[49]);
+  object.price = reader.readDouble(offsets[50]);
+  object.propertyCode = reader.readString(offsets[51]);
+  object.propertyStatusId = reader.readString(offsets[52]);
+  object.propertyStatusName = reader.readString(offsets[53]);
+  object.propertyTypeId = reader.readString(offsets[54]);
+  object.propertyTypeName = reader.readString(offsets[55]);
+  object.remarks = reader.readStringOrNull(offsets[56]);
+  object.superBuiltupArea = reader.readDoubleOrNull(offsets[57]);
+  object.title = reader.readString(offsets[58]);
+  object.totalFloor = reader.readLongOrNull(offsets[59]);
   return object;
 }
 
@@ -2196,21 +2222,21 @@ P _propertyLocalDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 6:
       return (reader.readLong(offset)) as P;
     case 7:
       return (reader.readLong(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
@@ -2218,9 +2244,9 @@ P _propertyLocalDeserializeProp<P>(
     case 11:
       return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 14:
       return (reader.readString(offset)) as P;
     case 15:
@@ -2228,19 +2254,19 @@ P _propertyLocalDeserializeProp<P>(
     case 16:
       return (reader.readString(offset)) as P;
     case 17:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 18:
       return (reader.readStringOrNull(offset)) as P;
     case 19:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 20:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 21:
       return (reader.readString(offset)) as P;
     case 22:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 23:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 24:
       return (reader.readStringOrNull(offset)) as P;
     case 25:
@@ -2248,53 +2274,53 @@ P _propertyLocalDeserializeProp<P>(
     case 26:
       return (reader.readStringOrNull(offset)) as P;
     case 27:
-      return (reader.readLongOrNull(offset)) as P;
-    case 28:
       return (reader.readStringOrNull(offset)) as P;
+    case 28:
+      return (reader.readLongOrNull(offset)) as P;
     case 29:
       return (reader.readStringOrNull(offset)) as P;
     case 30:
       return (reader.readStringOrNull(offset)) as P;
     case 31:
-      return (reader.readString(offset)) as P;
-    case 32:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 33:
-      return (reader.readBool(offset)) as P;
-    case 34:
       return (reader.readStringOrNull(offset)) as P;
-    case 35:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 36:
+    case 32:
       return (reader.readString(offset)) as P;
+    case 33:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 34:
+      return (reader.readBool(offset)) as P;
+    case 35:
+      return (reader.readStringOrNull(offset)) as P;
+    case 36:
+      return (reader.readDoubleOrNull(offset)) as P;
     case 37:
       return (reader.readString(offset)) as P;
     case 38:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 39:
-      return (reader.readDouble(offset)) as P;
-    case 40:
-      return (reader.readString(offset)) as P;
-    case 41:
-      return (reader.readString(offset)) as P;
-    case 42:
-      return (reader.readStringOrNull(offset)) as P;
-    case 43:
-      return (reader.readStringOrNull(offset)) as P;
-    case 44:
-      return (reader.readLong(offset)) as P;
-    case 45:
-      return (reader.readString(offset)) as P;
-    case 46:
       return (reader.readDoubleOrNull(offset)) as P;
-    case 47:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 48:
+    case 40:
       return (reader.readDouble(offset)) as P;
+    case 41:
+      return (reader.readStringOrNull(offset)) as P;
+    case 42:
+      return (reader.readString(offset)) as P;
+    case 43:
+      return (reader.readString(offset)) as P;
+    case 44:
+      return (reader.readStringOrNull(offset)) as P;
+    case 45:
+      return (reader.readStringOrNull(offset)) as P;
+    case 46:
+      return (reader.readLong(offset)) as P;
+    case 47:
+      return (reader.readString(offset)) as P;
+    case 48:
+      return (reader.readDoubleOrNull(offset)) as P;
     case 49:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 50:
-      return (reader.readString(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 51:
       return (reader.readString(offset)) as P;
     case 52:
@@ -2302,12 +2328,16 @@ P _propertyLocalDeserializeProp<P>(
     case 53:
       return (reader.readString(offset)) as P;
     case 54:
-      return (reader.readStringOrNull(offset)) as P;
-    case 55:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 56:
       return (reader.readString(offset)) as P;
+    case 55:
+      return (reader.readString(offset)) as P;
+    case 56:
+      return (reader.readStringOrNull(offset)) as P;
     case 57:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 58:
+      return (reader.readString(offset)) as P;
+    case 59:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2640,6 +2670,160 @@ extension PropertyLocalQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'address',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'adminId',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'adminId',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'adminId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'adminId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'adminId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      adminIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'adminId',
         value: '',
       ));
     });
@@ -7586,6 +7770,160 @@ extension PropertyLocalQueryFilter
   }
 
   QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'organizationId',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'organizationId',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'organizationId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'organizationId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      organizationIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'organizationId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
       ownerMobileEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -9730,6 +10068,18 @@ extension PropertyLocalQuerySortBy
     });
   }
 
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy> sortByAdminId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy> sortByAdminIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminId', Sort.desc);
+    });
+  }
+
   QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy>
       sortByAgeOfProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -10219,6 +10569,20 @@ extension PropertyLocalQuerySortBy
     });
   }
 
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy>
+      sortByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy>
+      sortByOrganizationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.desc);
+    });
+  }
+
   QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy> sortByOwnerMobile() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerMobile', Sort.asc);
@@ -10469,6 +10833,18 @@ extension PropertyLocalQuerySortThenBy
   QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy> thenByAddressDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'address', Sort.desc);
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy> thenByAdminId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy> thenByAdminIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminId', Sort.desc);
     });
   }
 
@@ -10973,6 +11349,20 @@ extension PropertyLocalQuerySortThenBy
     });
   }
 
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy>
+      thenByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy>
+      thenByOrganizationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.desc);
+    });
+  }
+
   QueryBuilder<PropertyLocal, PropertyLocal, QAfterSortBy> thenByOwnerMobile() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'ownerMobile', Sort.asc);
@@ -11218,6 +11608,13 @@ extension PropertyLocalQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'address', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QDistinct> distinctByAdminId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'adminId', caseSensitive: caseSensitive);
     });
   }
 
@@ -11493,6 +11890,14 @@ extension PropertyLocalQueryWhereDistinct
     });
   }
 
+  QueryBuilder<PropertyLocal, PropertyLocal, QDistinct>
+      distinctByOrganizationId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'organizationId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<PropertyLocal, PropertyLocal, QDistinct> distinctByOwnerMobile(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -11633,6 +12038,12 @@ extension PropertyLocalQueryProperty
   QueryBuilder<PropertyLocal, String, QQueryOperations> addressProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'address');
+    });
+  }
+
+  QueryBuilder<PropertyLocal, String?, QQueryOperations> adminIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'adminId');
     });
   }
 
@@ -11883,6 +12294,13 @@ extension PropertyLocalQueryProperty
     });
   }
 
+  QueryBuilder<PropertyLocal, String?, QQueryOperations>
+      organizationIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'organizationId');
+    });
+  }
+
   QueryBuilder<PropertyLocal, String, QQueryOperations> ownerMobileProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'ownerMobile');
@@ -12011,98 +12429,108 @@ const RequirementLocalSchema = CollectionSchema(
   name: r'RequirementLocal',
   id: -7980756281068083200,
   properties: {
-    r'areaIds': PropertySchema(
+    r'adminId': PropertySchema(
       id: 0,
+      name: r'adminId',
+      type: IsarType.string,
+    ),
+    r'areaIds': PropertySchema(
+      id: 1,
       name: r'areaIds',
       type: IsarType.stringList,
     ),
     r'areaNames': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'areaNames',
       type: IsarType.stringList,
     ),
     r'budget': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'budget',
       type: IsarType.double,
     ),
     r'categoryId': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'categoryId',
       type: IsarType.string,
     ),
     r'categoryName': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'categoryName',
       type: IsarType.string,
     ),
     r'clientMobile': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'clientMobile',
       type: IsarType.string,
     ),
     r'clientName': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'clientName',
       type: IsarType.string,
     ),
     r'configurationId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'configurationId',
       type: IsarType.string,
     ),
     r'configurationName': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'configurationName',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'id': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'id',
       type: IsarType.string,
     ),
     r'maxArea': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'maxArea',
       type: IsarType.double,
     ),
     r'maxBudget': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'maxBudget',
       type: IsarType.double,
     ),
     r'minArea': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'minArea',
       type: IsarType.double,
     ),
     r'minBudget': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'minBudget',
       type: IsarType.double,
     ),
+    r'organizationId': PropertySchema(
+      id: 16,
+      name: r'organizationId',
+      type: IsarType.string,
+    ),
     r'propertyTypeId': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'propertyTypeId',
       type: IsarType.string,
     ),
     r'propertyTypeName': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'propertyTypeName',
       type: IsarType.string,
     ),
     r'remarks': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'remarks',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'status',
       type: IsarType.string,
     )
@@ -12141,6 +12569,12 @@ int _requirementLocalEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.adminId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.areaIds.length * 3;
   {
     for (var i = 0; i < object.areaIds.length; i++) {
@@ -12173,6 +12607,12 @@ int _requirementLocalEstimateSize(
   }
   bytesCount += 3 + object.id.length * 3;
   {
+    final value = object.organizationId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.propertyTypeId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -12200,25 +12640,27 @@ void _requirementLocalSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeStringList(offsets[0], object.areaIds);
-  writer.writeStringList(offsets[1], object.areaNames);
-  writer.writeDouble(offsets[2], object.budget);
-  writer.writeString(offsets[3], object.categoryId);
-  writer.writeString(offsets[4], object.categoryName);
-  writer.writeString(offsets[5], object.clientMobile);
-  writer.writeString(offsets[6], object.clientName);
-  writer.writeString(offsets[7], object.configurationId);
-  writer.writeString(offsets[8], object.configurationName);
-  writer.writeDateTime(offsets[9], object.createdAt);
-  writer.writeString(offsets[10], object.id);
-  writer.writeDouble(offsets[11], object.maxArea);
-  writer.writeDouble(offsets[12], object.maxBudget);
-  writer.writeDouble(offsets[13], object.minArea);
-  writer.writeDouble(offsets[14], object.minBudget);
-  writer.writeString(offsets[15], object.propertyTypeId);
-  writer.writeString(offsets[16], object.propertyTypeName);
-  writer.writeString(offsets[17], object.remarks);
-  writer.writeString(offsets[18], object.status);
+  writer.writeString(offsets[0], object.adminId);
+  writer.writeStringList(offsets[1], object.areaIds);
+  writer.writeStringList(offsets[2], object.areaNames);
+  writer.writeDouble(offsets[3], object.budget);
+  writer.writeString(offsets[4], object.categoryId);
+  writer.writeString(offsets[5], object.categoryName);
+  writer.writeString(offsets[6], object.clientMobile);
+  writer.writeString(offsets[7], object.clientName);
+  writer.writeString(offsets[8], object.configurationId);
+  writer.writeString(offsets[9], object.configurationName);
+  writer.writeDateTime(offsets[10], object.createdAt);
+  writer.writeString(offsets[11], object.id);
+  writer.writeDouble(offsets[12], object.maxArea);
+  writer.writeDouble(offsets[13], object.maxBudget);
+  writer.writeDouble(offsets[14], object.minArea);
+  writer.writeDouble(offsets[15], object.minBudget);
+  writer.writeString(offsets[16], object.organizationId);
+  writer.writeString(offsets[17], object.propertyTypeId);
+  writer.writeString(offsets[18], object.propertyTypeName);
+  writer.writeString(offsets[19], object.remarks);
+  writer.writeString(offsets[20], object.status);
 }
 
 RequirementLocal _requirementLocalDeserialize(
@@ -12228,26 +12670,28 @@ RequirementLocal _requirementLocalDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = RequirementLocal();
-  object.areaIds = reader.readStringList(offsets[0]) ?? [];
-  object.areaNames = reader.readStringList(offsets[1]) ?? [];
-  object.budget = reader.readDoubleOrNull(offsets[2]);
-  object.categoryId = reader.readString(offsets[3]);
-  object.categoryName = reader.readString(offsets[4]);
-  object.clientMobile = reader.readString(offsets[5]);
-  object.clientName = reader.readString(offsets[6]);
-  object.configurationId = reader.readStringOrNull(offsets[7]);
-  object.configurationName = reader.readStringOrNull(offsets[8]);
-  object.createdAt = reader.readDateTime(offsets[9]);
-  object.id = reader.readString(offsets[10]);
+  object.adminId = reader.readStringOrNull(offsets[0]);
+  object.areaIds = reader.readStringList(offsets[1]) ?? [];
+  object.areaNames = reader.readStringList(offsets[2]) ?? [];
+  object.budget = reader.readDoubleOrNull(offsets[3]);
+  object.categoryId = reader.readString(offsets[4]);
+  object.categoryName = reader.readString(offsets[5]);
+  object.clientMobile = reader.readString(offsets[6]);
+  object.clientName = reader.readString(offsets[7]);
+  object.configurationId = reader.readStringOrNull(offsets[8]);
+  object.configurationName = reader.readStringOrNull(offsets[9]);
+  object.createdAt = reader.readDateTime(offsets[10]);
+  object.id = reader.readString(offsets[11]);
   object.isarId = id;
-  object.maxArea = reader.readDouble(offsets[11]);
-  object.maxBudget = reader.readDouble(offsets[12]);
-  object.minArea = reader.readDouble(offsets[13]);
-  object.minBudget = reader.readDouble(offsets[14]);
-  object.propertyTypeId = reader.readStringOrNull(offsets[15]);
-  object.propertyTypeName = reader.readStringOrNull(offsets[16]);
-  object.remarks = reader.readStringOrNull(offsets[17]);
-  object.status = reader.readString(offsets[18]);
+  object.maxArea = reader.readDoubleOrNull(offsets[12]);
+  object.maxBudget = reader.readDouble(offsets[13]);
+  object.minArea = reader.readDoubleOrNull(offsets[14]);
+  object.minBudget = reader.readDouble(offsets[15]);
+  object.organizationId = reader.readStringOrNull(offsets[16]);
+  object.propertyTypeId = reader.readStringOrNull(offsets[17]);
+  object.propertyTypeName = reader.readStringOrNull(offsets[18]);
+  object.remarks = reader.readStringOrNull(offsets[19]);
+  object.status = reader.readString(offsets[20]);
   return object;
 }
 
@@ -12259,13 +12703,13 @@ P _requirementLocalDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
       return (reader.readStringList(offset) ?? []) as P;
     case 2:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
@@ -12273,28 +12717,32 @@ P _requirementLocalDeserializeProp<P>(
     case 6:
       return (reader.readString(offset)) as P;
     case 7:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 11:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 13:
       return (reader.readDouble(offset)) as P;
     case 14:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 15:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 16:
       return (reader.readStringOrNull(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
+    case 20:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -12496,6 +12944,160 @@ extension RequirementLocalQueryWhere
 
 extension RequirementLocalQueryFilter
     on QueryBuilder<RequirementLocal, RequirementLocal, QFilterCondition> {
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'adminId',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'adminId',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'adminId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'adminId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'adminId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'adminId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      adminIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'adminId',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       areaIdsElementEqualTo(
     String value, {
@@ -14149,8 +14751,26 @@ extension RequirementLocalQueryFilter
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      maxAreaIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'maxArea',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      maxAreaIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'maxArea',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       maxAreaEqualTo(
-    double value, {
+    double? value, {
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -14164,7 +14784,7 @@ extension RequirementLocalQueryFilter
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       maxAreaGreaterThan(
-    double value, {
+    double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
@@ -14180,7 +14800,7 @@ extension RequirementLocalQueryFilter
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       maxAreaLessThan(
-    double value, {
+    double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
@@ -14196,8 +14816,8 @@ extension RequirementLocalQueryFilter
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       maxAreaBetween(
-    double lower,
-    double upper, {
+    double? lower,
+    double? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     double epsilon = Query.epsilon,
@@ -14281,8 +14901,26 @@ extension RequirementLocalQueryFilter
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      minAreaIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'minArea',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      minAreaIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'minArea',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       minAreaEqualTo(
-    double value, {
+    double? value, {
     double epsilon = Query.epsilon,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -14296,7 +14934,7 @@ extension RequirementLocalQueryFilter
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       minAreaGreaterThan(
-    double value, {
+    double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
@@ -14312,7 +14950,7 @@ extension RequirementLocalQueryFilter
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       minAreaLessThan(
-    double value, {
+    double? value, {
     bool include = false,
     double epsilon = Query.epsilon,
   }) {
@@ -14328,8 +14966,8 @@ extension RequirementLocalQueryFilter
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       minAreaBetween(
-    double lower,
-    double upper, {
+    double? lower,
+    double? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     double epsilon = Query.epsilon,
@@ -14408,6 +15046,160 @@ extension RequirementLocalQueryFilter
         upper: upper,
         includeUpper: includeUpper,
         epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'organizationId',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'organizationId',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'organizationId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'organizationId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'organizationId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'organizationId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      organizationIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'organizationId',
+        value: '',
       ));
     });
   }
@@ -15020,6 +15812,20 @@ extension RequirementLocalQueryLinks
 extension RequirementLocalQuerySortBy
     on QueryBuilder<RequirementLocal, RequirementLocal, QSortBy> {
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      sortByAdminId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      sortByAdminIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
       sortByBudget() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'budget', Sort.asc);
@@ -15201,6 +16007,20 @@ extension RequirementLocalQuerySortBy
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      sortByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      sortByOrganizationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
       sortByPropertyTypeId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'propertyTypeId', Sort.asc);
@@ -15259,6 +16079,20 @@ extension RequirementLocalQuerySortBy
 
 extension RequirementLocalQuerySortThenBy
     on QueryBuilder<RequirementLocal, RequirementLocal, QSortThenBy> {
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      thenByAdminId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      thenByAdminIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'adminId', Sort.desc);
+    });
+  }
+
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
       thenByBudget() {
     return QueryBuilder.apply(this, (query) {
@@ -15455,6 +16289,20 @@ extension RequirementLocalQuerySortThenBy
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      thenByOrganizationId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      thenByOrganizationIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'organizationId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
       thenByPropertyTypeId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'propertyTypeId', Sort.asc);
@@ -15513,6 +16361,13 @@ extension RequirementLocalQuerySortThenBy
 
 extension RequirementLocalQueryWhereDistinct
     on QueryBuilder<RequirementLocal, RequirementLocal, QDistinct> {
+  QueryBuilder<RequirementLocal, RequirementLocal, QDistinct> distinctByAdminId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'adminId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<RequirementLocal, RequirementLocal, QDistinct>
       distinctByAreaIds() {
     return QueryBuilder.apply(this, (query) {
@@ -15621,6 +16476,14 @@ extension RequirementLocalQueryWhereDistinct
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QDistinct>
+      distinctByOrganizationId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'organizationId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QDistinct>
       distinctByPropertyTypeId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'propertyTypeId',
@@ -15656,6 +16519,12 @@ extension RequirementLocalQueryProperty
   QueryBuilder<RequirementLocal, int, QQueryOperations> isarIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isarId');
+    });
+  }
+
+  QueryBuilder<RequirementLocal, String?, QQueryOperations> adminIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'adminId');
     });
   }
 
@@ -15734,7 +16603,7 @@ extension RequirementLocalQueryProperty
     });
   }
 
-  QueryBuilder<RequirementLocal, double, QQueryOperations> maxAreaProperty() {
+  QueryBuilder<RequirementLocal, double?, QQueryOperations> maxAreaProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'maxArea');
     });
@@ -15746,7 +16615,7 @@ extension RequirementLocalQueryProperty
     });
   }
 
-  QueryBuilder<RequirementLocal, double, QQueryOperations> minAreaProperty() {
+  QueryBuilder<RequirementLocal, double?, QQueryOperations> minAreaProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'minArea');
     });
@@ -15755,6 +16624,13 @@ extension RequirementLocalQueryProperty
   QueryBuilder<RequirementLocal, double, QQueryOperations> minBudgetProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'minBudget');
+    });
+  }
+
+  QueryBuilder<RequirementLocal, String?, QQueryOperations>
+      organizationIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'organizationId');
     });
   }
 

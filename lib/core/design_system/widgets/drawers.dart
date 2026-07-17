@@ -243,6 +243,8 @@ class BuildPropertyDetailWidget extends StatelessWidget {
                         _buildTextSection('Description', property.description ?? 'No description provided.'),
                         const SizedBox(height: CRMSpacing.m),
                         _buildTextSection('Operational CRM Remarks', property.remarks ?? 'No internal remarks.'),
+                        const SizedBox(height: CRMSpacing.m),
+                        _buildAmenitiesSection('Amenities', property.amenities),
                       ]),
                     ],
                   ),
@@ -667,6 +669,40 @@ Widget _buildTextSection(String label, String content) {
         content,
         style: CRMTypography.body.copyWith(color: CRMColors.text),
       ),
+    ],
+  );
+}
+
+Widget _buildAmenitiesSection(String label, List<String> amenities) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
+      ),
+      const SizedBox(height: CRMSpacing.xs),
+      if (amenities.isEmpty)
+        Text(
+          'No amenities selected.',
+          style: CRMTypography.body.copyWith(color: CRMColors.textMuted),
+        )
+      else
+        Wrap(
+          spacing: CRMSpacing.s,
+          runSpacing: CRMSpacing.xs,
+          children: amenities.map((am) {
+            return Chip(
+              label: Text(
+                am,
+                style: CRMTypography.bodyMedium.copyWith(color: CRMColors.text),
+              ),
+              backgroundColor: CRMColors.primary.withOpacity(0.08),
+              side: BorderSide(color: CRMColors.primary.withOpacity(0.2)),
+              padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: 0),
+            );
+          }).toList(),
+        ),
     ],
   );
 }

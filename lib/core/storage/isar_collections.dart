@@ -81,6 +81,8 @@ class PropertyLocal {
   late DateTime createdAt;
   late List<String> images;
   late List<String> amenities;
+  String? adminId;
+  String? organizationId;
 }
 
 @collection
@@ -100,14 +102,16 @@ class RequirementLocal {
   String? configurationName;
   late double minBudget;
   late double maxBudget;
-  late double minArea;
-  late double maxArea;
+  double? minArea;
+  double? maxArea;
   late List<String> areaIds;
   late List<String> areaNames;
   String? remarks;
   late String status;
   late DateTime createdAt;
   double? budget;
+  String? adminId;
+  String? organizationId;
 }
 
 @collection

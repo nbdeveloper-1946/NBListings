@@ -19,6 +19,8 @@ class RequirementModel {
   final String? remarks;
   final String status; // 'Active', 'Closed', 'Suspended'
   final DateTime createdAt;
+  final String? adminId;
+  final String? organizationId;
 
   RequirementModel({
     required this.id,
@@ -41,6 +43,8 @@ class RequirementModel {
     this.remarks,
     required this.status,
     required this.createdAt,
+    this.adminId,
+    this.organizationId,
   });
 
   factory RequirementModel.fromJson(Map<String, dynamic> json) {
@@ -116,6 +120,8 @@ class RequirementModel {
           : json['created_at'] != null
               ? DateTime.parse(json['created_at'])
               : DateTime.now(),
+      adminId: json['admin_id'] as String?,
+      organizationId: json['organization_id'] as String?,
     );
   }
 
@@ -141,6 +147,8 @@ class RequirementModel {
       'remarks': remarks,
       'status': status,
       'createdAt': createdAt.toIso8601String(),
+      'adminId': adminId,
+      'organizationId': organizationId,
     };
   }
 
@@ -158,6 +166,7 @@ class RequirementModel {
       'min_area': minArea,
       'max_area': maxArea,
       'area_id': areaIds.isNotEmpty ? areaIds.first : null,
+      'area_ids': areaIds,
       'remarks': remarks,
       'status': status,
     };
@@ -184,6 +193,8 @@ class RequirementModel {
     String? remarks,
     String? status,
     DateTime? createdAt,
+    String? adminId,
+    String? organizationId,
   }) {
     return RequirementModel(
       id: id ?? this.id,
@@ -206,6 +217,8 @@ class RequirementModel {
       remarks: remarks ?? this.remarks,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      adminId: adminId ?? this.adminId,
+      organizationId: organizationId ?? this.organizationId,
     );
   }
 }

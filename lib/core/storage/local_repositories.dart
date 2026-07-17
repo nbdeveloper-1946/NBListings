@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'isar_collections.dart';
 import 'isar_service.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PropertyLocalRepository {
   Isar get _isar => IsarService().isar;
@@ -62,11 +64,161 @@ class PropertyLocalRepository {
     return await filtered.sortByCreatedAtDesc().findAll();
   }
 
+  Future<void> loadInMemoryCache() async {
+    if (!kIsWeb) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = prefs.getStringList('cached_properties');
+      if (jsonList != null) {
+        for (final jsonStr in jsonList) {
+          final map = jsonDecode(jsonStr);
+          final p = PropertyLocal()
+            ..id = map['id']
+            ..propertyCode = map['propertyCode'] ?? ''
+            ..title = map['title'] ?? ''
+            ..description = map['description']
+            ..categoryId = map['categoryId'] ?? ''
+            ..categoryName = map['categoryName'] ?? ''
+            ..propertyTypeId = map['propertyTypeId'] ?? ''
+            ..propertyTypeName = map['propertyTypeName'] ?? ''
+            ..configurationId = map['configurationId']
+            ..configurationName = map['configurationName']
+            ..listingTypeId = map['listingTypeId'] ?? ''
+            ..listingTypeName = map['listingTypeName'] ?? ''
+            ..propertyStatusId = map['propertyStatusId'] ?? ''
+            ..propertyStatusName = map['propertyStatusName'] ?? ''
+            ..cityId = map['cityId'] ?? ''
+            ..cityName = map['cityName'] ?? ''
+            ..areaId = map['areaId'] ?? ''
+            ..areaName = map['areaName'] ?? ''
+            ..pincode = map['pincode'] ?? ''
+            ..address = map['address'] ?? ''
+            ..landmark = map['landmark']
+            ..latitude = map['latitude'] != null ? double.tryParse(map['latitude'].toString()) : null
+            ..longitude = map['longitude'] != null ? double.tryParse(map['longitude'].toString()) : null
+            ..superBuiltupArea = map['superBuiltupArea'] != null ? double.tryParse(map['superBuiltupArea'].toString()) : null
+            ..carpetArea = map['carpetArea'] != null ? double.tryParse(map['carpetArea'].toString()) : null
+            ..plotArea = map['plotArea'] != null ? double.tryParse(map['plotArea'].toString()) : null
+            ..price = double.tryParse(map['price']?.toString() ?? '') ?? 0.0
+            ..deposit = double.tryParse(map['deposit']?.toString() ?? '') ?? 0.0
+            ..maintenance = double.tryParse(map['maintenance']?.toString() ?? '') ?? 0.0
+            ..furnishingTypeId = map['furnishingTypeId']
+            ..furnishingTypeName = map['furnishingTypeName']
+            ..facingTypeId = map['facingTypeId']
+            ..facingTypeName = map['facingTypeName']
+            ..ownershipTypeId = map['ownershipTypeId']
+            ..ownershipTypeName = map['ownershipTypeName']
+            ..bedrooms = map['bedrooms'] as int? ?? 0
+            ..bathrooms = map['bathrooms'] as int? ?? 0
+            ..balconies = map['balconies'] as int? ?? 0
+            ..parking = map['parking'] as int? ?? 0
+            ..floorNo = map['floorNo'] as int?
+            ..totalFloor = map['totalFloor'] as int?
+            ..ageOfProperty = map['ageOfProperty'] as int?
+            ..possessionDate = map['possessionDate'] != null ? DateTime.tryParse(map['possessionDate']) : null
+            ..ownerName = map['ownerName'] ?? ''
+            ..ownerMobile = map['ownerMobile'] ?? ''
+            ..brokerName = map['brokerName']
+            ..remarks = map['remarks']
+            ..blockWing = map['blockWing']
+            ..flatNo = map['flatNo']
+            ..googlePlaceId = map['googlePlaceId']
+            ..brokerageTypeId = map['brokerageTypeId']
+            ..brokerageTypeName = map['brokerageTypeName']
+            ..isVerified = map['isVerified'] as bool? ?? false
+            ..createdBy = map['createdBy'] ?? ''
+            ..createdByName = map['createdByName'] ?? 'N/A'
+            ..createdAt = DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now()
+            ..images = List<String>.from(map['images'] ?? [])
+            ..amenities = List<String>.from(map['amenities'] ?? [])
+            ..adminId = map['adminId']
+            ..organizationId = map['organizationId'];
+          inMemory[p.id] = p;
+        }
+        print("Loaded ${inMemory.length} properties from local storage cache.");
+      }
+    } catch (e) {
+      print("Error loading cached properties: $e");
+    }
+  }
+
+  Future<void> _saveAllToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = inMemory.values.map((item) => jsonEncode({
+        'id': item.id,
+        'propertyCode': item.propertyCode,
+        'title': item.title,
+        'description': item.description,
+        'categoryId': item.categoryId,
+        'categoryName': item.categoryName,
+        'propertyTypeId': item.propertyTypeId,
+        'propertyTypeName': item.propertyTypeName,
+        'configurationId': item.configurationId,
+        'configurationName': item.configurationName,
+        'listingTypeId': item.listingTypeId,
+        'listingTypeName': item.listingTypeName,
+        'propertyStatusId': item.propertyStatusId,
+        'propertyStatusName': item.propertyStatusName,
+        'cityId': item.cityId,
+        'cityName': item.cityName,
+        'areaId': item.areaId,
+        'areaName': item.areaName,
+        'pincode': item.pincode,
+        'address': item.address,
+        'landmark': item.landmark,
+        'latitude': item.latitude,
+        'longitude': item.longitude,
+        'superBuiltupArea': item.superBuiltupArea,
+        'carpetArea': item.carpetArea,
+        'plotArea': item.plotArea,
+        'price': item.price,
+        'deposit': item.deposit,
+        'maintenance': item.maintenance,
+        'furnishingTypeId': item.furnishingTypeId,
+        'furnishingTypeName': item.furnishingTypeName,
+        'facingTypeId': item.facingTypeId,
+        'facingTypeName': item.facingTypeName,
+        'ownershipTypeId': item.ownershipTypeId,
+        'ownershipTypeName': item.ownershipTypeName,
+        'bedrooms': item.bedrooms,
+        'bathrooms': item.bathrooms,
+        'balconies': item.balconies,
+        'parking': item.parking,
+        'floorNo': item.floorNo,
+        'totalFloor': item.totalFloor,
+        'ageOfProperty': item.ageOfProperty,
+        'possessionDate': item.possessionDate?.toIso8601String(),
+        'ownerName': item.ownerName,
+        'ownerMobile': item.ownerMobile,
+        'brokerName': item.brokerName,
+        'remarks': item.remarks,
+        'blockWing': item.blockWing,
+        'flatNo': item.flatNo,
+        'googlePlaceId': item.googlePlaceId,
+        'brokerageTypeId': item.brokerageTypeId,
+        'brokerageTypeName': item.brokerageTypeName,
+        'isVerified': item.isVerified,
+        'createdBy': item.createdBy,
+        'createdByName': item.createdByName,
+        'createdAt': item.createdAt.toIso8601String(),
+        'images': item.images,
+        'amenities': item.amenities,
+        'adminId': item.adminId,
+        'organizationId': item.organizationId,
+      })).toList();
+      await prefs.setStringList('cached_properties', jsonList);
+    } catch (e) {
+      print("Error saving properties to preferences: $e");
+    }
+  }
+
   Future<void> saveProperties(List<PropertyLocal> properties) async {
     if (kIsWeb) {
       for (final p in properties) {
         inMemory[p.id] = p;
       }
+      await _saveAllToPrefs();
       return;
     }
 
@@ -78,6 +230,7 @@ class PropertyLocalRepository {
   Future<void> deleteProperty(String id) async {
     if (kIsWeb) {
       inMemory.remove(id);
+      await _saveAllToPrefs();
       return;
     }
 
@@ -130,11 +283,83 @@ class RequirementLocalRepository {
     return await filtered.sortByCreatedAtDesc().findAll();
   }
 
+  Future<void> loadInMemoryCache() async {
+    if (!kIsWeb) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = prefs.getStringList('cached_requirements');
+      if (jsonList != null) {
+        for (final jsonStr in jsonList) {
+          final map = jsonDecode(jsonStr);
+          final r = RequirementLocal()
+            ..id = map['id']
+            ..clientName = map['clientName'] ?? ''
+            ..clientMobile = map['clientMobile'] ?? ''
+            ..categoryId = map['categoryId'] ?? ''
+            ..categoryName = map['categoryName'] ?? ''
+            ..propertyTypeId = map['propertyTypeId']
+            ..propertyTypeName = map['propertyTypeName']
+            ..configurationId = map['configurationId']
+            ..configurationName = map['configurationName']
+            ..minBudget = double.tryParse(map['minBudget']?.toString() ?? '') ?? 0.0
+            ..maxBudget = double.tryParse(map['maxBudget']?.toString() ?? '') ?? 0.0
+            ..minArea = map['minArea'] != null ? double.tryParse(map['minArea'].toString()) : null
+            ..maxArea = map['maxArea'] != null ? double.tryParse(map['maxArea'].toString()) : null
+            ..areaIds = List<String>.from(map['areaIds'] ?? [])
+            ..areaNames = List<String>.from(map['areaNames'] ?? [])
+            ..remarks = map['remarks']
+            ..status = map['status'] ?? 'Active'
+            ..createdAt = DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now()
+            ..budget = map['budget'] != null ? double.tryParse(map['budget'].toString()) : null
+            ..adminId = map['adminId']
+            ..organizationId = map['organizationId'];
+          inMemory[r.id] = r;
+        }
+        print("Loaded ${inMemory.length} requirements from local storage cache.");
+      }
+    } catch (e) {
+      print("Error loading cached requirements: $e");
+    }
+  }
+
+  Future<void> _saveAllToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = inMemory.values.map((item) => jsonEncode({
+        'id': item.id,
+        'clientName': item.clientName,
+        'clientMobile': item.clientMobile,
+        'categoryId': item.categoryId,
+        'categoryName': item.categoryName,
+        'propertyTypeId': item.propertyTypeId,
+        'propertyTypeName': item.propertyTypeName,
+        'configurationId': item.configurationId,
+        'configurationName': item.configurationName,
+        'minBudget': item.minBudget,
+        'maxBudget': item.maxBudget,
+        'minArea': item.minArea,
+        'maxArea': item.maxArea,
+        'areaIds': item.areaIds,
+        'areaNames': item.areaNames,
+        'remarks': item.remarks,
+        'status': item.status,
+        'createdAt': item.createdAt.toIso8601String(),
+        'budget': item.budget,
+        'adminId': item.adminId,
+        'organizationId': item.organizationId,
+      })).toList();
+      await prefs.setStringList('cached_requirements', jsonList);
+    } catch (e) {
+      print("Error saving requirements to preferences: $e");
+    }
+  }
+
   Future<void> saveRequirements(List<RequirementLocal> requirements) async {
     if (kIsWeb) {
       for (final r in requirements) {
         inMemory[r.id] = r;
       }
+      await _saveAllToPrefs();
       return;
     }
 
@@ -146,6 +371,7 @@ class RequirementLocalRepository {
   Future<void> deleteRequirement(String id) async {
     if (kIsWeb) {
       inMemory.remove(id);
+      await _saveAllToPrefs();
       return;
     }
 
@@ -308,11 +534,53 @@ class LookupLocalRepository {
     return await _isar.lookupItemLocals.filter().categoryEqualTo(category).findAll();
   }
 
+  Future<void> loadInMemoryCache() async {
+    if (!kIsWeb) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = prefs.getStringList('cached_lookups');
+      if (jsonList != null) {
+        for (final jsonStr in jsonList) {
+          final map = jsonDecode(jsonStr);
+          final item = LookupItemLocal()
+            ..id = map['id'] ?? ''
+            ..name = map['name'] ?? ''
+            ..category = map['category'] ?? ''
+            ..categoryId = map['categoryId']
+            ..cityId = map['cityId']
+            ..pincode = map['pincode'];
+          inMemory[item.id] = item;
+        }
+        print("Loaded ${inMemory.length} lookups from local storage cache.");
+      }
+    } catch (e) {
+      print("Error loading cached lookups: $e");
+    }
+  }
+
+  Future<void> _saveAllToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = inMemory.values.map((item) => jsonEncode({
+        'id': item.id,
+        'name': item.name,
+        'category': item.category,
+        'categoryId': item.categoryId,
+        'cityId': item.cityId,
+        'pincode': item.pincode,
+      })).toList();
+      await prefs.setStringList('cached_lookups', jsonList);
+    } catch (e) {
+      print("Error saving lookups to preferences: $e");
+    }
+  }
+
   Future<void> saveLookups(List<LookupItemLocal> items) async {
     if (kIsWeb) {
       for (final item in items) {
         inMemory[item.id] = item;
       }
+      await _saveAllToPrefs();
       return;
     }
 
@@ -324,6 +592,7 @@ class LookupLocalRepository {
   Future<void> saveSingleLookup(LookupItemLocal item) async {
     if (kIsWeb) {
       inMemory[item.id] = item;
+      await _saveAllToPrefs();
       return;
     }
 

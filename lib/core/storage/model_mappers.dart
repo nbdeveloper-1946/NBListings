@@ -66,9 +66,8 @@ extension PropertyLocalExtensions on PropertyLocal {
       amenities: amenities,
       googlePlaceId: googlePlaceId,
       brokerageTypeId: brokerageTypeId,
-      brokerageTypeName: brokerageTypeName,
-      adminId: null,
-      organizationId: null,
+      adminId: adminId,
+      organizationId: organizationId,
     );
   }
 }
@@ -133,7 +132,9 @@ extension PropertyModelExtensions on PropertyModel {
       ..amenities = amenities
       ..googlePlaceId = googlePlaceId
       ..brokerageTypeId = brokerageTypeId
-      ..brokerageTypeName = brokerageTypeName;
+      ..brokerageTypeName = brokerageTypeName
+      ..adminId = adminId
+      ..organizationId = organizationId;
   }
 }
 
@@ -158,6 +159,8 @@ extension RequirementLocalExtensions on RequirementLocal {
       remarks: remarks,
       status: status,
       createdAt: createdAt,
+      adminId: adminId,
+      organizationId: organizationId,
     );
   }
 }
@@ -183,7 +186,9 @@ extension RequirementModelExtensions on RequirementModel {
       ..remarks = remarks
       ..status = status
       ..createdAt = createdAt
-      ..budget = (minBudget + maxBudget) / 2;
+      ..budget = (minBudget + maxBudget) / 2
+      ..adminId = adminId
+      ..organizationId = organizationId;
   }
 }
 

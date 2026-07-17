@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'isar_collections.dart';
+import 'local_repositories.dart';
 
 class IsarService {
   static final IsarService _instance = IsarService._internal();
@@ -25,6 +26,9 @@ class IsarService {
 
     if (kIsWeb) {
       print("🌐 [ISAR WEB] Bypassing Isar.open. Running local repositories in-memory.");
+      await LookupLocalRepository().loadInMemoryCache();
+      await PropertyLocalRepository().loadInMemoryCache();
+      await RequirementLocalRepository().loadInMemoryCache();
       return;
     }
 
