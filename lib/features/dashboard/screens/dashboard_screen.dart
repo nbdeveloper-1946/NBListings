@@ -1264,29 +1264,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                     ),
                                     _buildTableDataCell(
-                                      Text(p.areaName, style: TextStyle(color: CRMColors.textSecondaryOf(context))),
+                                      InkWell(
+                                        onTap: () => _openPropertyDetails(p.id),
+                                        child: MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: Text(p.areaName, style: TextStyle(color: CRMColors.textSecondaryOf(context))),
+                                        ),
+                                      ),
                                     ),
                                     _buildTableDataCell(
-                                      Text('₹${p.price.toStringAsFixed(0)}', style: TextStyle(color: CRMColors.textOf(context), fontWeight: FontWeight.w600)),
+                                      InkWell(
+                                        onTap: () => _openPropertyDetails(p.id),
+                                        child: MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: Text('₹${p.price.toStringAsFixed(0)}', style: TextStyle(color: CRMColors.textOf(context), fontWeight: FontWeight.w600)),
+                                        ),
+                                      ),
                                     ),
                                     _buildTableDataCell(
-                                      Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: p.status.toLowerCase() == 'available' 
-                                                ? CRMColors.success.withOpacity(0.1) 
-                                                : CRMColors.warning.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                                          ),
-                                          child: Text(
-                                            p.status, 
-                                            style: TextStyle(
-                                              color: p.status.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold
-                                            )
+                                      InkWell(
+                                        onTap: () => _openPropertyDetails(p.id),
+                                        child: MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: p.status.toLowerCase() == 'available' 
+                                                    ? CRMColors.success.withOpacity(0.1) 
+                                                    : CRMColors.warning.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                                              ),
+                                              child: Text(
+                                                p.status, 
+                                                style: TextStyle(
+                                                  color: p.status.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold
+                                                )
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -1549,55 +1567,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Future<void> _openPropertyDetails(String propertyId) async {
-    if (kIsWeb) {
-      final url = '${Uri.base.origin}/#/properties/$propertyId';
-      launchUrl(Uri.parse(url));
-    } else {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-      try {
-        final repository = PropertiesRepository();
-        var prop = await repository.getPropertyById(propertyId);
-        
-        if (prop == null) {
-          final response = await PropertiesService().getProperties();
-          final data = response['data'] as Map<String, dynamic>? ?? {};
-          final list = data['properties'] as List? ?? [];
-          final freshList = list.map((item) => PropertyModel.fromJson(item)).toList();
-          
-          final localEntities = freshList.map((p) => p.toLocal()).toList();
-          await RepositoryCoordinator().propertyLocal.saveProperties(localEntities);
-          
-          prop = freshList.firstWhere(
-            (p) => p.id == propertyId,
-            orElse: () => null as dynamic,
-          );
-        }
-        
-        Navigator.pop(context);
-        
-        if (prop != null && mounted) {
-          showCRMPropertyDrawer(context, prop);
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Property details not found.')),
-            );
-          }
-        }
-      } catch (e) {
-        Navigator.pop(context);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to load property details: $e')),
-          );
-        }
-      }
-    }
+  void _openPropertyDetails(String propertyId) {
+    context.go('/properties?openId=$propertyId');
   }
 
   Widget _buildErrorState(String message) {

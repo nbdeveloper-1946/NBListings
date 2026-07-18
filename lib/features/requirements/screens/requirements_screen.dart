@@ -1077,11 +1077,6 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
   }
 
   void _openPropertyDetails(BuildContext context, PropertyModel p) {
-    if (kIsWeb) {
-      final url = '${Uri.base.origin}/#/properties/${p.id}';
-      launchUrl(Uri.parse(url));
-    } else {
-      showCRMPropertyDrawer(context, p);
-    }
+    showCRMPropertyDrawer(context, p);
   }
 }

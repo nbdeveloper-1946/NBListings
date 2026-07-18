@@ -89,9 +89,25 @@ class BuildPropertyDetailWidget extends StatelessWidget {
                       ),
                     ),
                     if (showHeaderClose)
-                      IconButton(
-                        icon: Icon(Icons.close_rounded, color: CRMColors.textSecondary),
+                      ElevatedButton(
                         onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: CRMColors.danger,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Close',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
                   ],
                 ),

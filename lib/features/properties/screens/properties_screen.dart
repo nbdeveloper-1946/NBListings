@@ -15,10 +15,12 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/models/user_model.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
+import '../repository/properties_repository.dart';
 import 'add_edit_property_screen.dart';
 
 class PropertiesScreen extends StatefulWidget {
-  const PropertiesScreen({super.key});
+  final String? openPropertyId;
+  const PropertiesScreen({super.key, this.openPropertyId});
 
   @override
   State<PropertiesScreen> createState() => _PropertiesScreenState();
@@ -30,6 +32,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   String? _highlightedPropertyId;
   String _activeTab = 'All';
   bool _hasAutoOpenedAdd = false;
+  bool _hasAutoOpenedProp = false;
   String? _selectedCategory;
   String? _selectedArea;
   String? _selectedListingType;
@@ -341,6 +344,29 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _showAddEditPropertyDialog(context, state.metadata!);
               });
+            }
+
+            final openId = widget.openPropertyId ?? GoRouterState.of(context).uri.queryParameters['openId'];
+            if (openId != null && !_hasAutoOpenedProp) {
+              _hasAutoOpenedProp = true;
+              PropertyModel? matched;
+              for (final item in properties) {
+                if (item.id == openId) {
+                  matched = item;
+                  break;
+                }
+              }
+              if (matched != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _openPropertyDetails(context, matched!);
+                });
+              } else {
+                PropertiesRepository().getPropertyById(openId).then((p) {
+                  if (p != null && mounted) {
+                    _openPropertyDetails(context, p);
+                  }
+                });
+              }
             }
           }
 
@@ -1022,11 +1048,6 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   }
 
   void _openPropertyDetails(BuildContext context, PropertyModel p) {
-    if (kIsWeb) {
-      final url = '${Uri.base.origin}/#/properties/${p.id}';
-      launchUrl(Uri.parse(url));
-    } else {
-      showCRMPropertyDrawer(context, p);
-    }
+    showCRMPropertyDrawer(context, p);
   }
 }

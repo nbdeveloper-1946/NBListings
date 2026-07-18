@@ -64,10 +64,13 @@ class AppRouter {
           ),
           GoRoute(
             path: '/properties',
-            builder: (context, state) => BlocProvider(
-              create: (context) => PropertiesBloc(),
-              child: const PropertiesScreen(),
-            ),
+            builder: (context, state) {
+              final openId = state.uri.queryParameters['openId'] ?? (state.extra as String?);
+              return BlocProvider(
+                create: (context) => PropertiesBloc(),
+                child: PropertiesScreen(openPropertyId: openId),
+              );
+            },
           ),
           GoRoute(
             path: '/users',

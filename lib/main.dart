@@ -26,13 +26,18 @@ import 'core/storage/repository_coordinator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await IsarService().initialize();
-  await PerformanceLogger().initialize();
-  await SyncManager().initialize();
+  
+  try {
+    await IsarService().initialize();
+    await PerformanceLogger().initialize();
+    await SyncManager().initialize();
 
-  final lookupCount = await RepositoryCoordinator().lookupLocal.getLookupsCount();
-  if (lookupCount > 0) {
-    SyncManager().isSyncCompleted = true;
+    final lookupCount = await RepositoryCoordinator().lookupLocal.getLookupsCount();
+    if (lookupCount > 0) {
+      SyncManager().isSyncCompleted = true;
+    }
+  } catch (e) {
+    debugPrint("Error during startup initialization: $e");
   }
 
   final authRepository = AuthRepository();
