@@ -132,24 +132,45 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     color: CRMColors.primary,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: p.isStatusAvailable 
-                        ? CRMColors.success.withOpacity(0.1) 
-                        : CRMColors.warning.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                  ),
-                  child: Text(
-                    p.statusDisplayName,
-                    style: TextStyle(
-                      color: p.isStatusAvailable 
-                          ? CRMColors.success 
-                          : CRMColors.warning,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: CRMColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                      ),
+                      child: Text(
+                        p.listingTypeName,
+                        style: TextStyle(
+                          color: CRMColors.primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: p.isStatusAvailable 
+                            ? CRMColors.success.withOpacity(0.1) 
+                            : CRMColors.warning.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                      ),
+                      child: Text(
+                        p.statusDisplayName,
+                        style: TextStyle(
+                          color: p.isStatusAvailable 
+                              ? CRMColors.success 
+                              : CRMColors.warning,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -163,22 +184,56 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: CRMSpacing.s),
-            Wrap(
-              spacing: CRMSpacing.m,
-              runSpacing: CRMSpacing.xs,
+            const SizedBox(height: CRMSpacing.xs),
+            Row(
+              children: [
+                Icon(Icons.person_outline_rounded, size: 14, color: CRMColors.textSecondaryOf(context)),
+                const SizedBox(width: 4),
+                Text(
+                  'Owner: ',
+                  style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                ),
+                Expanded(
+                  child: Text(
+                    '${p.ownerName} (${p.ownerMobile})',
+                    style: CRMTypography.captionBold.copyWith(
+                      color: CRMColors.textOf(context),
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.xs),
+            Row(
+              children: [
+                Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
+                const SizedBox(width: 4),
+                Text(
+                  '${p.areaName}, ${p.cityName}',
+                  style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.xs),
+            Row(
               children: [
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
+                    Icon(Icons.king_bed_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
                     const SizedBox(width: 4),
                     Text(
-                      '${p.areaName}, ${p.cityName}',
-                      style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                      '${p.bedrooms} BHK',
+                      style: CRMTypography.captionBold.copyWith(
+                        color: CRMColors.textOf(context),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
+                const SizedBox(width: CRMSpacing.m),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -192,6 +247,17 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       ),
                     ),
                   ],
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.xs),
+            Row(
+              children: [
+                Icon(Icons.calendar_today_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
+                const SizedBox(width: 4),
+                Text(
+                  DateFormat('dd-MM-yyyy').format(p.createdAt),
+                  style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
                 ),
               ],
             ),
