@@ -1,6 +1,6 @@
 class AppConstants {
   // API Config
-  static const String baseUrl = 'http://localhost:5000/api/v1';
+  static const String baseUrl = 'https://nb-listings-backend.vercel.app/api/v1';
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);
 
