@@ -190,6 +190,17 @@ class DashboardSummaryLocal {
   int? rented;
   int? requirements;
   int? users;
+
+  double? totalPropertiesTrend;
+  double? availableTrend;
+  double? soldTrend;
+  double? rentedTrend;
+  double? requirementsTrend;
+
+  String? topBroker;
+  String? topArea;
+  String? topProperty;
+  String? monthlyGrowth;
 }
 
 @collection

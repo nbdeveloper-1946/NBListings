@@ -362,7 +362,16 @@ extension DashboardDataExtensions on DashboardData {
         ..sold = summary.sold
         ..rented = summary.rented
         ..requirements = summary.requirements
-        ..users = summary.users)
+        ..users = summary.users
+        ..totalPropertiesTrend = summary.totalPropertiesTrend
+        ..availableTrend = summary.availableTrend
+        ..soldTrend = summary.soldTrend
+        ..rentedTrend = summary.rentedTrend
+        ..requirementsTrend = summary.requirementsTrend
+        ..topBroker = summary.topBroker
+        ..topArea = summary.topArea
+        ..topProperty = summary.topProperty
+        ..monthlyGrowth = summary.monthlyGrowth)
       ..activityJson = jsonEncode(activity.map((a) => {
         'id': a.id,
         'module': a.module,
@@ -416,6 +425,15 @@ extension DashboardLocalExtensions on DashboardLocal {
         rented: summary.rented ?? 0,
         requirements: summary.requirements ?? 0,
         users: summary.users ?? 0,
+        totalPropertiesTrend: summary.totalPropertiesTrend ?? 0.0,
+        availableTrend: summary.availableTrend ?? 0.0,
+        soldTrend: summary.soldTrend ?? 0.0,
+        rentedTrend: summary.rentedTrend ?? 0.0,
+        requirementsTrend: summary.requirementsTrend ?? 0.0,
+        topBroker: summary.topBroker ?? 'N/A',
+        topArea: summary.topArea ?? 'N/A',
+        topProperty: summary.topProperty ?? 'N/A',
+        monthlyGrowth: summary.monthlyGrowth ?? '0.0%',
       ),
       activity: actList.map((item) => RecentActivity.fromJson(item)).toList(),
       recentProperties: propList.map((item) => RecentProperty.fromJson(item)).toList(),
