@@ -8,6 +8,21 @@ import '../../features/owners/models/owner_model.dart';
 
 extension PropertyLocalExtensions on PropertyLocal {
   PropertyModel toModel() {
+    List<String> safeImages = const [];
+    try {
+      safeImages = images;
+    } catch (_) {}
+
+    List<String> safeAmenities = const [];
+    try {
+      safeAmenities = amenities;
+    } catch (_) {}
+
+    List<String> safeVideos = const [];
+    try {
+      safeVideos = videos;
+    } catch (_) {}
+
     return PropertyModel(
       id: id,
       propertyCode: propertyCode,
@@ -62,9 +77,9 @@ extension PropertyLocalExtensions on PropertyLocal {
       createdBy: createdBy,
       createdByName: createdByName,
       createdAt: createdAt,
-      images: images,
-      amenities: amenities,
-      videos: videos,
+      images: safeImages,
+      amenities: safeAmenities,
+      videos: safeVideos,
       googlePlaceId: googlePlaceId,
       brokerageTypeId: brokerageTypeId,
       adminId: adminId,
@@ -142,6 +157,16 @@ extension PropertyModelExtensions on PropertyModel {
 
 extension RequirementLocalExtensions on RequirementLocal {
   RequirementModel toModel() {
+    List<String> safeAreaIds = const [];
+    try {
+      safeAreaIds = areaIds;
+    } catch (_) {}
+
+    List<String> safeAreaNames = const [];
+    try {
+      safeAreaNames = areaNames;
+    } catch (_) {}
+
     return RequirementModel(
       id: id,
       clientName: clientName,
@@ -156,8 +181,8 @@ extension RequirementLocalExtensions on RequirementLocal {
       maxBudget: maxBudget,
       minArea: minArea,
       maxArea: maxArea,
-      areaIds: areaIds,
-      areaNames: areaNames,
+      areaIds: safeAreaIds,
+      areaNames: safeAreaNames,
       remarks: remarks,
       status: status,
       createdAt: createdAt,
