@@ -176,7 +176,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: CRMSpacing.l),
 
                   // 10. Performance Indicators
-                  _buildPerformanceBlock(),
+                  _buildPerformanceBlock(data.summary),
                 ],
               ),
             ),
@@ -293,34 +293,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: 'Total Properties',
         value: '${summary.totalProperties}',
         icon: Icons.inventory_2_outlined,
-        growthPercent: 8.5,
+        growthPercent: summary.totalPropertiesTrend,
       ),
       CRMKPICard(
         title: 'Available',
         value: '${summary.available}',
         icon: Icons.check_circle_outline_rounded,
         iconColor: CRMColors.success,
-        growthPercent: 12.0,
+        growthPercent: summary.availableTrend,
       ),
       CRMKPICard(
         title: 'Sold',
         value: '${summary.sold}',
         icon: Icons.sell_outlined,
         iconColor: CRMColors.warning,
-        growthPercent: -2.3,
+        growthPercent: summary.soldTrend,
       ),
       CRMKPICard(
         title: 'Rented',
         value: '${summary.rented}',
         icon: Icons.key_outlined,
         iconColor: CRMColors.info,
-        growthPercent: 4.8,
+        growthPercent: summary.rentedTrend,
       ),
       CRMKPICard(
         title: 'Requirements',
         value: '${summary.requirements}',
         icon: Icons.assignment_turned_in_outlined,
-        growthPercent: 15.2,
+        growthPercent: summary.requirementsTrend,
       ),
     ];
 
@@ -515,7 +515,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildFollowupTile(DashboardFollowup f) {
     final date = DateTime.tryParse(f.followupDate)?.toLocal() ?? DateTime.now();
-    final formattedTime = "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+    final hourInt = date.hour;
+    final displayHour = hourInt > 12 ? hourInt - 12 : (hourInt == 0 ? 12 : hourInt);
+    final amPm = hourInt >= 12 ? 'PM' : 'AM';
+    final formattedTime = "${displayHour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')} $amPm";
     final formattedDate = "${date.day}/${date.month}/${date.year}";
 
     return Container(
@@ -568,10 +571,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     try {
                       await DioClient.dio.patch('/followups/${f.id}/status', data: {'status': 'Completed'});
                       if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Follow-up marked as completed.')),
+                        );
                         context.read<DashboardBloc>().add(RefreshDashboard());
                       }
                     } catch (e) {
-                      // error
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update follow-up.'), backgroundColor: CRMColors.danger),
+                        );
+                      }
                     }
                   },
                   tooltip: 'Mark Completed',
@@ -583,10 +593,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   try {
                     await DioClient.dio.delete('/followups/${f.id}');
                     if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Follow-up deleted.')),
+                      );
                       context.read<DashboardBloc>().add(RefreshDashboard());
                     }
                   } catch (e) {
-                    // error
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to delete follow-up.'), backgroundColor: CRMColors.danger),
+                      );
+                    }
                   }
                 },
                 tooltip: 'Delete Follow-up',
@@ -1022,13 +1039,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final clientNameController = TextEditingController();
     final mobileController = TextEditingController();
     final notesController = TextEditingController();
-    DateTime selectedDate = DateTime.now();
+    DateTime selectedDate = DateTime.now().add(const Duration(hours: 1));
+    TimeOfDay selectedTime = TimeOfDay.fromDateTime(selectedDate);
 
     showDialog(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final hourInt = selectedTime.hour;
+            final displayHour = hourInt > 12 ? hourInt - 12 : (hourInt == 0 ? 12 : hourInt);
+            final amPm = hourInt >= 12 ? 'PM' : 'AM';
+            final formattedTimeStr = "${displayHour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')} $amPm";
+
             return AlertDialog(
               backgroundColor: CRMColors.cardBg,
               title: Text('Schedule Follow-up', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
@@ -1068,17 +1091,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: CRMSpacing.s),
                     ListTile(
-                      title: Text('Date: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
-                      trailing: Icon(Icons.calendar_today_rounded, color: CRMColors.primary),
+                      title: Text('Date & Time: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year} at $formattedTimeStr'),
+                      trailing: Icon(Icons.access_time_rounded, color: CRMColors.primary),
                       onTap: () async {
-                        final picked = await showDatePicker(
+                        final pickedDate = await showDatePicker(
                           context: context,
                           initialDate: selectedDate,
-                          firstDate: DateTime.now(),
+                          firstDate: DateTime.now().subtract(const Duration(days: 1)),
                           lastDate: DateTime.now().add(const Duration(days: 365)),
                         );
-                        if (picked != null) {
-                          setModalState(() => selectedDate = picked);
+                        if (pickedDate != null && ctx.mounted) {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: selectedTime,
+                          );
+                          if (pickedTime != null) {
+                            setModalState(() {
+                              selectedTime = pickedTime;
+                              selectedDate = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
                         }
                       },
                     ),
@@ -1103,13 +1141,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           'client_name': clientName,
                           'mobile': mobile,
                           'notes': notes,
-                          'followup_date': selectedDate.toUtc().toIso8601String(),
+                          'followup_date': selectedDate.toIso8601String(),
                         });
                         if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Follow-up scheduled successfully.')),
+                          );
                           context.read<DashboardBloc>().add(RefreshDashboard());
                         }
                       } catch (e) {
-                        // error
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to schedule follow-up.'), backgroundColor: CRMColors.danger),
+                          );
+                        }
                       }
                     }
                     if (ctx.mounted) {
@@ -1501,7 +1546,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildPerformanceBlock() {
+  Widget _buildPerformanceBlock(DashboardSummary summary) {
     return LayoutBuilder(
       builder: (context, constraints) {
         int crossAxisCount = 4;
@@ -1528,10 +1573,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               mainAxisSpacing: CRMSpacing.m,
               childAspectRatio: childAspectRatio,
               children: [
-                _buildPerformanceCard('Top Broker', 'System Administrator', Icons.stars_rounded),
-                _buildPerformanceCard('Top Area', 'Prahladnagar', Icons.location_on_rounded),
-                _buildPerformanceCard('Top Property', 'PR-1001', Icons.home_rounded),
-                _buildPerformanceCard('Monthly Growth', '+24.5%', Icons.trending_up_rounded),
+                _buildPerformanceCard('Top Broker', summary.topBroker, Icons.stars_rounded),
+                _buildPerformanceCard('Top Area', summary.topArea, Icons.location_on_rounded),
+                _buildPerformanceCard('Top Property', summary.topProperty, Icons.home_rounded),
+                _buildPerformanceCard('Monthly Growth', summary.monthlyGrowth, Icons.trending_up_rounded),
               ],
             ),
           ),

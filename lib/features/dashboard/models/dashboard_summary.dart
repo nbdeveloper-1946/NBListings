@@ -6,6 +6,17 @@ class DashboardSummary {
   final int requirements;
   final int users;
 
+  final double totalPropertiesTrend;
+  final double availableTrend;
+  final double soldTrend;
+  final double rentedTrend;
+  final double requirementsTrend;
+
+  final String topBroker;
+  final String topArea;
+  final String topProperty;
+  final String monthlyGrowth;
+
   const DashboardSummary({
     required this.totalProperties,
     required this.available,
@@ -13,9 +24,21 @@ class DashboardSummary {
     required this.rented,
     required this.requirements,
     required this.users,
+    this.totalPropertiesTrend = 0.0,
+    this.availableTrend = 0.0,
+    this.soldTrend = 0.0,
+    this.rentedTrend = 0.0,
+    this.requirementsTrend = 0.0,
+    this.topBroker = 'N/A',
+    this.topArea = 'N/A',
+    this.topProperty = 'N/A',
+    this.monthlyGrowth = '0.0%',
   });
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) {
+    final trends = json['trends'] as Map<String, dynamic>? ?? {};
+    final perf = json['performance'] as Map<String, dynamic>? ?? {};
+
     return DashboardSummary(
       totalProperties: json['totalProperties'] ?? 0,
       available: json['available'] ?? 0,
@@ -23,6 +46,15 @@ class DashboardSummary {
       rented: json['rented'] ?? 0,
       requirements: json['requirements'] ?? 0,
       users: json['users'] ?? 0,
+      totalPropertiesTrend: (trends['totalProperties'] ?? 0.0).toDouble(),
+      availableTrend: (trends['available'] ?? 0.0).toDouble(),
+      soldTrend: (trends['sold'] ?? 0.0).toDouble(),
+      rentedTrend: (trends['rented'] ?? 0.0).toDouble(),
+      requirementsTrend: (trends['requirements'] ?? 0.0).toDouble(),
+      topBroker: perf['topBroker'] ?? 'N/A',
+      topArea: perf['topArea'] ?? 'N/A',
+      topProperty: perf['topProperty'] ?? 'N/A',
+      monthlyGrowth: perf['monthlyGrowth'] ?? '0.0%',
     );
   }
 }
