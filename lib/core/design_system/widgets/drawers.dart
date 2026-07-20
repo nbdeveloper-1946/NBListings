@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
 import '../../../../features/properties/models/property_model.dart';
-import 'buttons.dart';
 import 'cards.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'crm_embedded_video_player.dart';
 
 void showCRMPropertyDrawer(BuildContext context, PropertyModel property) {
   showGeneralDialog(
@@ -125,6 +124,10 @@ class BuildPropertyDetailWidget extends StatelessWidget {
                     children: [
                       // Image Section
                       CRMImageSlider(images: property.images),
+                      if (property.videos.isNotEmpty) ...[
+                        const SizedBox(height: CRMSpacing.m),
+                        _buildVideoSection(context, property.videos),
+                      ],
                       const SizedBox(height: CRMSpacing.l),
                       
                       // Two-column layout for details
@@ -270,6 +273,26 @@ class BuildPropertyDetailWidget extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildVideoSection(BuildContext context, List<String> videos) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Property Videos',
+          style: CRMTypography.captionBold.copyWith(color: CRMColors.textOf(context)),
+        ),
+        const SizedBox(height: CRMSpacing.s),
+        ...videos.map((url) => Padding(
+          padding: const EdgeInsets.only(bottom: CRMSpacing.m),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+            child: CRMEmbeddedVideoPlayer(videoUrl: url),
+          ),
+        )).toList(),
+      ],
     );
   }
 }

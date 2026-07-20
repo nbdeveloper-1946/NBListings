@@ -64,6 +64,7 @@ extension PropertyLocalExtensions on PropertyLocal {
       createdAt: createdAt,
       images: images,
       amenities: amenities,
+      videos: videos,
       googlePlaceId: googlePlaceId,
       brokerageTypeId: brokerageTypeId,
       adminId: adminId,
@@ -130,6 +131,7 @@ extension PropertyModelExtensions on PropertyModel {
       ..createdAt = createdAt
       ..images = images
       ..amenities = amenities
+      ..videos = videos
       ..googlePlaceId = googlePlaceId
       ..brokerageTypeId = brokerageTypeId
       ..brokerageTypeName = brokerageTypeName

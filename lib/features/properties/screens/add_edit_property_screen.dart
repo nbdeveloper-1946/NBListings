@@ -7,6 +7,7 @@ import '../models/property_model.dart';
 import '../services/properties_service.dart';
 import '../repository/properties_repository.dart';
 import '../../../core/storage/crm_draft_repository.dart';
+import '../../../core/design_system/widgets/form/crm_video_picker.dart';
 
 class AddEditPropertyScreen extends StatefulWidget {
   final PropertyMetadataModel metadata;
@@ -54,6 +55,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   TextEditingController _facingController = TextEditingController();
   
   final List<String> _propertyImages = [];
+  final List<String> _propertyVideos = [];
 
   String? _selectedCategory;
   String? _selectedType;
@@ -253,6 +255,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _blockWingController.text = p.blockWing ?? '';
       _flatNoController.text = p.flatNo ?? '';
       _propertyImages.addAll(p.images);
+      _propertyVideos.addAll(p.videos);
       _bedroomsController.text = p.bedrooms.toString();
       _bathroomsController.text = p.bathrooms.toString();
       _balconiesController.text = p.balconies.toString();
@@ -475,6 +478,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       'remarks': _remarksController.text,
       'amenities': _selectedAmenities,
       'images': _propertyImages,
+      'videos': _propertyVideos,
     };
     CRMDraftRepository().saveDraft('property', draftData);
   }
@@ -549,6 +553,10 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                   final List<String> imgs = List<String>.from(draft['images'] ?? []);
                   _propertyImages.clear();
                   _propertyImages.addAll(imgs);
+
+                  final List<String> vids = List<String>.from(draft['videos'] ?? []);
+                  _propertyVideos.clear();
+                  _propertyVideos.addAll(vids);
                 });
               }
               Navigator.pop(ctx);
@@ -789,6 +797,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         'remarks': _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
         'amenities': _selectedAmenities,
         'images': _propertyImages,
+        'videos': _propertyVideos,
         'is_verified': _isVerified,
         'possession_date': _selectedStatus == 'to_be_available'
             ? _availableDate?.toIso8601String().substring(0, 10)
@@ -1399,12 +1408,36 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             maxImages: 10,
             uploadEndpoint: '/properties/upload-media',
           ),
+          const SizedBox(height: CRMSpacing.m),
+          CRMVideoPicker(
+            videoUrls: _propertyVideos,
+            onVideoAdded: (url) {
+              setState(() {
+                _propertyVideos.add(url);
+              });
+            },
+            onVideoRemoved: (index) {
+              setState(() {
+                _propertyVideos.removeAt(index);
+              });
+            },
+            maxVideos: 3,
+            uploadEndpoint: '/properties/upload-media',
+          ),
         ],
       ),
     );
   }
 
   Widget _buildLocationStep(bool isMobile) {
+    final selectedCategoryItem = widget.metadata.categories.firstWhere(
+      (c) => c.id == _selectedCategory,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final categoryName = selectedCategoryItem.name.trim().toLowerCase();
+    final isCommercial = categoryName.contains('commercial') || selectedCategoryItem.id == 'commercial';
+    final flatNoLabel = isCommercial ? 'Office / Shop Number' : 'Flat Number';
+
     final cityField = Row(
       children: [
         Expanded(
@@ -1465,7 +1498,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       controller: _flatNoController,
       style: CRMTypography.body.copyWith(color: CRMColors.text),
       decoration: InputDecoration(
-        labelText: 'Flat Number',
+        labelText: flatNoLabel,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
       ),
     );
@@ -1551,9 +1584,43 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   Widget _buildPricingStep(bool isMobile) {
+    final selectedCategoryItem = widget.metadata.categories.firstWhere(
+      (c) => c.id == _selectedCategory,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final categoryName = selectedCategoryItem.name.trim().toLowerCase();
+    final isIndustrial = categoryName.contains('industrial') || selectedCategoryItem.id == 'industrial';
+    final isCommercial = categoryName.contains('commercial') || selectedCategoryItem.id == 'commercial';
+
+    final showResidentialRooms = !isIndustrial && !isCommercial;
+    final showFloors = !isIndustrial;
+
+    final selectedListingTypeItem = widget.metadata.listingTypes.firstWhere(
+      (l) => l.id == _selectedListingType,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final listingName = selectedListingTypeItem.name.trim();
+    final isReSale = listingName.toLowerCase().contains('sale') ||
+        listingName.toLowerCase().contains('resale') ||
+        selectedListingTypeItem.id == 'resale' ||
+        selectedListingTypeItem.id == 'sale';
+
+    final String priceLabel;
+    if (listingName.isNotEmpty) {
+      if (listingName.toLowerCase() == 'rent') {
+        priceLabel = 'Rent Price';
+      } else if (listingName.toLowerCase() == 're-sale' || listingName.toLowerCase() == 'resale') {
+        priceLabel = 'Re-Sale Price';
+      } else {
+        priceLabel = '$listingName Price';
+      }
+    } else {
+      priceLabel = 'Rent/Sell Price';
+    }
+
     final priceField = CRMCurrencyField(
       controller: _priceController,
-      labelText: 'Rent/Sell Price',
+      labelText: priceLabel,
       isRequired: true,
     );
 
@@ -1572,6 +1639,11 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
       ),
       validator: (v) => v!.isEmpty ? 'Area required' : null,
+      onChanged: (_) {
+        if (_carpetController.text.isNotEmpty) {
+          setState(() {});
+        }
+      },
     );
 
     final carpetField = TextFormField(
@@ -1582,12 +1654,24 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         labelText: 'Carpet Area Size(In Sq.ft)',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
       ),
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      validator: (v) {
+        if (v != null && v.trim().isNotEmpty) {
+          final carpetVal = double.tryParse(v.trim());
+          if (carpetVal == null) return 'Invalid number';
+          final superVal = double.tryParse(_superBuiltupController.text.trim());
+          if (superVal != null && carpetVal > superVal) {
+            return 'Carpet area cannot exceed Super Builtup Area (${_superBuiltupController.text.trim()})';
+          }
+        }
+        return null;
+      },
     );
 
     final bedroomValue = _bedroomsController.text.isNotEmpty && int.tryParse(_bedroomsController.text) != null
         ? '${_bedroomsController.text} BHK'
-        : '1 ';
-    final bedroomOptions = ['1 ', '2 ', '3 ', '4 ', '5 '];
+        : '1 BHK';
+    final bedroomOptions = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5 BHK'];
     final bedroomItems = bedroomOptions.contains(bedroomValue)
         ? bedroomOptions
         : [...bedroomOptions, bedroomValue];
@@ -1921,20 +2005,25 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         children: [
           if (isMobile) ...[
             priceField,
-            const SizedBox(height: CRMSpacing.m),
-            depositMonthsField,
-            const SizedBox(height: CRMSpacing.m),
-            depositField,
+            if (!isReSale) ...[
+              const SizedBox(height: CRMSpacing.m),
+              depositMonthsField,
+              const SizedBox(height: CRMSpacing.m),
+              depositField,
+            ],
           ] else ...[
-            Row(
-              children: [
-                Expanded(child: priceField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: depositMonthsField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: depositField),
-              ],
-            ),
+            if (isReSale)
+              priceField
+            else
+              Row(
+                children: [
+                  Expanded(child: priceField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: depositMonthsField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: depositField),
+                ],
+              ),
           ],
           const SizedBox(height: CRMSpacing.m),
           TextFormField(
@@ -1973,52 +2062,60 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
           const SizedBox(height: CRMSpacing.l),
           Text('Room & Floor Details', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
           const SizedBox(height: CRMSpacing.s),
-          if (isMobile) ...[
-            Row(
-              children: [
-                Expanded(child: bedroomsField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: bathroomsField),
-              ],
-            ),
-            const SizedBox(height: CRMSpacing.m),
-            Row(
-              children: [
-                Expanded(child: balconiesField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: parkingField),
-              ],
-            ),
+          if (!showResidentialRooms) ...[
+            parkingField,
           ] else ...[
-            Row(
-              children: [
-                Expanded(child: bedroomsField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: bathroomsField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: balconiesField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: parkingField),
-              ],
-            ),
+            if (isMobile) ...[
+              Row(
+                children: [
+                  Expanded(child: bedroomsField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: bathroomsField),
+                ],
+              ),
+              const SizedBox(height: CRMSpacing.m),
+              Row(
+                children: [
+                  Expanded(child: balconiesField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: parkingField),
+                ],
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(child: bedroomsField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: bathroomsField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: balconiesField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: parkingField),
+                ],
+              ),
+            ],
           ],
           const SizedBox(height: CRMSpacing.m),
-          if (isMobile) ...[
-            floorNoField,
-            const SizedBox(height: CRMSpacing.m),
-            totalFloorField,
-            const SizedBox(height: CRMSpacing.m),
-            ageField,
+          if (showFloors) ...[
+            if (isMobile) ...[
+              floorNoField,
+              const SizedBox(height: CRMSpacing.m),
+              totalFloorField,
+              const SizedBox(height: CRMSpacing.m),
+              ageField,
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(child: floorNoField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: totalFloorField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: ageField),
+                ],
+              ),
+            ],
           ] else ...[
-            Row(
-              children: [
-                Expanded(child: floorNoField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: totalFloorField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: ageField),
-              ],
-            ),
+            ageField,
           ],
           const SizedBox(height: CRMSpacing.l),
           Text('Property Attributes', style: CRMTypography.captionBold.copyWith(color: CRMColors.text)),
@@ -2259,66 +2356,34 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   }
 
   Widget _buildContactsStep(bool isMobile) {
-    final selectedOwnershipName = () {
-      if (_selectedOwnership == null) return 'Owner';
-      final match = widget.metadata.ownerships.firstWhere(
-        (o) => o.id == _selectedOwnership,
-        orElse: () => LookupItem(id: '', name: 'Owner'),
-      );
-      return match.name;
-    }();
-
-    final ownershipField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      value: _selectedOwnership,
-      decoration: InputDecoration(
-        labelText: 'Ownership *',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
-      items: [
-        const DropdownMenuItem(value: null, child: Text('None')),
-        ...widget.metadata.ownerships.map((o) => DropdownMenuItem(value: o.id, child: Text(o.name))),
-      ],
-      validator: (v) => v == null || v.isEmpty ? 'Ownership required' : null,
-      onChanged: (v) {
-        setState(() {
-          _selectedOwnership = v;
-        });
-      },
-    );
-
-    final ownerNameField = CRMTextField(
+    final contactNameField = CRMTextField(
       controller: _ownerNameController,
-      labelText: '$selectedOwnershipName Name *',
-      validator: (v) => v == null || v.isEmpty ? '$selectedOwnershipName name required' : null,
+      labelText: 'Contact Name *',
+      validator: (v) => v == null || v.isEmpty ? 'Contact name required' : null,
     );
 
-    final ownerMobileField = CRMPhoneField(
+    final contactMobileField = CRMPhoneField(
       controller: _ownerMobileController,
-      labelText: '$selectedOwnershipName Mobile',
+      labelText: 'Contact Mobile',
       isRequired: true,
     );
 
     return CRMCard(
       title: 'Contacts Info & Visibility',
-      subtitle: 'Verify owner profiles and direct remarks',
+      subtitle: 'Verify contact profiles and direct remarks',
       padding: isMobile ? const EdgeInsets.all(CRMSpacing.s) : const EdgeInsets.all(CRMSpacing.m),
       child: Column(
         children: [
           if (isMobile) ...[
-            ownershipField,
+            contactNameField,
             const SizedBox(height: CRMSpacing.m),
-            ownerNameField,
-            const SizedBox(height: CRMSpacing.m),
-            ownerMobileField,
+            contactMobileField,
           ] else ...[
             Row(
               children: [
-                Expanded(child: ownershipField),
+                Expanded(child: contactNameField),
                 const SizedBox(width: CRMSpacing.s),
-                Expanded(child: ownerNameField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: ownerMobileField),
+                Expanded(child: contactMobileField),
               ],
             ),
           ],

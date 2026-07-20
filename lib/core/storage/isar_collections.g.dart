@@ -1885,6 +1885,11 @@ const PropertyLocalSchema = CollectionSchema(
       id: 59,
       name: r'totalFloor',
       type: IsarType.long,
+    ),
+    r'videos': PropertySchema(
+      id: 60,
+      name: r'videos',
+      type: IsarType.stringList,
     )
   },
   estimateSize: _propertyLocalEstimateSize,
@@ -2070,6 +2075,13 @@ int _propertyLocalEstimateSize(
     }
   }
   bytesCount += 3 + object.title.length * 3;
+  bytesCount += 3 + object.videos.length * 3;
+  {
+    for (var i = 0; i < object.videos.length; i++) {
+      final value = object.videos[i];
+      bytesCount += value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -2139,6 +2151,7 @@ void _propertyLocalSerialize(
   writer.writeDouble(offsets[57], object.superBuiltupArea);
   writer.writeString(offsets[58], object.title);
   writer.writeLong(offsets[59], object.totalFloor);
+  writer.writeStringList(offsets[60], object.videos);
 }
 
 PropertyLocal _propertyLocalDeserialize(
@@ -2209,6 +2222,7 @@ PropertyLocal _propertyLocalDeserialize(
   object.superBuiltupArea = reader.readDoubleOrNull(offsets[57]);
   object.title = reader.readString(offsets[58]);
   object.totalFloor = reader.readLongOrNull(offsets[59]);
+  object.videos = reader.readStringList(offsets[60]) ?? [];
   return object;
 }
 
@@ -2339,6 +2353,8 @@ P _propertyLocalDeserializeProp<P>(
       return (reader.readString(offset)) as P;
     case 59:
       return (reader.readLongOrNull(offset)) as P;
+    case 60:
+      return (reader.readStringList(offset) ?? []) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -10046,6 +10062,231 @@ extension PropertyLocalQueryFilter
       ));
     });
   }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'videos',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'videos',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'videos',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'videos',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'videos',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'videos',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'videos',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'videos',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'videos',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'videos',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'videos',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'videos',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'videos',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'videos',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'videos',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QAfterFilterCondition>
+      videosLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'videos',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
 }
 
 extension PropertyLocalQueryObject
@@ -12025,6 +12266,12 @@ extension PropertyLocalQueryWhereDistinct
       return query.addDistinctBy(r'totalFloor');
     });
   }
+
+  QueryBuilder<PropertyLocal, PropertyLocal, QDistinct> distinctByVideos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'videos');
+    });
+  }
 }
 
 extension PropertyLocalQueryProperty
@@ -12414,6 +12661,12 @@ extension PropertyLocalQueryProperty
   QueryBuilder<PropertyLocal, int?, QQueryOperations> totalFloorProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'totalFloor');
+    });
+  }
+
+  QueryBuilder<PropertyLocal, List<String>, QQueryOperations> videosProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'videos');
     });
   }
 }

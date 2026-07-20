@@ -61,6 +61,7 @@ class PropertyModel {
   final DateTime createdAt;
   final List<String> images;
   final List<String> amenities;
+  final List<String> videos;
 
   PropertyModel({
     required this.id,
@@ -118,6 +119,7 @@ class PropertyModel {
     required this.createdAt,
     required this.images,
     required this.amenities,
+    required this.videos,
     this.googlePlaceId,
     this.brokerageTypeId,
     this.brokerageTypeName,
@@ -164,6 +166,26 @@ class PropertyModel {
         .map((am) => ((am['amenity'] as Map<String, dynamic>?)?['name'] as String?) ?? '')
         .where((name) => name.isNotEmpty)
         .toList();
+
+    final List<String> videoList = [];
+    final rawVideos = json['property_videos'] as List<dynamic>? ?? 
+                      json['videos'] as List<dynamic>? ?? 
+                      [];
+    for (final vid in rawVideos) {
+      if (vid == null) continue;
+      if (vid is String) {
+        if (vid.isNotEmpty) videoList.add(vid);
+      } else if (vid is Map) {
+        final url = vid['video_url'] as String? ?? 
+                    vid['url'] as String? ?? 
+                    vid['path'] as String? ?? 
+                    '';
+        if (url.isNotEmpty) videoList.add(url);
+      } else {
+        final str = vid.toString();
+        if (str.isNotEmpty) videoList.add(str);
+      }
+    }
 
     return PropertyModel(
       id: json['id'] as String? ?? '',
@@ -224,6 +246,7 @@ class PropertyModel {
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : DateTime.now(),
       images: imageList,
       amenities: amenityList,
+      videos: videoList,
       adminId: json['admin_id'] as String?,
       organizationId: json['organization_id'] as String?,
     );
@@ -269,6 +292,7 @@ class PropertyModel {
       'flat_no': flatNo,
       'amenities': amenities,
       'images': images,
+      'videos': videos,
     };
   }
 

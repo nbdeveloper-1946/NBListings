@@ -81,6 +81,7 @@ class PropertyLocal {
   late DateTime createdAt;
   late List<String> images;
   late List<String> amenities;
+  late List<String> videos;
   String? adminId;
   String? organizationId;
 }

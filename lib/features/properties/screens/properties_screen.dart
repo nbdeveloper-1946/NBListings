@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
@@ -504,7 +506,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     showCheckboxColumn: false,
                     columns: const [
                       DataColumn(label: Text('Code')),
-                      DataColumn(label: Text('Society/Property Name')),
+                      DataColumn(label: Text('Society Name')),
                       DataColumn(label: Text('Owner')),
                       DataColumn(label: Text('Area')),
                       DataColumn(label: Text('BHK')),
@@ -512,6 +514,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       DataColumn(label: Text('Category')),
                       DataColumn(label: Text('Date')),
                       DataColumn(label: Text('Status')),
+                      DataColumn(label: Text('Photos')),
                       DataColumn(label: Text('Shortlist')),
                       DataColumn(label: Text('Actions')),
                     ],
@@ -564,6 +567,73 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                   fontWeight: FontWeight.bold
                                 ),
                               ),
+                            ),
+                          ),
+                          DataCell(
+                            Builder(
+                              builder: (context) {
+                                final hasImages = p.images.isNotEmpty;
+                                return InkWell(
+                                  onTap: hasImages
+                                      ? () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (_) => CRMImageZoomViewer(
+                                              images: p.images,
+                                              initialIndex: 0,
+                                            ),
+                                          );
+                                        }
+                                      : null,
+                                  borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: CRMColors.backgroundOf(context),
+                                      borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                                      border: Border.all(
+                                        color: hasImages
+                                            ? CRMColors.primary.withOpacity(0.3)
+                                            : CRMColors.borderOf(context),
+                                      ),
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: hasImages
+                                        ? Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                              _buildPropertyThumbnail(p.images.first),
+                                              if (p.images.length > 1)
+                                                Positioned(
+                                                  right: 0,
+                                                  bottom: 0,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                                                    decoration: const BoxDecoration(
+                                                      color: Color(0xB3000000),
+                                                      borderRadius: BorderRadius.only(topLeft: Radius.circular(4)),
+                                                    ),
+                                                    child: Text(
+                                                      '+${p.images.length - 1}',
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
+                                          )
+                                        : Icon(
+                                            Icons.image_not_supported_outlined,
+                                            size: 18,
+                                            color: CRMColors.textMutedOf(context),
+                                          ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           DataCell(
@@ -1115,5 +1185,26 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
 
   void _openPropertyDetails(BuildContext context, PropertyModel p) {
     showCRMPropertyDrawer(context, p);
+  }
+
+  Widget _buildPropertyThumbnail(String url) {
+    if (url.startsWith('data:image') || url.contains('base64')) {
+      try {
+        final base64Str = url.split(',').last;
+        return Image.memory(base64Decode(base64Str), fit: BoxFit.cover);
+      } catch (_) {}
+    }
+    return CachedNetworkImage(
+      imageUrl: url,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => const Center(
+        child: SizedBox(
+          width: 12,
+          height: 12,
+          child: CircularProgressIndicator(strokeWidth: 1.5),
+        ),
+      ),
+      errorWidget: (context, url, error) => const Icon(Icons.broken_image_outlined, size: 16),
+    );
   }
 }
