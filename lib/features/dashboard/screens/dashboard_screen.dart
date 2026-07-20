@@ -24,6 +24,7 @@ import 'package:dio/dio.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../core/utils/file_downloader.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -617,7 +618,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             
-            // Helper function to trigger authenticated template download
             Future<void> downloadTemplate() async {
               try {
                 final response = await DioClient.dio.get<List<int>>(
@@ -625,12 +625,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   options: Options(responseType: ResponseType.bytes),
                 );
 
-                final String tempPath = Directory.systemTemp.path;
-                final File file = File('$tempPath/properties_import_template.xlsx');
-                await file.writeAsBytes(response.data!);
-
-                final XFile xFile = XFile(file.path);
-                await Share.shareXFiles([xFile], text: 'Properties Import Template');
+                await FileDownloader.download(
+                  response.data!,
+                  'properties_import_template.xlsx',
+                );
               } catch (_) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   const SnackBar(content: Text('Failed to download template. Ensure server is running.')),
@@ -659,7 +657,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             // Stage 2: Progress simulation & server preview upload
             Future<void> runPreviewAnalysis() async {
-              if (pickedFile == null || pickedFile!.path == null) {
+              if (pickedFile == null || (!kIsWeb && pickedFile!.path == null) || (kIsWeb && pickedFile!.bytes == null)) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
                   const SnackBar(content: Text('Please select an Excel or CSV file first.')),
                 );
@@ -679,11 +677,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               });
 
               try {
-                final formData = FormData.fromMap({
-                  'file': await MultipartFile.fromFile(
+                MultipartFile file;
+                if (kIsWeb) {
+                  file = MultipartFile.fromBytes(
+                    pickedFile!.bytes!,
+                    filename: pickedFile!.name,
+                  );
+                } else {
+                  file = await MultipartFile.fromFile(
                     pickedFile!.path!,
                     filename: pickedFile!.name,
-                  ),
+                  );
+                }
+
+                final formData = FormData.fromMap({
+                  'file': file,
                 });
 
                 final response = await DioClient.dio.post(
@@ -715,7 +723,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             // Stage 4: Committing database insert
             Future<void> commitImport() async {
-              if (pickedFile == null || pickedFile!.path == null) return;
+              if (pickedFile == null || (!kIsWeb && pickedFile!.path == null) || (kIsWeb && pickedFile!.bytes == null)) return;
 
               setModalState(() {
                 currentStep = 4;
@@ -724,11 +732,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               });
 
               try {
-                final formData = FormData.fromMap({
-                  'file': await MultipartFile.fromFile(
+                MultipartFile file;
+                if (kIsWeb) {
+                  file = MultipartFile.fromBytes(
+                    pickedFile!.bytes!,
+                    filename: pickedFile!.name,
+                  );
+                } else {
+                  file = await MultipartFile.fromFile(
                     pickedFile!.path!,
                     filename: pickedFile!.name,
-                  ),
+                  );
+                }
+
+                final formData = FormData.fromMap({
+                  'file': file,
                 });
 
                 final response = await DioClient.dio.post(

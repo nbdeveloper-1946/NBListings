@@ -297,7 +297,7 @@ class PropertyModel {
   }
 
   String get statusDisplayName {
-    if (propertyStatusId == 'to_be_available') {
+    if (propertyStatusName.toLowerCase().contains('to be available') || propertyStatusId == 'to_be_available') {
       if (possessionDate != null) {
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);

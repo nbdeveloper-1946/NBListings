@@ -817,6 +817,12 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
 
     try {
+      final toBeAvailableStatus = widget.metadata.statuses.firstWhere(
+        (s) => s.name.toLowerCase().contains('to be available'),
+        orElse: () => LookupItem(id: '', name: ''),
+      );
+      final String toBeAvailableId = toBeAvailableStatus.id;
+
       final String typedFacing = _facingController.text.trim();
       if (typedFacing.isNotEmpty) {
         final match = widget.metadata.facings.firstWhere(
@@ -884,7 +890,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         'images': _propertyImages,
         'videos': _propertyVideos,
         'is_verified': _isVerified,
-        'possession_date': _selectedStatus == 'to_be_available'
+        'possession_date': (toBeAvailableId.isNotEmpty && _selectedStatus == toBeAvailableId)
             ? _availableDate?.toIso8601String().substring(0, 10)
             : null,
       };
@@ -1117,7 +1123,13 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       return !name.contains('do not disturb') && !name.contains('inactive');
     }).toList();
 
-    if (_selectedStatus != null && _selectedStatus != 'to_be_available') {
+    final toBeAvailableStatus = widget.metadata.statuses.firstWhere(
+      (s) => s.name.toLowerCase().contains('to be available'),
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final String toBeAvailableId = toBeAvailableStatus.id;
+
+    if (_selectedStatus != null && (toBeAvailableId.isEmpty || _selectedStatus != toBeAvailableId)) {
       final exists = filteredStatuses.any((s) => s.id == _selectedStatus);
       if (!exists) {
         final originalStatus = widget.metadata.statuses.firstWhere(
@@ -1126,10 +1138,6 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         );
         filteredStatuses.add(originalStatus);
       }
-    }
-
-    if (!filteredStatuses.any((s) => s.id == 'to_be_available')) {
-      filteredStatuses.add(LookupItem(id: 'to_be_available', name: 'To Be Available'));
     }
 
     return CRMCard(
@@ -1398,7 +1406,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
           ],
           const SizedBox(height: CRMSpacing.m),
-          if (isMobile && _selectedStatus == 'to_be_available') ...[
+          if (isMobile && toBeAvailableId.isNotEmpty && _selectedStatus == toBeAvailableId) ...[
             DropdownButtonFormField<String>(
               isExpanded: true,
               value: _selectedStatus,
@@ -1410,7 +1418,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               onChanged: (v) {
                 setState(() {
                   _selectedStatus = v;
-                  if (v == 'to_be_available' && _availableDate == null) {
+                  if (v == toBeAvailableId && _availableDate == null) {
                     _availableDate = DateTime.now();
                   }
                 });
@@ -1442,14 +1450,14 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
                     onChanged: (v) {
                       setState(() {
                         _selectedStatus = v;
-                        if (v == 'to_be_available' && _availableDate == null) {
+                        if (v == toBeAvailableId && _availableDate == null) {
                           _availableDate = DateTime.now();
                         }
                       });
                     },
                   ),
                 ),
-                if (_selectedStatus == 'to_be_available') ...[
+                if (toBeAvailableId.isNotEmpty && _selectedStatus == toBeAvailableId) ...[
                   const SizedBox(width: CRMSpacing.m),
                   Expanded(
                     child: CRMDatePicker(
