@@ -823,6 +823,17 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       );
       final String toBeAvailableId = toBeAvailableStatus.id;
 
+      final selectedTypeItem = widget.metadata.types.firstWhere(
+        (t) => t.id == _selectedType,
+        orElse: () => LookupItem(id: '', name: ''),
+      );
+      final propertyTypeName = selectedTypeItem.name.trim().toLowerCase();
+      final isBungalow = propertyTypeName.contains('bungalow') || 
+                         propertyTypeName.contains('villa') || 
+                         propertyTypeName.contains('rowhouse') || 
+                         propertyTypeName.contains('house') || 
+                         propertyTypeName.contains('tenament');
+
       final String typedFacing = _facingController.text.trim();
       if (typedFacing.isNotEmpty) {
         final match = widget.metadata.facings.firstWhere(
@@ -879,8 +890,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         'bathrooms': int.tryParse(_bathroomsController.text) ?? 0,
         'balconies': int.tryParse(_balconiesController.text) ?? 0,
         'parking': int.tryParse(_parkingController.text) ?? 0,
-        'floor_no': int.tryParse(_floorNoController.text),
-        'total_floor': int.tryParse(_totalFloorController.text),
+        'floor_no': isBungalow ? null : int.tryParse(_floorNoController.text),
+        'total_floor': isBungalow ? null : int.tryParse(_totalFloorController.text),
         'age_of_property': int.tryParse(_ageController.text),
         'owner_name': _ownerNameController.text.trim(),
         'owner_mobile': _ownerMobileController.text.trim(),
@@ -1578,6 +1589,17 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       ],
     );
 
+    final selectedTypeItem = widget.metadata.types.firstWhere(
+      (t) => t.id == _selectedType,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final propertyTypeName = selectedTypeItem.name.trim().toLowerCase();
+    final isBungalow = propertyTypeName.contains('bungalow') || 
+                       propertyTypeName.contains('villa') || 
+                       propertyTypeName.contains('rowhouse') || 
+                       propertyTypeName.contains('house') || 
+                       propertyTypeName.contains('tenament');
+
     final blockWingField = TextFormField(
       controller: _blockWingController,
       style: CRMTypography.body.copyWith(color: CRMColors.text),
@@ -1616,7 +1638,9 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
           ],
           const SizedBox(height: CRMSpacing.m),
-          if (isMobile) ...[
+          if (isBungalow) ...[
+            blockWingField,
+          ] else if (isMobile) ...[
             blockWingField,
             const SizedBox(height: CRMSpacing.m),
             flatNoField,
@@ -1727,6 +1751,17 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     final categoryName = selectedCategoryItem.name.trim().toLowerCase();
     final isIndustrial = categoryName.contains('industrial') || selectedCategoryItem.id == 'industrial';
     final isCommercial = categoryName.contains('commercial') || selectedCategoryItem.id == 'commercial';
+
+    final selectedTypeItem = widget.metadata.types.firstWhere(
+      (t) => t.id == _selectedType,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final propertyTypeName = selectedTypeItem.name.trim().toLowerCase();
+    final isBungalow = propertyTypeName.contains('bungalow') || 
+                       propertyTypeName.contains('villa') || 
+                       propertyTypeName.contains('rowhouse') || 
+                       propertyTypeName.contains('house') || 
+                       propertyTypeName.contains('tenament');
 
     final showResidentialRooms = !isIndustrial && !isCommercial;
     final showFloors = !isIndustrial;
@@ -1959,6 +1994,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
           ),
         ],
       ],
+    );
+
+    final unitNoField = TextFormField(
+      controller: _flatNoController,
+      style: CRMTypography.body.copyWith(color: CRMColors.text),
+      decoration: InputDecoration(
+        labelText: 'Unit Number',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+      ),
     );
 
     final floorNoField = TextFormField(
@@ -2232,7 +2276,21 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ],
           ],
           const SizedBox(height: CRMSpacing.m),
-          if (showFloors) ...[
+          if (isBungalow) ...[
+            if (isMobile) ...[
+              unitNoField,
+              const SizedBox(height: CRMSpacing.m),
+              ageField,
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(child: unitNoField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: ageField),
+                ],
+              ),
+            ],
+          ] else if (showFloors) ...[
             if (isMobile) ...[
               floorNoField,
               const SizedBox(height: CRMSpacing.m),
