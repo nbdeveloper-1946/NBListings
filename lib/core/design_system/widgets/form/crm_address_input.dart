@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../api/api_client.dart';
 import '../../tokens/app_colors.dart';
@@ -98,12 +99,28 @@ class _CRMAddressInputState extends State<CRMAddressInput> {
       try {
         final client = ApiClient();
         final response = await client.get('/places/autocomplete', queryParameters: {'query': query});
+        debugPrint("[AUTOCOMPLETE DEBUG] response.data: ${response.data}");
+        dynamic responseData = response.data;
+        if (responseData is String) {
+          try {
+            responseData = jsonDecode(responseData);
+          } catch (_) {}
+        }
         setState(() {
-          _suggestions = response.data['data'] ?? [];
+          _suggestions = (responseData is Map ? responseData['data'] : null) as List<dynamic>? ?? [];
+          debugPrint("[AUTOCOMPLETE DEBUG] _suggestions list: $_suggestions (length: ${_suggestions.length})");
           _isLoadingSuggestions = false;
         });
       } catch (e) {
         debugPrint("Error fetching places autocomplete: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Autocomplete Error: $e"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         setState(() {
           _isLoadingSuggestions = false;
         });
@@ -123,7 +140,16 @@ class _CRMAddressInputState extends State<CRMAddressInput> {
         'placeId': placeId,
         'query': _addressController.text,
       });
-      final data = response.data['data'];
+      dynamic responseData = response.data;
+      if (responseData is String) {
+        try {
+          responseData = jsonDecode(responseData);
+        } catch (_) {}
+      }
+      final data = responseData is Map ? responseData['data'] : null;
+      if (data == null) {
+        throw Exception("Invalid details response structure");
+      }
 
       final String address = data['formattedAddress'] ?? '';
       final String landmark = data['landmark'] ?? '';
@@ -158,6 +184,14 @@ class _CRMAddressInputState extends State<CRMAddressInput> {
       ));
     } catch (e) {
       debugPrint("Error fetching place details: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Place Details Error: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       setState(() {
         _suggestions = [];
         _isLoadingSuggestions = false;

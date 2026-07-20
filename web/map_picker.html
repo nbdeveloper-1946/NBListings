@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Map Picker</title>
+  <style>
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+    }
+    #search-box {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 5px;
+      border-radius: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      display: flex;
+    }
+    #search-input {
+      width: 250px;
+      border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 4px;
+      outline: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="search-box">
+    <input type="text" id="search-input" placeholder="Search property name or landmark..." />
+  </div>
+  <div id="map"></div>
+  <script>
+    // DEFINE YOUR RESTRICTED BROWSER KEY HERE
+    const GOOGLE_MAPS_BROWSER_KEY = "YOUR_GOOGLE_MAPS_BROWSER_API_KEY";
+
+    let map;
+    let marker;
+    let autocomplete;
+    let selectedPlaceDetails = null;
+
+    function initMap() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialLat = parseFloat(urlParams.get('lat')) || 23.0225;
+      const initialLng = parseFloat(urlParams.get('lng')) || 72.5714;
+
+      const initCoords = { lat: initialLat, lng: initialLng };
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: initCoords,
+        zoom: 15,
+        mapTypeControl: false,
+        fullscreenControl: false,
+        streetViewControl: false,
+      });
+
+      marker = new google.maps.Marker({
+        position: initCoords,
+        map: map,
+        draggable: true,
+      });
+
+      marker.addListener("dragend", () => {
+        const pos = marker.getPosition();
+        reverseGeocodeCoords(pos.lat(), pos.lng());
+      });
+
+      map.addListener("click", (e) => {
+        marker.setPosition(e.latLng);
+        reverseGeocodeCoords(e.latLng.lat(), e.latLng.lng());
+      });
+
+      const input = document.getElementById("search-input");
+      autocomplete = new google.maps.places.Autocomplete(input, {
+        fields: ["geometry", "formatted_address", "name", "place_id", "address_components"],
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) {
+          alert("No location details available for: " + place.name);
+          return;
+        }
+
+        map.setCenter(place.geometry.location);
+        map.setZoom(17);
+        marker.setPosition(place.geometry.location);
+        
+        parseAndPostPlace(place);
+      });
+    }
+
+    function reverseGeocodeCoords(lat, lng) {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status === "OK" && results[0]) {
+          parseAndPostPlace(results[0]);
+        }
+      });
+    }
+
+    function parseAndPostPlace(place) {
+      const components = place.address_components || [];
+      let addressLine1 = '';
+      let locality = '';
+      let city = '';
+      let state = '';
+      let country = '';
+      let postalCode = '';
+
+      let streetNumber = '';
+      let route = '';
+
+      for (const comp of components) {
+        const types = comp.types || [];
+        if (types.includes("street_number")) {
+          streetNumber = comp.long_name;
+        } else if (types.includes("route")) {
+          route = comp.long_name;
+        } else if (types.includes("sublocality_level_1") || types.includes("sublocality")) {
+          locality = comp.long_name;
+        } else if (types.includes("locality")) {
+          city = comp.long_name;
+        } else if (types.includes("administrative_area_level_1")) {
+          state = comp.long_name;
+        } else if (types.includes("country")) {
+          country = comp.long_name;
+        } else if (types.includes("postal_code")) {
+          postalCode = comp.long_name;
+        }
+      }
+
+      addressLine1 = streetNumber ? `${streetNumber} ${route}`.trim() : route;
+      if (!addressLine1) {
+        addressLine1 = locality;
+      }
+
+      selectedPlaceDetails = {
+        type: "google_place_selected",
+        placeId: place.place_id || '',
+        propertyName: place.name || addressLine1 || '',
+        formattedAddress: place.formatted_address || '',
+        addressLine1,
+        locality,
+        city,
+        state,
+        country,
+        postalCode,
+        latitude: place.geometry.location.lat(),
+        longitude: place.geometry.location.lng()
+      };
+
+      window.parent.postMessage(JSON.stringify(selectedPlaceDetails), "*");
+    }
+
+    if (GOOGLE_MAPS_BROWSER_KEY !== "YOUR_GOOGLE_MAPS_BROWSER_API_KEY" && GOOGLE_MAPS_BROWSER_KEY.trim() !== "") {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_BROWSER_KEY}&libraries=places&callback=initMap`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    } else {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlKey = urlParams.get('key');
+      if (urlKey) {
+        const script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${urlKey}&libraries=places&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      } else {
+        document.getElementById("map").innerHTML = "<div style='padding: 20px; text-align: center; font-size: 16px; color: red;'>Google Maps API Key is missing. Please configure GOOGLE_MAPS_BROWSER_KEY inside web/map_picker.html.</div>";
+      }
+    }
+  </script>
+</body>
+</html>

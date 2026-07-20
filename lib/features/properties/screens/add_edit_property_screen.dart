@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/design_system/crm_design_system.dart';
 import '../../../core/design_system/widgets/form/crm_date_picker.dart';
+import '../../../core/design_system/widgets/crm_map_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
 import '../services/properties_service.dart';
@@ -70,6 +74,9 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   String? _googlePlaceId;
   double? _latitude;
   double? _longitude;
+  int _mapKeyVersion = 0;
+  bool _isReverseGeocoding = false;
+  Map<String, dynamic>? _selectedPlaceDetails;
   String? _selectedBrokerage;
   bool _isSaved = false;
   String? _selectedParkingType;
@@ -328,6 +335,77 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _openInGoogleMaps() async {
+    final lat = _latitude ?? 23.0225;
+    final lng = _longitude ?? 72.5714;
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _confirmLocation() async {
+    if (_selectedPlaceDetails == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select a location on the map first."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      final place = _selectedPlaceDetails!;
+      _addressController.text = place['formattedAddress'] ?? '';
+      _googlePlaceId = place['placeId'] ?? '';
+      _latitude = place['latitude'];
+      _longitude = place['longitude'];
+
+      final String propName = place['propertyName'] ?? '';
+      if (propName.isNotEmpty && _titleController.text.trim().isEmpty) {
+        _titleController.text = propName;
+      }
+      
+      final String landmark = place['addressLine1'] ?? '';
+      if (landmark.isNotEmpty) {
+        _landmarkController.text = landmark;
+      }
+
+      final String city = place['city'] ?? '';
+      if (city.isNotEmpty) {
+        final matchedCity = widget.metadata.cities.firstWhere(
+          (c) => c.name.toLowerCase() == city.toLowerCase(),
+          orElse: () => LookupItem(id: '', name: ''),
+        );
+        if (matchedCity.id.isNotEmpty) {
+          _selectedCity = matchedCity.id;
+          _updateAreasForCity(matchedCity.id);
+        }
+      }
+
+      final String area = place['locality'] ?? '';
+      if (area.isNotEmpty) {
+        final matchedArea = widget.metadata.areas.firstWhere(
+          (a) => a.name.toLowerCase() == area.toLowerCase(),
+          orElse: () => AreaLookup(id: '', name: '', cityId: '', pincode: ''),
+        );
+        if (matchedArea.id.isNotEmpty) {
+          _selectedArea = matchedArea.id;
+        } else if (_selectedCity != null) {
+          _showAddAreaDialog(initialName: area, initialPincode: place['postalCode'] ?? '');
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Location confirmed and address updated!"),
+        backgroundColor: Colors.green,
       ),
     );
   }
@@ -772,6 +850,13 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         'block_wing': _blockWingController.text.trim().isEmpty ? null : _blockWingController.text.trim(),
         'flat_no': _flatNoController.text.trim().isEmpty ? null : _flatNoController.text.trim(),
         'google_place_id': _googlePlaceId,
+        'formatted_address': _addressController.text.trim(),
+        'address_line1': _selectedPlaceDetails != null ? _selectedPlaceDetails!['addressLine1'] : _landmarkController.text.trim(),
+        'locality': _selectedPlaceDetails != null ? _selectedPlaceDetails!['locality'] : null,
+        'city': _selectedPlaceDetails != null ? _selectedPlaceDetails!['city'] : null,
+        'state': _selectedPlaceDetails != null ? _selectedPlaceDetails!['state'] : null,
+        'country': _selectedPlaceDetails != null ? _selectedPlaceDetails!['country'] : null,
+        'postal_code': _selectedPlaceDetails != null ? _selectedPlaceDetails!['postalCode'] : null,
         'latitude': _latitude,
         'longitude': _longitude,
         'brokerage_type_id': _selectedBrokerage,
@@ -1537,47 +1622,90 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             ),
           ],
           const SizedBox(height: CRMSpacing.m),
-          CRMAddressInput(
-            labelText: 'Address Details',
-            initialValue: _addressController.text,
-            isRequired: true,
-            onAddressSelected: (details) {
-              setState(() {
-                _addressController.text = details.formattedAddress;
-                _landmarkController.text = details.landmark;
-                _googlePlaceId = details.placeId;
-                _latitude = details.latitude;
-                _longitude = details.longitude;
-
-                if (_titleController.text.trim().isEmpty && details.landmark.isNotEmpty) {
-                  _titleController.text = details.landmark;
-                }
-
-                if (details.city.isNotEmpty) {
-                  final matchedCity = widget.metadata.cities.firstWhere(
-                    (c) => c.name.toLowerCase() == details.city.toLowerCase(),
-                    orElse: () => LookupItem(id: '', name: ''),
-                  );
-                  if (matchedCity.id.isNotEmpty) {
-                    _selectedCity = matchedCity.id;
-                    _updateAreasForCity(matchedCity.id);
-                  }
-                }
-
-                if (details.area.isNotEmpty) {
-                  final matchedArea = widget.metadata.areas.firstWhere(
-                    (a) => a.name.toLowerCase() == details.area.toLowerCase(),
-                    orElse: () => AreaLookup(id: '', name: '', cityId: '', pincode: ''),
-                  );
-                  if (matchedArea.id.isNotEmpty) {
-                    _selectedArea = matchedArea.id;
-                  } else if (_selectedCity != null) {
-                    _showAddAreaDialog(initialName: details.area, initialPincode: details.pincode);
-                  }
-                }
-              });
-            },
+          TextFormField(
+            controller: _addressController,
+            style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
+            maxLines: 2,
+            decoration: InputDecoration(
+              labelText: 'Address Details *',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+            ),
           ),
+          const SizedBox(height: CRMSpacing.m),
+          TextFormField(
+            controller: _landmarkController,
+            style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
+            decoration: InputDecoration(
+              labelText: 'Landmark / Building Name',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+            ),
+          ),
+          const SizedBox(height: CRMSpacing.m),
+          if (isMobile) ...[
+            TextFormField(
+              key: ValueKey('latitude_$_latitude'),
+              initialValue: _latitude?.toString() ?? '',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
+              decoration: InputDecoration(
+                labelText: 'Latitude',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+              ),
+              onChanged: (v) {
+                _latitude = double.tryParse(v);
+              },
+            ),
+            const SizedBox(height: CRMSpacing.m),
+            TextFormField(
+              key: ValueKey('longitude_$_longitude'),
+              initialValue: _longitude?.toString() ?? '',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
+              decoration: InputDecoration(
+                labelText: 'Longitude',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+              ),
+              onChanged: (v) {
+                _longitude = double.tryParse(v);
+              },
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    key: ValueKey('latitude_$_latitude'),
+                    initialValue: _latitude?.toString() ?? '',
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
+                    decoration: InputDecoration(
+                      labelText: 'Latitude',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                    ),
+                    onChanged: (v) {
+                      _latitude = double.tryParse(v);
+                    },
+                  ),
+                ),
+                const SizedBox(width: CRMSpacing.s),
+                Expanded(
+                  child: TextFormField(
+                    key: ValueKey('longitude_$_longitude'),
+                    initialValue: _longitude?.toString() ?? '',
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
+                    decoration: InputDecoration(
+                      labelText: 'Longitude',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                    ),
+                    onChanged: (v) {
+                      _longitude = double.tryParse(v);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
