@@ -1568,7 +1568,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       style: CRMTypography.body.copyWith(color: CRMColors.text),
       keyboardType: TextInputType.number,
       decoration: InputDecoration(
-        labelText: 'Super Builtup Area *',
+        labelText: 'Super Builtup Area *(In Sq.ft)',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
       ),
       validator: (v) => v!.isEmpty ? 'Area required' : null,
@@ -1579,15 +1579,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       style: CRMTypography.body.copyWith(color: CRMColors.text),
       keyboardType: TextInputType.number,
       decoration: InputDecoration(
-        labelText: 'Carpet Area Size',
+        labelText: 'Carpet Area Size(In Sq.ft)',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
       ),
     );
 
     final bedroomValue = _bedroomsController.text.isNotEmpty && int.tryParse(_bedroomsController.text) != null
         ? '${_bedroomsController.text} BHK'
-        : '1 BHK';
-    final bedroomOptions = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5 BHK'];
+        : '1 ';
+    final bedroomOptions = ['1 ', '2 ', '3 ', '4 ', '5 '];
     final bedroomItems = bedroomOptions.contains(bedroomValue)
         ? bedroomOptions
         : [...bedroomOptions, bedroomValue];
@@ -1966,7 +1966,7 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
             style: CRMTypography.body.copyWith(color: CRMColors.text),
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'Plot Area Size',
+              labelText: 'Plot Area Size(In Sq.ft)',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
             ),
           ),
