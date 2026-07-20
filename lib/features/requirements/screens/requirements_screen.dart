@@ -21,6 +21,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import '../../../core/api/dio_client.dart';
 import '../../../core/utils/budget_formatter.dart';
+import '../../auth/bloc/auth_bloc.dart';
+import '../../auth/models/user_model.dart';
 
 class RequirementsScreen extends StatefulWidget {
   const RequirementsScreen({super.key});
@@ -450,7 +452,21 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     );
   }
 
+  bool _hasEditAccess(RequirementModel r, UserModel? currentUser) {
+    if (currentUser == null) return false;
+    if (currentUser.role == 'Super Admin') return true;
+    if (currentUser.role == 'Admin' && r.adminId == currentUser.id) return true;
+    if (currentUser.role == 'Sales' && r.adminId == currentUser.adminId) return true;
+    return false;
+  }
+
   Widget _buildRequirementsTable() {
+    final authState = context.read<AuthBloc>().state;
+    UserModel? currentUser;
+    if (authState is Authenticated) {
+      currentUser = authState.user;
+    }
+
     return BlocBuilder<RequirementsBloc, RequirementsState>(
       builder: (context, state) {
         final isLoading = state is RequirementsLoading || state is RequirementsInitial;
@@ -465,7 +481,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
             final isMobile = constraints.maxWidth < 700;
 
             if (isMobile) {
-              return _buildRequirementCards(requirements, isLoading);
+              return _buildRequirementCards(requirements, isLoading, currentUser);
             }
 
             return CRMDataTable(
@@ -544,14 +560,16 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
-                            onPressed: () => _showAddEditDialog(req),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
-                            onPressed: () => _showDeleteConfirmDialog(req),
-                          ),
+                          if (_hasEditAccess(req, currentUser)) ...[
+                            IconButton(
+                              icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                              onPressed: () => _showAddEditDialog(req),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                              onPressed: () => _showDeleteConfirmDialog(req),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -565,7 +583,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     );
   }
 
-  Widget _buildRequirementCards(List<RequirementModel> requirements, bool isLoading) {
+  Widget _buildRequirementCards(List<RequirementModel> requirements, bool isLoading, UserModel? currentUser) {
     if (isLoading) {
       return const Padding(
         padding: EdgeInsets.all(CRMSpacing.m),
@@ -684,16 +702,18 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                         onPressed: () => _showMatchesDrawer(req),
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
-                      onPressed: () => _showAddEditDialog(req),
-                      tooltip: 'Edit',
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
-                      onPressed: () => _showDeleteConfirmDialog(req),
-                      tooltip: 'Delete',
-                    ),
+                    if (_hasEditAccess(req, currentUser)) ...[
+                      IconButton(
+                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                        onPressed: () => _showAddEditDialog(req),
+                        tooltip: 'Edit',
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                        onPressed: () => _showDeleteConfirmDialog(req),
+                        tooltip: 'Delete',
+                      ),
+                    ],
                   ],
                 ),
               ),
