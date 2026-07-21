@@ -17,6 +17,7 @@ import '../../splash.dart';
 import '../design_system/widgets/app_shell.dart';
 import '../design_system/widgets/placeholder_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
+import '../../features/settings/screens/audit_logs_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/reports/screens/reports_screen.dart';
 import '../../features/properties/screens/recycle_bin_screen.dart';
@@ -114,6 +115,10 @@ class AppRouter {
           GoRoute(
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: '/settings/audit-logs',
+            builder: (context, state) => const AuditLogsScreen(),
           ),
           GoRoute(
             path: '/profile',

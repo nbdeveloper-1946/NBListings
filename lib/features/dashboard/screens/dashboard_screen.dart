@@ -1,15 +1,9 @@
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../properties/repository/properties_repository.dart';
-import '../../properties/services/properties_service.dart';
 import '../../properties/models/property_model.dart';
-import '../../../core/storage/repository_coordinator.dart';
-import '../../../core/storage/isar_collections.dart';
-import '../../../core/storage/model_mappers.dart';
-import '../../../core/design_system/widgets/drawers.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
@@ -20,11 +14,6 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../models/dashboard_summary.dart';
 import '../../../core/api/dio_client.dart';
-import 'package:dio/dio.dart';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
-import 'package:share_plus/share_plus.dart';
-import '../../../core/utils/file_downloader.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -34,20 +23,37 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final PropertiesRepository _propertiesRepository = PropertiesRepository();
+  List<PropertyModel> _fullProperties = [];
+
+  // Table filter and tab states
+  String _activeTab = 'Rental'; // 'Rental' or 'Sale/Re-Sale'
+  Set<String> _selectedAreaFilters = {};
+  String _priceSortOrder = 'none'; // 'none', 'high_to_low', 'low_to_high'
+
+  // Pagination states
+  int _propertyPage = 1;
+  static const int _propertiesPerPage = 5;
+
+  int _followupPage = 1;
+  static const int _followupsPerPage = 5;
+
   @override
   void initState() {
     super.initState();
     context.read<DashboardBloc>().add(LoadDashboard());
+    _fetchFullProperties();
   }
 
-  void _showActionSnackbar(String action) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$action functionality coming soon!'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-      ),
-    );
+  Future<void> _fetchFullProperties() async {
+    try {
+      final properties = await _propertiesRepository.getProperties();
+      if (mounted) {
+        setState(() {
+          _fullProperties = properties;
+        });
+      }
+    } catch (_) {}
   }
 
   String _getGreeting() {
@@ -68,13 +74,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Theme.of(context); // Register theme dependency to rebuild on toggle
+    Theme.of(context);
     final authState = context.watch<AuthBloc>().state;
     String userEmail = 'admin@nbdeveloper.com';
-    bool isAdmin = false;
     if (authState is Authenticated) {
       userEmail = authState.user.email;
-      isAdmin = authState.user.role == 'Admin' || authState.user.role == 'Super Admin';
     }
 
     final dateString = _getFormattedDate();
@@ -97,6 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               context.read<DashboardBloc>().add(RefreshDashboard());
+              await _fetchFullProperties();
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -111,15 +116,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildWelcomeHeader(userEmail, dateString, greeting),
                   const SizedBox(height: CRMSpacing.l),
 
-                  // 2. Quick Actions
-                  _buildQuickActions(),
-                  const SizedBox(height: CRMSpacing.l),
-
-                  // 3. KPI Grids (Overflow Fixed inside this method)
+                  // 2. Property Metrics (Total Properties removed)
                   _buildKPIGrids(data.summary),
                   const SizedBox(height: CRMSpacing.l),
 
-                  // Split analytics and Tasks layout (Responsive LayoutBuilder)
+                  // 3. Responsive Main Content Area
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isDesktop = constraints.maxWidth >= 900;
@@ -131,7 +132,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               flex: 3,
                               child: Column(
                                 children: [
-                                  _buildAnalyticsChart(),
+                                  _buildStatusPieChart(data.summary),
                                   const SizedBox(height: CRMSpacing.l),
                                   _buildRecentProperties(data.recentProperties),
                                 ],
@@ -145,10 +146,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   _buildTodayWork(data.checklist),
                                   const SizedBox(height: CRMSpacing.l),
                                   _buildFollowups(data.followups),
-                                  if (isAdmin) ...[
-                                    const SizedBox(height: CRMSpacing.l),
-                                    _buildRecentActivities(data.activity),
-                                  ],
                                 ],
                               ),
                             ),
@@ -157,26 +154,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       } else {
                         return Column(
                           children: [
-                            _buildAnalyticsChart(),
+                            _buildStatusPieChart(data.summary),
+                            const SizedBox(height: CRMSpacing.l),
+                            _buildRecentProperties(data.recentProperties),
                             const SizedBox(height: CRMSpacing.l),
                             _buildTodayWork(data.checklist),
                             const SizedBox(height: CRMSpacing.l),
                             _buildFollowups(data.followups),
-                            const SizedBox(height: CRMSpacing.l),
-                            _buildRecentProperties(data.recentProperties),
-                            if (isAdmin) ...[
-                              const SizedBox(height: CRMSpacing.l),
-                              _buildRecentActivities(data.activity),
-                            ],
                           ],
                         );
                       }
                     },
                   ),
-                  const SizedBox(height: CRMSpacing.l),
-
-                  // 10. Performance Indicators
-                  _buildPerformanceBlock(data.summary),
                 ],
               ),
             ),
@@ -245,56 +234,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickActions() {
-    return CRMCard(
-      title: 'Quick Operations',
-      subtitle: 'Perform common CRM operational workflows instantly',
-      child: Padding(
-        padding: const EdgeInsets.only(top: CRMSpacing.s),
-        child: Wrap(
-          spacing: CRMSpacing.s,
-          runSpacing: CRMSpacing.s,
-          alignment: WrapAlignment.start,
-          children: [
-            CRMButton(
-              label: 'Add Property',
-              prefixIcon: Icons.add_business_rounded,
-              onPressed: () => context.go('/properties'),
-            ),
-            CRMButton(
-              label: 'Add Requirement',
-              prefixIcon: Icons.add_task_rounded,
-              variant: CRMButtonVariant.secondary,
-              onPressed: () => context.go('/requirements'),
-            ),
-            CRMButton(
-              label: 'Import Excel',
-              prefixIcon: Icons.file_upload_rounded,
-              variant: CRMButtonVariant.outline,
-              onPressed: _showImportExcelDialog,
-            ),
-            CRMButton(
-              label: 'Create Follow-up',
-              prefixIcon: Icons.alarm_add_rounded,
-              variant: CRMButtonVariant.outline,
-              onPressed: _showCreateFollowupDialog,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildKPIGrids(DashboardSummary summary) {
     final double screenWidth = MediaQuery.of(context).size.width;
 
+    // Total Properties card removed per requirements
     final cards = [
-      CRMKPICard(
-        title: 'Total Properties',
-        value: '${summary.totalProperties}',
-        icon: Icons.inventory_2_outlined,
-        growthPercent: summary.totalPropertiesTrend,
-      ),
       CRMKPICard(
         title: 'Available',
         value: '${summary.available}',
@@ -325,8 +269,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
 
     final int crossAxisCount = screenWidth >= 1100
-        ? 5
-        : (screenWidth >= 700 ? 3 : 2);
+        ? 4
+        : (screenWidth >= 700 ? 4 : 2);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,11 +278,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Padding(
           padding: const EdgeInsets.only(left: CRMSpacing.xs, bottom: CRMSpacing.s),
           child: Text(
-            'Property Metrics', 
+            'Property Metrics',
             style: CRMTypography.sectionTitle.copyWith(
               color: CRMColors.textOf(context),
               fontWeight: FontWeight.bold,
-            )
+            ),
           ),
         ),
         GridView.builder(
@@ -348,7 +292,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: CRMSpacing.m,
             mainAxisSpacing: CRMSpacing.m,
-            childAspectRatio: screenWidth < 600 ? 0.8 : (screenWidth < 950 ? 0.9 : 1.2),
+            childAspectRatio: screenWidth < 600 ? 0.9 : (screenWidth < 950 ? 1.0 : 1.3),
           ),
           itemCount: cards.length,
           itemBuilder: (context, index) {
@@ -356,6 +300,763 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildStatusPieChart(DashboardSummary summary) {
+    // Real data counts for Won, Live, Dead
+    int wonCount = summary.sold + summary.rented;
+    int liveCount = summary.available;
+    int deadCount = 0;
+
+    if (_fullProperties.isNotEmpty) {
+      int fullWon = 0;
+      int fullLive = 0;
+      int fullDead = 0;
+
+      for (final p in _fullProperties) {
+        final statusLower = p.propertyStatusName.toLowerCase();
+        if (statusLower.contains('sold') || statusLower.contains('rented')) {
+          fullWon++;
+        } else if (statusLower.contains('available')) {
+          fullLive++;
+        } else if (statusLower.contains('dead') || statusLower.contains('inactive') || statusLower.contains('cancelled') || statusLower.contains('lost')) {
+          fullDead++;
+        } else {
+          fullLive++;
+        }
+      }
+      wonCount = fullWon;
+      liveCount = fullLive;
+      deadCount = fullDead;
+    }
+
+    final totalCount = wonCount + liveCount + deadCount;
+    final wonPct = totalCount > 0 ? (wonCount / totalCount * 100).toStringAsFixed(1) : '0.0';
+    final livePct = totalCount > 0 ? (liveCount / totalCount * 100).toStringAsFixed(1) : '0.0';
+    final deadPct = totalCount > 0 ? (deadCount / totalCount * 100).toStringAsFixed(1) : '0.0';
+
+    final wonColor = CRMColors.success;
+    final liveColor = CRMColors.primary;
+    final deadColor = CRMColors.danger;
+
+    final isMobile = MediaQuery.of(context).size.width < 500;
+
+    return CRMCard(
+      title: 'Property Deals Status',
+      subtitle: 'Real-time breakdown of Won, Live, and Dead property deals',
+      child: Padding(
+        padding: const EdgeInsets.only(top: CRMSpacing.m, bottom: CRMSpacing.xs),
+        child: isMobile
+            ? Column(
+                children: [
+                  SizedBox(
+                    height: 180,
+                    width: 180,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CustomPaint(
+                          size: const Size(180, 180),
+                          painter: StatusPieChartPainter(
+                            won: wonCount.toDouble(),
+                            live: liveCount.toDouble(),
+                            dead: deadCount.toDouble(),
+                            wonColor: wonColor,
+                            liveColor: liveColor,
+                            deadColor: deadColor,
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$totalCount',
+                              style: CRMTypography.pageTitle.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: CRMColors.textOf(context),
+                              ),
+                            ),
+                            Text(
+                              'Total Deals',
+                              style: CRMTypography.caption.copyWith(
+                                color: CRMColors.textSecondaryOf(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: CRMSpacing.m),
+                  _buildPieLegend('Won Deals', wonCount, '$wonPct%', wonColor),
+                  const SizedBox(height: 8),
+                  _buildPieLegend('Live Listings', liveCount, '$livePct%', liveColor),
+                  const SizedBox(height: 8),
+                  _buildPieLegend('Dead Deals', deadCount, '$deadPct%', deadColor),
+                ],
+              )
+            : Row(
+                children: [
+                  SizedBox(
+                    height: 180,
+                    width: 180,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CustomPaint(
+                          size: const Size(180, 180),
+                          painter: StatusPieChartPainter(
+                            won: wonCount.toDouble(),
+                            live: liveCount.toDouble(),
+                            dead: deadCount.toDouble(),
+                            wonColor: wonColor,
+                            liveColor: liveColor,
+                            deadColor: deadColor,
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$totalCount',
+                              style: CRMTypography.pageTitle.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: CRMColors.textOf(context),
+                              ),
+                            ),
+                            Text(
+                              'Total Deals',
+                              style: CRMTypography.caption.copyWith(
+                                color: CRMColors.textSecondaryOf(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: CRMSpacing.xl),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildPieLegend('Won Deals (Sold / Rented)', wonCount, '$wonPct%', wonColor),
+                        const SizedBox(height: CRMSpacing.m),
+                        _buildPieLegend('Live Listings (Available)', liveCount, '$livePct%', liveColor),
+                        const SizedBox(height: CRMSpacing.m),
+                        _buildPieLegend('Dead Deals (Inactive / Lost)', deadCount, '$deadPct%', deadColor),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildPieLegend(String label, int count, String percentage, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: CRMSpacing.s),
+        Expanded(
+          child: Text(
+            label,
+            style: CRMTypography.bodyMedium.copyWith(
+              color: CRMColors.textOf(context),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          '$count ($percentage)',
+          style: CRMTypography.bodyMedium.copyWith(
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentProperties(List<RecentProperty> dashboardRecentProperties) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+
+    // Collect display items from full properties if loaded, otherwise map recentProperties
+    List<_DisplayProperty> displayItems = [];
+
+    if (_fullProperties.isNotEmpty) {
+      displayItems = _fullProperties.map((p) {
+        return _DisplayProperty(
+          id: p.id,
+          title: p.title,
+          areaName: p.areaName,
+          price: p.price,
+          listingType: p.listingTypeName,
+          createdAt: p.createdAt,
+        );
+      }).toList();
+    } else {
+      displayItems = dashboardRecentProperties.map((p) {
+        DateTime parsedDate = DateTime.now();
+        if (p.createdAt.isNotEmpty) {
+          parsedDate = DateTime.tryParse(p.createdAt) ?? DateTime.now();
+        }
+        return _DisplayProperty(
+          id: p.id,
+          title: p.title,
+          areaName: p.areaName,
+          price: p.price,
+          listingType: 'Sale', // Default fallback
+          createdAt: parsedDate,
+        );
+      }).toList();
+    }
+
+    // 1. Tab Filtering (Rental vs Sale/Re-Sale)
+    List<_DisplayProperty> tabFiltered = displayItems.where((p) {
+      final typeLower = p.listingType.toLowerCase();
+      if (_activeTab == 'Rental') {
+        return typeLower.contains('rent');
+      } else {
+        return !typeLower.contains('rent');
+      }
+    }).toList();
+
+    // 2. Area Multi-Checkbox Filter
+    if (_selectedAreaFilters.isNotEmpty) {
+      tabFiltered = tabFiltered.where((p) {
+        return _selectedAreaFilters.contains(p.areaName);
+      }).toList();
+    }
+
+    // 3. Price Sorting Filter (Default: Newly added properties on top)
+    if (_priceSortOrder == 'high_to_low') {
+      tabFiltered.sort((a, b) => b.price.compareTo(a.price));
+    } else if (_priceSortOrder == 'low_to_high') {
+      tabFiltered.sort((a, b) => a.price.compareTo(b.price));
+    } else {
+      tabFiltered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+
+    final hasActiveFilter = _selectedAreaFilters.isNotEmpty || _priceSortOrder != 'none';
+
+    // 4. Pagination
+    final totalCount = tabFiltered.length;
+    final totalPages = (totalCount / _propertiesPerPage).ceil();
+    final currentPage = _propertyPage.clamp(1, totalPages > 0 ? totalPages : 1);
+
+    final startIndex = (currentPage - 1) * _propertiesPerPage;
+    final endIndex = (startIndex + _propertiesPerPage).clamp(0, totalCount);
+
+    final pageItems = (startIndex < totalCount)
+        ? tabFiltered.sublist(startIndex, endIndex)
+        : <_DisplayProperty>[];
+
+    return CRMCard(
+      title: 'Recent Properties',
+      subtitle: 'Latest registered listings in CRM platform',
+      headerAction: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: hasActiveFilter ? CRMColors.primary : CRMColors.textSecondaryOf(context),
+          side: BorderSide(
+            color: hasActiveFilter ? CRMColors.primary : CRMColors.borderOf(context),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+        onPressed: () => _showFilterModal(displayItems),
+        icon: Icon(
+          Icons.tune_rounded,
+          size: 16,
+          color: hasActiveFilter ? CRMColors.primary : CRMColors.textSecondaryOf(context),
+        ),
+        label: Text(
+          hasActiveFilter ? 'Filter (${_selectedAreaFilters.length + (_priceSortOrder != 'none' ? 1 : 0)})' : 'Filter',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: hasActiveFilter ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: CRMSpacing.s),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Tabs Row: Rental vs Sale/Re-Sale
+            Container(
+              decoration: BoxDecoration(
+                color: CRMColors.backgroundOf(context),
+                borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildTabButton('Rental'),
+                  ),
+                  Expanded(
+                    child: _buildTabButton('Sale/Re-Sale'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: CRMSpacing.m),
+
+            // Display Active Filter Chips if any
+            if (hasActiveFilter) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  if (_priceSortOrder != 'none')
+                    Chip(
+                      label: Text(
+                        _priceSortOrder == 'high_to_low' ? 'Price: High to Low' : 'Price: Low to High',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      onDeleted: () {
+                        setState(() {
+                          _priceSortOrder = 'none';
+                          _propertyPage = 1;
+                        });
+                      },
+                      deleteIcon: const Icon(Icons.cancel_rounded, size: 14),
+                    ),
+                  ..._selectedAreaFilters.map((area) {
+                    return Chip(
+                      label: Text(area, style: const TextStyle(fontSize: 11)),
+                      onDeleted: () {
+                        setState(() {
+                          _selectedAreaFilters.remove(area);
+                          _propertyPage = 1;
+                        });
+                      },
+                      deleteIcon: const Icon(Icons.cancel_rounded, size: 14),
+                    );
+                  }),
+                ],
+              ),
+              const SizedBox(height: CRMSpacing.s),
+            ],
+
+            // Table Content (Code and Status columns removed!)
+            tabFiltered.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'No properties found matching criteria.',
+                        style: TextStyle(color: CRMColors.textSecondaryOf(context)),
+                      ),
+                    ),
+                  )
+                : isMobile
+                    ? Column(
+                        children: pageItems.map((p) => _buildMobilePropertyCard(p)).toList(),
+                      )
+                    : Table(
+                        columnWidths: const {
+                          0: FlexColumnWidth(3.0), // Title
+                          1: FlexColumnWidth(2.0), // Area
+                          2: FlexColumnWidth(1.5), // Price
+                        },
+                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                        border: TableBorder(
+                          horizontalInside: BorderSide(
+                            color: CRMColors.borderOf(context).withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        children: [
+                          TableRow(
+                            decoration: BoxDecoration(
+                              color: CRMColors.backgroundOf(context).withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                            ),
+                            children: [
+                              _buildTableHeaderCell('Title'),
+                              _buildTableHeaderCell('Area'),
+                              _buildTableHeaderCell('Price'),
+                            ],
+                          ),
+                          ...pageItems.map((p) {
+                            return TableRow(
+                              children: [
+                                _buildTableDataCell(
+                                  InkWell(
+                                    onTap: () => _openPropertyDetails(p.id),
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: Text(
+                                        p.title,
+                                        style: TextStyle(
+                                          color: CRMColors.textOf(context),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                _buildTableDataCell(
+                                  InkWell(
+                                    onTap: () => _openPropertyDetails(p.id),
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: Text(
+                                        p.areaName,
+                                        style: TextStyle(color: CRMColors.textSecondaryOf(context)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                _buildTableDataCell(
+                                  InkWell(
+                                    onTap: () => _openPropertyDetails(p.id),
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: Text(
+                                        '₹${p.price.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          color: CRMColors.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+
+            // Pagination Controls for Recent Properties
+            if (totalPages > 1) ...[
+              const SizedBox(height: CRMSpacing.m),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Page $currentPage of $totalPages ($totalCount listings)',
+                    style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                        onPressed: currentPage > 1
+                            ? () => setState(() => _propertyPage--)
+                            : null,
+                        tooltip: 'Previous Page',
+                      ),
+                      Text(
+                        '$currentPage / $totalPages',
+                        style: CRMTypography.captionBold.copyWith(color: CRMColors.textOf(context)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                        onPressed: currentPage < totalPages
+                            ? () => setState(() => _propertyPage++)
+                            : null,
+                        tooltip: 'Next Page',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String label) {
+    final isSelected = _activeTab == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _activeTab = label;
+          _propertyPage = 1;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? CRMColors.cardBgOf(context) : Colors.transparent,
+          borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: isSelected ? CRMColors.primary : CRMColors.textSecondaryOf(context),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFilterModal(List<_DisplayProperty> allItems) {
+    // Extract all distinct non-empty area names
+    final distinctAreas = allItems
+        .map((e) => e.areaName)
+        .where((a) => a.isNotEmpty && a != 'N/A')
+        .toSet()
+        .toList();
+    distinctAreas.sort();
+
+    Set<String> tempAreas = Set.from(_selectedAreaFilters);
+    String tempPriceSort = _priceSortOrder;
+    String locationSearchQuery = '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredAreas = distinctAreas.where((area) {
+              if (locationSearchQuery.isEmpty) return true;
+              return area.toLowerCase().contains(locationSearchQuery.toLowerCase());
+            }).toList();
+
+            return AlertDialog(
+              backgroundColor: CRMColors.cardBgOf(context),
+              title: Text(
+                'Filter Recent Properties',
+                style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context)),
+              ),
+              content: SizedBox(
+                width: 400,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Price Sorting',
+                        style: CRMTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: CRMColors.textOf(context),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      RadioListTile<String>(
+                        title: const Text('Default Order (Newest First)'),
+                        value: 'none',
+                        groupValue: tempPriceSort,
+                        dense: true,
+                        activeColor: CRMColors.primary,
+                        onChanged: (val) => setModalState(() => tempPriceSort = val!),
+                      ),
+                      RadioListTile<String>(
+                        title: const Text('Price: High to Low'),
+                        value: 'high_to_low',
+                        groupValue: tempPriceSort,
+                        dense: true,
+                        activeColor: CRMColors.primary,
+                        onChanged: (val) => setModalState(() => tempPriceSort = val!),
+                      ),
+                      RadioListTile<String>(
+                        title: const Text('Price: Low to High'),
+                        value: 'low_to_high',
+                        groupValue: tempPriceSort,
+                        dense: true,
+                        activeColor: CRMColors.primary,
+                        onChanged: (val) => setModalState(() => tempPriceSort = val!),
+                      ),
+                      const Divider(height: 24),
+                      Text(
+                        'Area Filter (Multi-select)',
+                        style: CRMTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: CRMColors.textOf(context),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Search locations / areas...',
+                          prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                          filled: true,
+                          fillColor: CRMColors.backgroundOf(context),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                            borderSide: BorderSide(color: CRMColors.borderOf(context)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                            borderSide: BorderSide(color: CRMColors.borderOf(context).withOpacity(0.5)),
+                          ),
+                        ),
+                        onChanged: (val) {
+                          setModalState(() {
+                            locationSearchQuery = val.trim();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      if (filteredAreas.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            distinctAreas.isEmpty ? 'No area options available.' : 'No matching locations found.',
+                            style: TextStyle(color: CRMColors.textSecondaryOf(context)),
+                          ),
+                        )
+                      else
+                        ...filteredAreas.map((area) {
+                          final isChecked = tempAreas.contains(area);
+                          return CheckboxListTile(
+                            title: Text(area, style: const TextStyle(fontSize: 14)),
+                            value: isChecked,
+                            dense: true,
+                            activeColor: CRMColors.primary,
+                            onChanged: (val) {
+                              setModalState(() {
+                                if (val == true) {
+                                  tempAreas.add(area);
+                                } else {
+                                  tempAreas.remove(area);
+                                }
+                              });
+                            },
+                          );
+                        }),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setModalState(() {
+                      tempAreas.clear();
+                      tempPriceSort = 'none';
+                      locationSearchQuery = '';
+                    });
+                  },
+                  child: const Text('Reset All'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                CRMButton(
+                  label: 'Apply Filters',
+                  onPressed: () {
+                    setState(() {
+                      _selectedAreaFilters = tempAreas;
+                      _priceSortOrder = tempPriceSort;
+                    });
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTableHeaderCell(String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: 12),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: CRMColors.textOf(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTableDataCell(Widget child) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: 12),
+      child: child,
+    );
+  }
+
+  Widget _buildMobilePropertyCard(_DisplayProperty p) {
+    return InkWell(
+      onTap: () => _openPropertyDetails(p.id),
+      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: CRMSpacing.s),
+        padding: const EdgeInsets.all(CRMSpacing.m),
+        decoration: BoxDecoration(
+          color: CRMColors.backgroundOf(context).withOpacity(0.4),
+          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+          border: Border.all(color: CRMColors.backgroundOf(context)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              p.title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: CRMColors.textOf(context),
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: CRMSpacing.xs),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
+                    const SizedBox(width: 4),
+                    Text(
+                      p.areaName,
+                      style: TextStyle(
+                        color: CRMColors.textSecondaryOf(context),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '₹${p.price.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: CRMColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -405,21 +1106,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (mounted) {
                     context.read<DashboardBloc>().add(RefreshDashboard());
                   }
-                } catch (e) {
-                  // error
-                }
+                } catch (_) {}
               }
             },
           ),
           const SizedBox(width: CRMSpacing.s),
           Expanded(
             child: Text(
-              item.title, 
+              item.title,
               style: CRMTypography.bodyMedium.copyWith(
                 color: CRMColors.textOf(context),
                 fontWeight: FontWeight.w600,
                 decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-              )
+              ),
             ),
           ),
           IconButton(
@@ -430,9 +1129,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (mounted) {
                   context.read<DashboardBloc>().add(RefreshDashboard());
                 }
-              } catch (e) {
-                // error
-              }
+              } catch (_) {}
             },
           ),
         ],
@@ -446,14 +1143,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: CRMColors.cardBg,
-          title: Text('Add New Task', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
+          backgroundColor: CRMColors.cardBgOf(context),
+          title: Text('Add New Task', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context))),
           content: TextField(
             controller: controller,
             decoration: InputDecoration(
               hintText: 'Task Title',
               filled: true,
-              fillColor: CRMColors.background,
+              fillColor: CRMColors.backgroundOf(context),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
             ),
             autofocus: true,
@@ -473,9 +1170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     if (mounted) {
                       context.read<DashboardBloc>().add(RefreshDashboard());
                     }
-                  } catch (e) {
-                    // error
-                  }
+                  } catch (_) {}
                 }
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
@@ -489,6 +1184,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildFollowups(List<DashboardFollowup> followups) {
+    // 1. Sort followups: latest scheduled/created followups on top
+    final sortedFollowups = List<DashboardFollowup>.from(followups);
+    sortedFollowups.sort((a, b) {
+      final dateA = DateTime.tryParse(a.followupDate) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final dateB = DateTime.tryParse(b.followupDate) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return dateB.compareTo(dateA); // Latest on top
+    });
+
+    // 2. Pagination calculation
+    final totalCount = sortedFollowups.length;
+    final totalPages = (totalCount / _followupsPerPage).ceil();
+    final currentPage = _followupPage.clamp(1, totalPages > 0 ? totalPages : 1);
+
+    final startIndex = (currentPage - 1) * _followupsPerPage;
+    final endIndex = (startIndex + _followupsPerPage).clamp(0, totalCount);
+
+    final pageItems = (startIndex < totalCount)
+        ? sortedFollowups.sublist(startIndex, endIndex)
+        : <DashboardFollowup>[];
+
     return CRMCard(
       title: "Upcoming Follow-ups",
       subtitle: 'Schedule of communications and clients appointments',
@@ -499,7 +1214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.only(top: CRMSpacing.m),
-        child: followups.isEmpty
+        child: sortedFollowups.isEmpty
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
@@ -507,7 +1222,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               )
             : Column(
-                children: followups.map((f) => _buildFollowupTile(f)).toList(),
+                children: [
+                  ...pageItems.map((f) => _buildFollowupTile(f)),
+                  if (totalPages > 1) ...[
+                    const SizedBox(height: CRMSpacing.m),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Page $currentPage of $totalPages ($totalCount total)',
+                          style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                              onPressed: currentPage > 1
+                                  ? () => setState(() => _followupPage--)
+                                  : null,
+                              tooltip: 'Previous Page',
+                            ),
+                            Text(
+                              '$currentPage / $totalPages',
+                              style: CRMTypography.captionBold.copyWith(color: CRMColors.textOf(context)),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                              onPressed: currentPage < totalPages
+                                  ? () => setState(() => _followupPage++)
+                                  : null,
+                              tooltip: 'Next Page',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
       ),
     );
@@ -576,13 +1327,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         );
                         context.read<DashboardBloc>().add(RefreshDashboard());
                       }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to update follow-up.'), backgroundColor: CRMColors.danger),
-                        );
-                      }
-                    }
+                    } catch (_) {}
                   },
                   tooltip: 'Mark Completed',
                 ),
@@ -598,13 +1343,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       );
                       context.read<DashboardBloc>().add(RefreshDashboard());
                     }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to delete follow-up.'), backgroundColor: CRMColors.danger),
-                      );
-                    }
-                  }
+                  } catch (_) {}
                 },
                 tooltip: 'Delete Follow-up',
               ),
@@ -612,426 +1351,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  void _showImportExcelDialog() {
-    int currentStep = 1; // 1: Upload, 2: Parsing & Validating, 3: Preview & Duplicate Resolution, 4: Committing, 5: Report
-    String uploadStatusMessage = "Ready for upload";
-    double progressValue = 0.0;
-    
-    PlatformFile? pickedFile;
-    Map<String, dynamic> previewData = {};
-    String selectedResolution = "skip"; // skip, import_all, update
-    
-    Map<String, dynamic> finalReport = {};
-    bool isCommitError = false;
-    String commitErrorMessage = "";
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            
-            Future<void> downloadTemplate() async {
-              try {
-                final response = await DioClient.dio.get<List<int>>(
-                  '/properties/import/template',
-                  options: Options(responseType: ResponseType.bytes),
-                );
-
-                await FileDownloader.download(
-                  response.data!,
-                  'properties_import_template.xlsx',
-                );
-              } catch (_) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Failed to download template. Ensure server is running.')),
-                );
-              }
-            }
-
-            // File selection trigger
-            Future<void> pickFile() async {
-              try {
-                final result = await FilePicker.platform.pickFiles(
-                  type: FileType.custom,
-                  allowedExtensions: ['xlsx', 'xls', 'xlsm', 'xlsb', 'csv'],
-                );
-                if (result != null && result.files.isNotEmpty) {
-                  setModalState(() {
-                    pickedFile = result.files.first;
-                  });
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(content: Text('Error selecting file: $e')),
-                );
-              }
-            }
-
-            // Stage 2: Progress simulation & server preview upload
-            Future<void> runPreviewAnalysis() async {
-              if (pickedFile == null || (!kIsWeb && pickedFile!.path == null) || (kIsWeb && pickedFile!.bytes == null)) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Please select an Excel or CSV file first.')),
-                );
-                return;
-              }
-
-              setModalState(() {
-                currentStep = 2;
-                uploadStatusMessage = "Reading file buffer...";
-                progressValue = 0.2;
-              });
-              await Future.delayed(const Duration(milliseconds: 300));
-
-              setModalState(() {
-                uploadStatusMessage = "Uploading file to server...";
-                progressValue = 0.5;
-              });
-
-              try {
-                MultipartFile file;
-                if (kIsWeb) {
-                  file = MultipartFile.fromBytes(
-                    pickedFile!.bytes!,
-                    filename: pickedFile!.name,
-                  );
-                } else {
-                  file = await MultipartFile.fromFile(
-                    pickedFile!.path!,
-                    filename: pickedFile!.name,
-                  );
-                }
-
-                final formData = FormData.fromMap({
-                  'file': file,
-                });
-
-                final response = await DioClient.dio.post(
-                  '/properties/import',
-                  data: formData,
-                );
-                
-                previewData = response.data['data'] ?? {};
-              } catch (e) {
-                String errorMsg = "Failed to parse import file.";
-                if (e is DioException) {
-                  errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
-                }
-                setModalState(() {
-                  currentStep = 1;
-                  uploadStatusMessage = errorMsg;
-                });
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  SnackBar(content: Text(errorMsg), backgroundColor: CRMColors.danger),
-                );
-                return;
-              }
-
-              setModalState(() {
-                currentStep = 3;
-                progressValue = 1.0;
-              });
-            }
-
-            // Stage 4: Committing database insert
-            Future<void> commitImport() async {
-              if (pickedFile == null || (!kIsWeb && pickedFile!.path == null) || (kIsWeb && pickedFile!.bytes == null)) return;
-
-              setModalState(() {
-                currentStep = 4;
-                uploadStatusMessage = "Importing valid rows...";
-                progressValue = 0.4;
-              });
-
-              try {
-                MultipartFile file;
-                if (kIsWeb) {
-                  file = MultipartFile.fromBytes(
-                    pickedFile!.bytes!,
-                    filename: pickedFile!.name,
-                  );
-                } else {
-                  file = await MultipartFile.fromFile(
-                    pickedFile!.path!,
-                    filename: pickedFile!.name,
-                  );
-                }
-
-                final formData = FormData.fromMap({
-                  'file': file,
-                });
-
-                final response = await DioClient.dio.post(
-                  '/properties/import?action=commit',
-                  queryParameters: {'duplicateResolution': selectedResolution},
-                  data: formData,
-                );
-                finalReport = response.data['data'] ?? {};
-              } catch (e) {
-                String errorMsg = "Failed to commit import.";
-                if (e is DioException) {
-                  errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
-                }
-                setModalState(() {
-                  isCommitError = true;
-                  commitErrorMessage = errorMsg;
-                });
-              }
-
-              if (mounted) {
-                context.read<DashboardBloc>().add(RefreshDashboard());
-              }
-
-              setModalState(() {
-                currentStep = 5;
-                progressValue = 1.0;
-              });
-            }
-
-            Widget stepWidget;
-
-            if (currentStep == 1) {
-              final String fileName = pickedFile != null ? pickedFile!.name : 'Click to select Excel/CSV file';
-              final String fileSize = pickedFile != null ? '${(pickedFile!.size / 1024).toStringAsFixed(1)} KB' : 'Max 5 MB';
-
-              stepWidget = Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: GestureDetector(
-                      onTap: pickFile,
-                      child: Container(
-                        height: 140,
-                        decoration: BoxDecoration(
-                          color: CRMColors.backgroundOf(context),
-                          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                          border: Border.all(
-                            color: pickedFile != null ? CRMColors.success : CRMColors.primary.withOpacity(0.3),
-                            width: 1.5,
-                            style: BorderStyle.solid,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              pickedFile != null ? Icons.task_outlined : Icons.file_upload_rounded,
-                              size: 36,
-                              color: pickedFile != null ? CRMColors.success : CRMColors.primary,
-                            ),
-                            const SizedBox(height: CRMSpacing.s),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Text(
-                                fileName,
-                                style: CRMTypography.bodyMedium.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: CRMColors.textOf(context),
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              fileSize,
-                              style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: CRMSpacing.m),
-                  OutlinedButton.icon(
-                    onPressed: downloadTemplate,
-                    icon: const Icon(Icons.download_rounded, size: 16),
-                    label: const Text('Download Excel Template'),
-                  ),
-                ],
-              );
-            } else if (currentStep == 2 || currentStep == 4) {
-              stepWidget = Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: CRMSpacing.m),
-                  LinearProgressIndicator(value: progressValue, color: CRMColors.primary),
-                  const SizedBox(height: CRMSpacing.m),
-                  Text(
-                    uploadStatusMessage,
-                    style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context), fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              );
-            } else if (currentStep == 3) {
-              final summary = previewData['summary'] ?? {};
-              final preview = previewData['preview'] ?? {};
-              final List invalidList = preview['invalid'] ?? [];
-              final List duplicateList = preview['duplicates'] ?? [];
-
-              stepWidget = Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildMetricSummary('Total', '${summary['totalRows'] ?? 0}', CRMColors.primary),
-                      _buildMetricSummary('Valid', '${summary['validRows'] ?? 0}', CRMColors.success),
-                      _buildMetricSummary('Duplicates', '${summary['duplicateRows'] ?? 0}', CRMColors.warning),
-                      _buildMetricSummary('Invalid', '${summary['invalidRows'] ?? 0}', CRMColors.danger),
-                    ],
-                  ),
-                  const SizedBox(height: CRMSpacing.m),
-                  if (invalidList.isNotEmpty) ...[
-                    Text('Validation Warnings & Errors:', style: CRMTypography.body.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context))),
-                    const SizedBox(height: CRMSpacing.xs),
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 120),
-                      decoration: BoxDecoration(
-                        color: CRMColors.backgroundOf(context),
-                        borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                      ),
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: invalidList.map((inv) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            child: Text(
-                              'Row ${inv['rowNum']}: ${inv['errors']?.join(', ')}',
-                              style: CRMTypography.caption.copyWith(color: CRMColors.danger),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: CRMSpacing.m),
-                  ],
-                  Text('Duplicate Resolution Strategy:', style: CRMTypography.body.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context))),
-                  const SizedBox(height: CRMSpacing.xs),
-                  DropdownButtonFormField<String>(
-                    dropdownColor: CRMColors.cardBg,
-                    value: selectedResolution,
-                    items: const [
-                      DropdownMenuItem(value: 'skip', child: Text('Skip duplicate entries')),
-                      DropdownMenuItem(value: 'update', child: Text('Update existing database records')),
-                      DropdownMenuItem(value: 'import_all', child: Text('Import all rows as new records')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setModalState(() => selectedResolution = val);
-                      }
-                    },
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: CRMColors.backgroundOf(context),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
-                    ),
-                  ),
-                ],
-              );
-            } else {
-              stepWidget = Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    isCommitError ? Icons.error_outline_rounded : Icons.check_circle_rounded,
-                    color: isCommitError ? CRMColors.danger : CRMColors.success,
-                    size: 48,
-                  ),
-                  const SizedBox(height: CRMSpacing.m),
-                  Text(
-                    isCommitError ? 'Import Committing Failed' : 'Import Completed Successfully!',
-                    style: CRMTypography.body.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context)),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: CRMSpacing.m),
-                  isCommitError
-                      ? Text(
-                          commitErrorMessage,
-                          style: CRMTypography.caption.copyWith(color: CRMColors.danger),
-                          textAlign: TextAlign.center,
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildMetricSummary('Imported', '${finalReport['imported'] ?? 0}', CRMColors.success),
-                            _buildMetricSummary('Updated', '${finalReport['updated'] ?? 0}', CRMColors.info),
-                            _buildMetricSummary('Skipped', '${finalReport['skipped'] ?? 0}', CRMColors.warning),
-                            _buildMetricSummary('Failed', '${finalReport['failed'] ?? 0}', CRMColors.danger),
-                          ],
-                        ),
-                ],
-              );
-            }
-
-            return AlertDialog(
-              backgroundColor: CRMColors.cardBg,
-              title: Text(
-                currentStep == 5 ? 'Import Report' : 'Properties Import Wizard',
-                style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
-              ),
-              content: SizedBox(
-                width: 420,
-                child: stepWidget,
-              ),
-              actions: [
-                if (currentStep == 1) ...[
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Cancel'),
-                  ),
-                  CRMButton(
-                    label: 'Analyze File',
-                    onPressed: runPreviewAnalysis,
-                  ),
-                ] else if (currentStep == 3) ...[
-                  TextButton(
-                    onPressed: () => setModalState(() => currentStep = 1),
-                    child: const Text('Back'),
-                  ),
-                  CRMButton(
-                    label: 'Commit Import',
-                    onPressed: commitImport,
-                  ),
-                ] else if (currentStep == 5) ...[
-                  CRMButton(
-                    label: 'Close Wizard',
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ]
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildMetricSummary(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: CRMTypography.sectionTitle.copyWith(fontWeight: FontWeight.bold, color: color),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(fontSize: 10, color: CRMColors.textSecondary),
-        ),
-      ],
     );
   }
 
@@ -1053,8 +1372,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final formattedTimeStr = "${displayHour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')} $amPm";
 
             return AlertDialog(
-              backgroundColor: CRMColors.cardBg,
-              title: Text('Schedule Follow-up', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
+              backgroundColor: CRMColors.cardBgOf(context),
+              title: Text('Schedule Follow-up', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context))),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1064,7 +1383,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       decoration: InputDecoration(
                         labelText: 'Client Name',
                         filled: true,
-                        fillColor: CRMColors.background,
+                        fillColor: CRMColors.backgroundOf(context),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                       ),
                     ),
@@ -1075,7 +1394,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       decoration: InputDecoration(
                         labelText: 'Mobile Number',
                         filled: true,
-                        fillColor: CRMColors.background,
+                        fillColor: CRMColors.backgroundOf(context),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                       ),
                     ),
@@ -1085,7 +1404,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       decoration: InputDecoration(
                         labelText: 'Follow-up Notes',
                         filled: true,
-                        fillColor: CRMColors.background,
+                        fillColor: CRMColors.backgroundOf(context),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                       ),
                     ),
@@ -1149,13 +1468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           );
                           context.read<DashboardBloc>().add(RefreshDashboard());
                         }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed to schedule follow-up.'), backgroundColor: CRMColors.danger),
-                          );
-                        }
-                      }
+                      } catch (_) {}
                     }
                     if (ctx.mounted) {
                       Navigator.pop(ctx);
@@ -1170,477 +1483,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildAnalyticsChart() {
-    final List<Map<String, dynamic>> dailyProgressData = [
-      {'day': 'Mn', 'value': 8},
-      {'day': 'Te', 'value': 10},
-      {'day': 'Wd', 'value': 14},
-      {'day': 'Tu', 'value': 15},
-      {'day': 'Fr', 'value': 13},
-      {'day': 'St', 'value': 10},
-      {'day': 'Sn', 'value': 16},
-    ];
-
-    const double maxValue = 18.0;
-    const double maxBarHeight = 140.0;
-
-    return CRMCard(
-      title: 'Daily Progress (Properties Added)',
-      subtitle: 'Daily property registration volume over the week',
-      child: Container(
-        height: 240,
-        padding: const EdgeInsets.only(top: CRMSpacing.m, bottom: CRMSpacing.s),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: dailyProgressData.map((item) {
-            final int value = item['value'] as int;
-            final String day = item['day'] as String;
-            final double barHeight = (value / maxValue) * maxBarHeight;
-            final Color activeColor = CRMColors.isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
-
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  '$value',
-                  style: TextStyle(
-                    color: activeColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  width: 8,
-                  height: barHeight,
-                  decoration: BoxDecoration(
-                    color: activeColor,
-                    borderRadius: BorderRadius.circular(6),
-                    boxShadow: [
-                      BoxShadow(
-                        color: activeColor.withValues(alpha: 0.35),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  day,
-                  style: CRMTypography.caption.copyWith(
-                    color: CRMColors.textSecondaryOf(context),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentProperties(List<RecentProperty> properties) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isMobile = screenWidth < 600;
-
-    return CRMCard(
-      title: 'Recent Properties',
-      subtitle: 'Latest listings registered in the CRM platform',
-      child: Padding(
-        padding: const EdgeInsets.only(top: CRMSpacing.s),
-        child: properties.isEmpty
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    'No listings found.',
-                    style: TextStyle(color: CRMColors.textSecondaryOf(context)),
-                  ),
-                ),
-              )
-            : isMobile
-                ? Column(
-                    children: properties.map((p) => _buildMobilePropertyCard(p)).toList(),
-                  )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      final double tableMinWidth = 600.0;
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: constraints.maxWidth > tableMinWidth
-                                ? constraints.maxWidth
-                                : tableMinWidth,
-                          ),
-                          child: Table(
-                            columnWidths: const {
-                              0: FlexColumnWidth(1.2), // Code
-                              1: FlexColumnWidth(2.5), // Title
-                              2: FlexColumnWidth(1.8), // Area
-                              3: FlexColumnWidth(1.2), // Price
-                              4: FlexColumnWidth(1.3), // Status
-                            },
-                            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                            border: TableBorder(
-                              horizontalInside: BorderSide(
-                                color: CRMColors.borderOf(context).withOpacity(0.5),
-                                width: 1,
-                              ),
-                            ),
-                            children: [
-                              TableRow(
-                                decoration: BoxDecoration(
-                                  color: CRMColors.backgroundOf(context).withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                                ),
-                                children: [
-                                  _buildTableHeaderCell('Code'),
-                                  _buildTableHeaderCell('Title'),
-                                  _buildTableHeaderCell('Area'),
-                                  _buildTableHeaderCell('Price'),
-                                  _buildTableHeaderCell('Status'),
-                                ],
-                              ),
-                              ...properties.map((p) {
-                                return TableRow(
-                                  children: [
-                                    _buildTableDataCell(
-                                      InkWell(
-                                        onTap: () => _openPropertyDetails(p.id),
-                                        child: MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: Text(
-                                            p.code, 
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold, 
-                                              color: CRMColors.primary,
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    _buildTableDataCell(
-                                      InkWell(
-                                        onTap: () => _openPropertyDetails(p.id),
-                                        child: MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: Text(p.title, style: TextStyle(color: CRMColors.textOf(context))),
-                                        ),
-                                      ),
-                                    ),
-                                    _buildTableDataCell(
-                                      InkWell(
-                                        onTap: () => _openPropertyDetails(p.id),
-                                        child: MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: Text(p.areaName, style: TextStyle(color: CRMColors.textSecondaryOf(context))),
-                                        ),
-                                      ),
-                                    ),
-                                    _buildTableDataCell(
-                                      InkWell(
-                                        onTap: () => _openPropertyDetails(p.id),
-                                        child: MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: Text('₹${p.price.toStringAsFixed(0)}', style: TextStyle(color: CRMColors.textOf(context), fontWeight: FontWeight.w600)),
-                                        ),
-                                      ),
-                                    ),
-                                    _buildTableDataCell(
-                                      InkWell(
-                                        onTap: () => _openPropertyDetails(p.id),
-                                        child: MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: p.status.toLowerCase() == 'available' 
-                                                    ? CRMColors.success.withOpacity(0.1) 
-                                                    : CRMColors.warning.withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                                              ),
-                                              child: Text(
-                                                p.status, 
-                                                style: TextStyle(
-                                                  color: p.status.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold
-                                                )
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-      ),
-    );
-  }
-
-  Widget _buildTableHeaderCell(String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: 12),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: CRMColors.textOf(context),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTableDataCell(Widget child) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: 12),
-      child: child,
-    );
-  }
-
-  Widget _buildMobilePropertyCard(RecentProperty p) {
-    return InkWell(
-      onTap: () => _openPropertyDetails(p.id),
-      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: CRMSpacing.s),
-        padding: const EdgeInsets.all(CRMSpacing.m),
-        decoration: BoxDecoration(
-          color: CRMColors.backgroundOf(context).withOpacity(0.4),
-          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-          border: Border.all(color: CRMColors.backgroundOf(context)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  p.code,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: CRMColors.primary,
-                    fontSize: 14,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: p.status.toLowerCase() == 'available' 
-                        ? CRMColors.success.withOpacity(0.1) 
-                        : CRMColors.warning.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                  ),
-                  child: Text(
-                    p.status, 
-                    style: TextStyle(
-                      color: p.status.toLowerCase() == 'available' ? CRMColors.success : CRMColors.warning,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold
-                    )
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: CRMSpacing.xs),
-            Text(
-              p.title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: CRMColors.textOf(context),
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: CRMSpacing.xs),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
-                    const SizedBox(width: 4),
-                    Text(
-                      p.areaName,
-                      style: TextStyle(
-                        color: CRMColors.textSecondaryOf(context),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '₹${p.price.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    color: CRMColors.textOf(context),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentActivities(List<RecentActivity> activities) {
-    return CRMCard(
-      title: 'Recent Audit Activities',
-      subtitle: 'Trace logs of structural edits inside CRM database',
-      child: Padding(
-        padding: const EdgeInsets.only(top: CRMSpacing.m),
-        child: activities.isEmpty
-            ? const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text('No activity logs.')))
-            : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: activities.length,
-                itemBuilder: (context, index) {
-                  final activity = activities[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: CRMSpacing.s),
-                    padding: const EdgeInsets.all(CRMSpacing.m),
-                    decoration: BoxDecoration(
-                      color: CRMColors.backgroundOf(context).withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.history_toggle_off_rounded, color: CRMColors.primary, size: 20),
-                        const SizedBox(width: CRMSpacing.m),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                activity.description, 
-                                style: CRMTypography.bodyMedium.copyWith(
-                                  color: CRMColors.textOf(context),
-                                  fontWeight: FontWeight.w500
-                                )
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'User: ${activity.user} | ${activity.timestamp}',
-                                style: CRMTypography.caption.copyWith(color: CRMColors.textMutedOf(context)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-      ),
-    );
-  }
-
-  Widget _buildPerformanceBlock(DashboardSummary summary) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int crossAxisCount = 4;
-        double childAspectRatio = 2.2;
-        
-        if (constraints.maxWidth < 600) {
-          crossAxisCount = 2;
-          childAspectRatio = 1.4;
-        } else if (constraints.maxWidth < 900) {
-          crossAxisCount = 2;
-          childAspectRatio = 1.8;
-        }
-
-        return CRMCard(
-          title: 'Agency CRM Performance metrics',
-          subtitle: 'Real-time performance metrics tracking brokers and regions',
-          child: Padding(
-            padding: const EdgeInsets.only(top: CRMSpacing.m),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: CRMSpacing.m,
-              mainAxisSpacing: CRMSpacing.m,
-              childAspectRatio: childAspectRatio,
-              children: [
-                _buildPerformanceCard('Top Broker', summary.topBroker, Icons.stars_rounded),
-                _buildPerformanceCard('Top Area', summary.topArea, Icons.location_on_rounded),
-                _buildPerformanceCard('Top Property', summary.topProperty, Icons.home_rounded),
-                _buildPerformanceCard('Monthly Growth', summary.monthlyGrowth, Icons.trending_up_rounded),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPerformanceCard(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(CRMSpacing.m),
-      decoration: BoxDecoration(
-        color: CRMColors.backgroundOf(context),
-        borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-        border: Border.all(color: CRMColors.backgroundOf(context).withOpacity(0.8)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: CRMColors.primary.withOpacity(0.1),
-            radius: 18,
-            child: Icon(icon, color: CRMColors.primary, size: 20),
-          ),
-          const SizedBox(width: CRMSpacing.m),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  label, 
-                  style: CRMTypography.caption.copyWith(
-                    color: CRMColors.textSecondaryOf(context),
-                    fontWeight: FontWeight.w500
-                  )
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: CRMTypography.bodyMedium.copyWith(
-                    color: CRMColors.textOf(context), 
-                    fontWeight: FontWeight.bold
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _openPropertyDetails(String propertyId) {
-    context.go('/properties?openId=$propertyId');
+    final String url = '${Uri.base.origin}/#/properties/$propertyId';
+    launchUrl(Uri.parse(url), webOnlyWindowName: '_blank');
   }
 
   Widget _buildErrorState(String message) {
@@ -1653,11 +1498,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Icon(Icons.error_outline_rounded, color: CRMColors.danger, size: 54),
             const SizedBox(height: CRMSpacing.m),
             Text(
-              'Failed to Load Dashboard', 
+              'Failed to Load Dashboard',
               style: CRMTypography.sectionTitle.copyWith(
                 color: CRMColors.textOf(context),
-                fontWeight: FontWeight.bold
-              )
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: CRMSpacing.xs),
             Text(message, style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(context)), textAlign: TextAlign.center),
@@ -1672,5 +1517,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
     );
+  }
+}
+
+class _DisplayProperty {
+  final String id;
+  final String title;
+  final String areaName;
+  final double price;
+  final String listingType;
+  final DateTime createdAt;
+
+  _DisplayProperty({
+    required this.id,
+    required this.title,
+    required this.areaName,
+    required this.price,
+    required this.listingType,
+    required this.createdAt,
+  });
+}
+
+class StatusPieChartPainter extends CustomPainter {
+  final double won;
+  final double live;
+  final double dead;
+  final Color wonColor;
+  final Color liveColor;
+  final Color deadColor;
+
+  StatusPieChartPainter({
+    required this.won,
+    required this.live,
+    required this.dead,
+    required this.wonColor,
+    required this.liveColor,
+    required this.deadColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double total = won + live + dead;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final strokeWidth = radius * 0.32;
+
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    if (total == 0) {
+      paint.color = Colors.grey.withOpacity(0.2);
+      canvas.drawCircle(center, radius - strokeWidth / 2, paint);
+      return;
+    }
+
+    double startAngle = -3.141592653589793 / 2;
+
+    void drawArcSegment(double count, Color color) {
+      if (count <= 0) return;
+      final sweepAngle = (count / total) * 2 * 3.141592653589793;
+      paint.color = color;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+        startAngle,
+        sweepAngle > 0.05 ? sweepAngle - 0.04 : sweepAngle,
+        false,
+        paint,
+      );
+      startAngle += sweepAngle;
+    }
+
+    drawArcSegment(won, wonColor);
+    drawArcSegment(live, liveColor);
+    drawArcSegment(dead, deadColor);
+  }
+
+  @override
+  bool shouldRepaint(covariant StatusPieChartPainter oldDelegate) {
+    return oldDelegate.won != won ||
+        oldDelegate.live != live ||
+        oldDelegate.dead != dead ||
+        oldDelegate.wonColor != wonColor ||
+        oldDelegate.liveColor != liveColor ||
+        oldDelegate.deadColor != deadColor;
   }
 }

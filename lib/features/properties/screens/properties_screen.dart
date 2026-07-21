@@ -1175,7 +1175,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   }
 
   void _openPropertyDetails(BuildContext context, PropertyModel p) {
-    showCRMPropertyDrawer(context, p);
+    final String url = '${Uri.base.origin}/#/properties/${p.id}';
+    launchUrl(Uri.parse(url), webOnlyWindowName: '_blank');
   }
 
   Widget _buildPropertyThumbnail(String url) {

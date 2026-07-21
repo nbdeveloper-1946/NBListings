@@ -315,6 +315,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildAuditLogsCard() {
+    return CRMCard(
+      title: 'Audit Logs',
+      subtitle: 'View system audit activity logs and database change records',
+      child: Padding(
+        padding: const EdgeInsets.only(top: CRMSpacing.xs),
+        child: ListTile(
+          title: Text(
+            'System Activity Audit Logs',
+            style: CRMTypography.bodyMedium.copyWith(
+              color: CRMColors.textOf(context),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Text(
+            'Trace user operations, entity mutations, and operational histories',
+            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+          ),
+          leading: CircleAvatar(
+            backgroundColor: CRMColors.primary.withOpacity(0.1),
+            radius: 18,
+            child: Icon(Icons.history_rounded, color: CRMColors.primary, size: 20),
+          ),
+          trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: CRMColors.textSecondaryOf(context)),
+          contentPadding: EdgeInsets.zero,
+          onTap: () {
+            context.go('/settings/audit-logs');
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -358,6 +391,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: CRMSpacing.l),
                     _buildAppearanceCard(isAdminOrSuperAdmin),
                     const SizedBox(height: CRMSpacing.l),
+                    _buildAuditLogsCard(),
+                    const SizedBox(height: CRMSpacing.l),
                     _buildCityCard(),
                     const SizedBox(height: CRMSpacing.l),
                     _buildAreaCard(),
@@ -372,6 +407,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _buildProfileCard(currentUserName, currentUserEmail),
                               const SizedBox(height: CRMSpacing.l),
                               _buildAppearanceCard(isAdminOrSuperAdmin),
+                              const SizedBox(height: CRMSpacing.l),
+                              _buildAuditLogsCard(),
                             ],
                           ),
                         ),
