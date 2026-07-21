@@ -117,6 +117,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _deleteCity(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete City'),
+        content: const Text('Are you sure you want to delete this city configuration?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _propertiesService.deleteCity(id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('City deleted successfully'), backgroundColor: CRMColors.success),
+      );
+      _loadLocationMetadata();
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete city: $e'), backgroundColor: CRMColors.danger),
+      );
+    }
+  }
+
+  Future<void> _deleteArea(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Area'),
+        content: const Text('Are you sure you want to delete this area mapping configuration?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await _propertiesService.deleteArea(id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Area deleted successfully'), backgroundColor: CRMColors.success),
+      );
+      _loadLocationMetadata();
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete area: $e'), backgroundColor: CRMColors.danger),
+      );
+    }
+  }
+
   Widget _buildProfileCard(String name, String email) {
     return CRMCard(
       title: 'User Profile',
@@ -377,6 +435,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   final city = _cities[index];
                   return ListTile(
                     title: Text(city.name, style: TextStyle(color: CRMColors.textOf(context))),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                      tooltip: 'Delete City',
+                      onPressed: () => _deleteCity(city.id),
+                    ),
                     dense: true,
                   );
                 },
@@ -451,7 +514,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   final area = filtered[index];
                   return ListTile(
                     title: Text(area.name, style: TextStyle(color: CRMColors.textOf(context))),
-                    trailing: Text(area.pincode, style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(area.pincode, style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                          tooltip: 'Delete Area',
+                          onPressed: () => _deleteArea(area.id),
+                        ),
+                      ],
+                    ),
                     dense: true,
                   );
                 },

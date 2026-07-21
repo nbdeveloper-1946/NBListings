@@ -915,6 +915,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                 _buildSidebarItem(Icons.monetization_on_rounded, 'Finance', '/finance', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.analytics_rounded, 'Reports', '/reports', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.settings_rounded, 'Settings', '/settings', currentPath, isMobile, isExpanded),
+                _buildSidebarItem(Icons.delete_sweep_rounded, 'Recycle Bin', '/bin', currentPath, isMobile, isExpanded),
               ],
             ),
           ),

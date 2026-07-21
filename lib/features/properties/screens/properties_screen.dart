@@ -653,7 +653,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                if (isMine && _activeTab != 'My Deleted') ...[
+                                if (isMine) ...[
                                   IconButton(
                                     icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
                                     onPressed: () {
@@ -667,15 +667,6 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                     onPressed: () {
                                       context.read<PropertiesBloc>().add(
                                         DeletePropertyEvent(p.id, activeTab: _activeTab),
-                                      );
-                                    },
-                                  ),
-                                ] else if (isMine && _activeTab == 'My Deleted') ...[
-                                  IconButton(
-                                    icon: Icon(Icons.restore_rounded, color: CRMColors.success, size: 18),
-                                    onPressed: () {
-                                      context.read<PropertiesBloc>().add(
-                                        RestorePropertyEvent(p.id, activeTab: _activeTab),
                                       );
                                     },
                                   ),
@@ -1092,7 +1083,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     final chipsList = Wrap(
       spacing: CRMSpacing.s,
       runSpacing: CRMSpacing.xs,
-      children: ['All', 'My Active', 'My Deleted', 'Shortlisted'].map((tab) {
+      children: ['All', 'My Active', 'Shortlisted'].map((tab) {
         final isSelected = _activeTab == tab;
         return ChoiceChip(
           label: Text(tab),

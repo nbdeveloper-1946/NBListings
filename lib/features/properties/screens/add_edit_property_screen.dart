@@ -1840,9 +1840,9 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
 
     final bedroomValue = _bedroomsController.text.isNotEmpty && int.tryParse(_bedroomsController.text) != null
-        ? '${_bedroomsController.text} BHK'
-        : '1 BHK';
-    final bedroomOptions = ['1 BHK', '2 BHK', '3 BHK', '4 BHK', '5 BHK'];
+        ? '${_bedroomsController.text} '
+        : '1 ';
+    final bedroomOptions = ['1 ', '2 ', '3 ', '4 ', '5 '];
     final bedroomItems = bedroomOptions.contains(bedroomValue)
         ? bedroomOptions
         : [...bedroomOptions, bedroomValue];

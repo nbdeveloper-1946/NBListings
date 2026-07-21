@@ -203,7 +203,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final publicUrl = response.data['data']['publicUrl'];
 
         // Save updated profile photo to user profile
-        await DioClient.dio.put('/users/${user.id}', data: {'profile_photo': publicUrl});
+        try {
+          await DioClient.dio.put('/users/${user.id}', data: {'profile_photo': publicUrl});
+        } catch (_) {
+          await DioClient.dio.patch('/auth/me', data: {'profile_photo': publicUrl});
+        }
 
         if (mounted) {
           context.read<AuthBloc>().add(AuthCheckStatus());
@@ -280,7 +284,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      await DioClient.dio.put('/users/${user.id}', data: {'profile_photo': null});
+      try {
+        await DioClient.dio.put('/users/${user.id}', data: {'profile_photo': null});
+      } catch (_) {
+        await DioClient.dio.patch('/auth/me', data: {'profile_photo': null});
+      }
 
       if (mounted) {
         context.read<AuthBloc>().add(AuthCheckStatus());
@@ -324,7 +332,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'mobile': _mobileController.text.trim(),
       };
 
-      await DioClient.dio.put('/users/${user.id}', data: updatedData);
+      try {
+        await DioClient.dio.put('/users/${user.id}', data: updatedData);
+      } catch (_) {
+        await DioClient.dio.patch('/auth/me', data: {
+          'fullName': _fullNameController.text.trim(),
+          'mobile': _mobileController.text.trim(),
+        });
+      }
 
       if (mounted) {
         context.read<AuthBloc>().add(AuthCheckStatus());

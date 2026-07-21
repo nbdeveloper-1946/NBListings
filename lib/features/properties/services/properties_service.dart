@@ -215,4 +215,62 @@ class PropertiesService {
       throw ApiException(message: e.toString());
     }
   }
+
+  Future<void> deleteCity(String id) async {
+    try {
+      await _apiClient.delete('/properties/cities/$id');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
+
+  Future<void> deleteArea(String id) async {
+    try {
+      await _apiClient.delete('/properties/areas/$id');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> getBinProperties() async {
+    try {
+      final response = await _apiClient.get(
+        '/properties',
+        queryParameters: {'includeDeleted': 'true'},
+      );
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw ApiException(message: "Invalid response format from server.");
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
+
+
+  Future<void> permanentDeleteProperty(String id) async {
+    try {
+      await _apiClient.delete('/properties/$id/permanent');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
+
+  Future<void> emptyBin() async {
+    try {
+      await _apiClient.delete('/properties/bin/empty');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      throw ApiException(message: e.toString());
+    }
+  }
 }

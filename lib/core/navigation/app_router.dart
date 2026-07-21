@@ -19,6 +19,7 @@ import '../design_system/widgets/placeholder_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/reports/screens/reports_screen.dart';
+import '../../features/properties/screens/recycle_bin_screen.dart';
 import '../network/sync_manager.dart';
 
 
@@ -117,6 +118,10 @@ class AppRouter {
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/bin',
+            builder: (context, state) => const RecycleBinScreen(),
           ),
         ],
       ),
