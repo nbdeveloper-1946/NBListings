@@ -1171,66 +1171,75 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildAnalyticsChart() {
+    final List<Map<String, dynamic>> dailyProgressData = [
+      {'day': 'Mn', 'value': 8},
+      {'day': 'Te', 'value': 10},
+      {'day': 'Wd', 'value': 14},
+      {'day': 'Tu', 'value': 15},
+      {'day': 'Fr', 'value': 13},
+      {'day': 'St', 'value': 10},
+      {'day': 'Sn', 'value': 16},
+    ];
+
+    const double maxValue = 18.0;
+    const double maxBarHeight = 140.0;
+
     return CRMCard(
-      title: 'Properties & Requirements Analytics',
-      subtitle: 'System entries volume registered month-over-month',
+      title: 'Daily Progress (Properties Added)',
+      subtitle: 'Daily property registration volume over the week',
       child: Container(
         height: 240,
-        padding: const EdgeInsets.only(top: CRMSpacing.l),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final double containerWidth = constraints.maxWidth;
-            final double barWidth = (containerWidth / 7).clamp(24.0, 48.0);
+        padding: const EdgeInsets.only(top: CRMSpacing.m, bottom: CRMSpacing.s),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: dailyProgressData.map((item) {
+            final int value = item['value'] as int;
+            final String day = item['day'] as String;
+            final double barHeight = (value / maxValue) * maxBarHeight;
+            final Color activeColor = CRMColors.isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
 
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.end,
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _buildBar('Jan', 60, CRMColors.primary, barWidth),
-                _buildBar('Feb', 90, CRMColors.primary.withOpacity(0.7), barWidth),
-                _buildBar('Mar', 120, CRMColors.primary, barWidth),
-                _buildBar('Apr', 75, CRMColors.primary.withOpacity(0.7), barWidth),
-                _buildBar('May', 150, CRMColors.success, barWidth),
-                _buildBar('Jun', 180, CRMColors.success, barWidth),
+                Text(
+                  '$value',
+                  style: TextStyle(
+                    color: activeColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: 8,
+                  height: barHeight,
+                  decoration: BoxDecoration(
+                    color: activeColor,
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: activeColor.withValues(alpha: 0.35),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  day,
+                  style: CRMTypography.caption.copyWith(
+                    color: CRMColors.textSecondaryOf(context),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             );
-          },
+          }).toList(),
         ),
       ),
-    );
-  }
-
-  Widget _buildBar(String label, double height, Color color, double width) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(CRMBorderRadius.xs),
-              topRight: Radius.circular(CRMBorderRadius.xs),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.2),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              )
-            ]
-          ),
-        ),
-        const SizedBox(height: CRMSpacing.s),
-        Text(
-          label, 
-          style: CRMTypography.caption.copyWith(
-            color: CRMColors.textSecondaryOf(context),
-            fontWeight: FontWeight.w500
-          )
-        ),
-      ],
     );
   }
 

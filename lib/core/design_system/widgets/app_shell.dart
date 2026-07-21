@@ -636,6 +636,8 @@ class _CRMAppShellState extends State<CRMAppShell> {
           ),
           if (!isMobile) ...[
             const SizedBox(width: CRMSpacing.m),
+            const LiveClockWidget(),
+            const SizedBox(width: CRMSpacing.s),
             _buildNotificationButton(context),
             const SizedBox(width: CRMSpacing.s),
             _buildQuickActionsButton(context),
@@ -1129,4 +1131,76 @@ class PubSubDivider extends PopupMenuEntry<Never> {
 class _PubSubDividerState extends State<PubSubDivider> {
   @override
   Widget build(BuildContext context) => const Divider(height: 1, thickness: 1);
+}
+
+class LiveClockWidget extends StatefulWidget {
+  const LiveClockWidget({super.key});
+
+  @override
+  State<LiveClockWidget> createState() => _LiveClockWidgetState();
+}
+
+class _LiveClockWidgetState extends State<LiveClockWidget> {
+  Timer? _timer;
+  late DateTime _currentTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _formatTime(DateTime dt) {
+    int hour = dt.hour % 12;
+    if (hour == 0) hour = 12;
+    final minStr = dt.minute.toString().padLeft(2, '0');
+    final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minStr $ampm';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final formattedTime = _formatTime(_currentTime);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: CRMColors.cardBgOf(context),
+        borderRadius: BorderRadius.circular(CRMBorderRadius.round),
+        border: Border.all(color: CRMColors.borderOf(context), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.access_time_rounded,
+            size: 16,
+            color: CRMColors.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            formattedTime,
+            style: CRMTypography.captionBold.copyWith(
+              color: CRMColors.textOf(context),
+              fontSize: 13,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

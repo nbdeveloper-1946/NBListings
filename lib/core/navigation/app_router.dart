@@ -18,6 +18,7 @@ import '../design_system/widgets/app_shell.dart';
 import '../design_system/widgets/placeholder_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
+import '../../features/reports/screens/reports_screen.dart';
 import '../network/sync_manager.dart';
 
 
@@ -107,16 +108,7 @@ class AppRouter {
           ),
           GoRoute(
             path: '/reports',
-            builder: (context, state) => const CRMPlaceholderScreen(
-              title: 'Reports & Analytics',
-              icon: Icons.analytics_rounded,
-              description: 'Analyze broker productivity, property demand trends, and transaction history.',
-              upcomingFeatures: [
-                'PDF executive summary report builder',
-                'Property type market trend dashboards',
-                'Audit logs & modification timelines explorer',
-              ],
-            ),
+            builder: (context, state) => const ReportsScreen(),
           ),
           GoRoute(
             path: '/settings',

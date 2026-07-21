@@ -10,6 +10,7 @@ class CRMTextField extends StatelessWidget {
   final IconData? prefixIcon;
   final TextInputType keyboardType;
   final bool obscureText;
+  final bool readOnly;
   final Widget? suffixIcon;
   final FormFieldValidator<String>? validator;
   final int? maxLength;
@@ -24,6 +25,7 @@ class CRMTextField extends StatelessWidget {
     this.prefixIcon,
     this.keyboardType = TextInputType.text,
     this.obscureText = false,
+    this.readOnly = false,
     this.suffixIcon,
     this.validator,
     this.maxLength,
@@ -45,6 +47,7 @@ class CRMTextField extends StatelessWidget {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: obscureText,
+          readOnly: readOnly,
           style: CRMTypography.body.copyWith(color: CRMColors.text),
           decoration: InputDecoration(
             hintText: hintText,

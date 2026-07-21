@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
@@ -160,24 +161,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             const SizedBox(height: CRMSpacing.l),
-            Container(
-              padding: const EdgeInsets.all(CRMSpacing.m),
-              decoration: BoxDecoration(
-                color: CRMColors.info.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                border: Border.all(color: CRMColors.info.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, color: CRMColors.info, size: 20),
-                  const SizedBox(width: CRMSpacing.s),
-                  Expanded(
-                    child: Text(
-                      'Profile details editing is coming soon!',
-                      style: CRMTypography.captionBold.copyWith(color: CRMColors.info),
+            InkWell(
+              onTap: () => context.go('/profile'),
+              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              child: Container(
+                padding: const EdgeInsets.all(CRMSpacing.m),
+                decoration: BoxDecoration(
+                  color: CRMColors.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                  border: Border.all(color: CRMColors.primary.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_rounded, color: CRMColors.primary, size: 20),
+                    const SizedBox(width: CRMSpacing.s),
+                    Expanded(
+                      child: Text(
+                        'Edit & View Profile Details',
+                        style: CRMTypography.captionBold.copyWith(color: CRMColors.primary),
+                      ),
                     ),
-                  ),
-                ],
+                    Icon(Icons.arrow_forward_ios_rounded, size: 14, color: CRMColors.primary),
+                  ],
+                ),
               ),
             ),
           ],
@@ -186,11 +192,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAppearanceCard() {
+  Widget _buildAppearanceCard(bool isAdminOrSuperAdmin) {
     final isDark = ThemeManager().isDarkMode;
     return CRMCard(
       title: 'System & Appearance',
-      subtitle: 'Customize visual themes and view diagnostic logs',
+      subtitle: isAdminOrSuperAdmin
+          ? 'Customize visual themes and view diagnostic logs'
+          : 'Customize visual themes',
       child: Padding(
         padding: const EdgeInsets.only(top: CRMSpacing.xs),
         child: Column(
@@ -218,29 +226,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
               contentPadding: EdgeInsets.zero,
             ),
-            const Divider(height: CRMSpacing.l),
-            ListTile(
-              title: Text(
-                'Sync Diagnostics',
-                style: CRMTypography.bodyMedium.copyWith(
-                  color: CRMColors.text,
-                  fontWeight: FontWeight.bold,
+            if (isAdminOrSuperAdmin) ...[
+              const Divider(height: CRMSpacing.l),
+              ListTile(
+                title: Text(
+                  'Sync Diagnostics',
+                  style: CRMTypography.bodyMedium.copyWith(
+                    color: CRMColors.text,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
+                subtitle: Text(
+                  'View network logs, outbox status, and realtime diagnostics',
+                  style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                ),
+                leading: Icon(Icons.sync_rounded, color: CRMColors.primary),
+                trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: CRMColors.textSecondary),
+                contentPadding: EdgeInsets.zero,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SyncDebugScreen()),
+                  );
+                },
               ),
-              subtitle: Text(
-                'View network logs, outbox status, and realtime diagnostics',
-                style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
-              ),
-              leading: Icon(Icons.sync_rounded, color: CRMColors.primary),
-              trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: CRMColors.textSecondary),
-              contentPadding: EdgeInsets.zero,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SyncDebugScreen()),
-                );
-              },
-            ),
+            ],
           ],
         ),
       ),
@@ -255,8 +265,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final authState = context.watch<AuthBloc>().state;
     String currentUserName = 'Guest';
     String currentUserEmail = '';
+    bool isAdminOrSuperAdmin = false;
+
     if (authState is Authenticated) {
       currentUserEmail = authState.user.email;
+      final roleLower = authState.user.role.toLowerCase();
+      isAdminOrSuperAdmin = roleLower.contains('admin');
       final localPart = currentUserEmail.split('@').first;
       currentUserName = localPart.isNotEmpty 
           ? '${localPart[0].toUpperCase()}${localPart.substring(1)}'
@@ -284,7 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (isMobile) ...[
                     _buildProfileCard(currentUserName, currentUserEmail),
                     const SizedBox(height: CRMSpacing.l),
-                    _buildAppearanceCard(),
+                    _buildAppearanceCard(isAdminOrSuperAdmin),
                     const SizedBox(height: CRMSpacing.l),
                     _buildCityCard(),
                     const SizedBox(height: CRMSpacing.l),
@@ -299,7 +313,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               _buildProfileCard(currentUserName, currentUserEmail),
                               const SizedBox(height: CRMSpacing.l),
-                              _buildAppearanceCard(),
+                              _buildAppearanceCard(isAdminOrSuperAdmin),
                             ],
                           ),
                         ),
