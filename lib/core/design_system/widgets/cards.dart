@@ -117,9 +117,10 @@ class CRMKPICard extends StatelessWidget {
     final bool isMobile = screenWidth < 600;
 
     return CRMCard(
-      padding: EdgeInsets.all(isMobile ? CRMSpacing.s : CRMSpacing.m),
+      padding: EdgeInsets.all(isMobile ? CRMSpacing.xs : CRMSpacing.m),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -127,27 +128,35 @@ class CRMKPICard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: (isMobile ? CRMTypography.captionBold.copyWith(fontSize: 11) : CRMTypography.captionBold)
+                      .copyWith(color: CRMColors.textSecondary),
                 ),
               ),
-              const SizedBox(width: CRMSpacing.xs),
+              const SizedBox(width: CRMSpacing.xxs),
               Container(
-                padding: const EdgeInsets.all(CRMSpacing.xxs),
+                padding: EdgeInsets.all(isMobile ? 2.0 : CRMSpacing.xxs),
                 decoration: BoxDecoration(
                   color: activeIconColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                 ),
-                child: Icon(icon, color: activeIconColor, size: 18),
+                child: Icon(icon, color: activeIconColor, size: isMobile ? 15 : 18),
               ),
             ],
           ),
-          const SizedBox(height: CRMSpacing.s),
-          Text(
-            value,
-            style: CRMTypography.display.copyWith(color: CRMColors.text),
+          SizedBox(height: isMobile ? 2.0 : CRMSpacing.s),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: (isMobile ? CRMTypography.sectionTitle.copyWith(fontSize: 22, fontWeight: FontWeight.bold) : CRMTypography.display)
+                  .copyWith(color: CRMColors.text),
+            ),
           ),
           if (showGrowth || lastUpdated != null) ...[
-            const SizedBox(height: CRMSpacing.xs),
+            SizedBox(height: isMobile ? 2.0 : CRMSpacing.xs),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -157,21 +166,21 @@ class CRMKPICard extends StatelessWidget {
                       Icon(
                         isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
                         color: isPositive ? CRMColors.success : CRMColors.danger,
-                        size: 14,
+                        size: isMobile ? 12 : 14,
                       ),
-                      const SizedBox(width: 4.0),
+                      const SizedBox(width: 2.0),
                       Text(
                         '${isPositive ? "+" : ""}${growthPercent!.toStringAsFixed(1)}%',
-                        style: CRMTypography.captionBold.copyWith(
-                          color: isPositive ? CRMColors.success : CRMColors.danger,
-                        ),
+                        style: (isMobile ? CRMTypography.captionBold.copyWith(fontSize: 10) : CRMTypography.captionBold)
+                            .copyWith(color: isPositive ? CRMColors.success : CRMColors.danger),
                       ),
                     ],
                   ),
                 if (lastUpdated != null)
                   Text(
                     lastUpdated!,
-                    style: CRMTypography.caption.copyWith(color: CRMColors.textMuted),
+                    style: (isMobile ? CRMTypography.caption.copyWith(fontSize: 10) : CRMTypography.caption)
+                        .copyWith(color: CRMColors.textMuted),
                   ),
               ],
             ),

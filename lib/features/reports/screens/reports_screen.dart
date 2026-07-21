@@ -495,12 +495,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 800;
             return GridView.count(
-              crossAxisCount: isWide ? 4 : (constraints.maxWidth >= 500 ? 2 : 1),
+              crossAxisCount: isWide ? 4 : 2,
               crossAxisSpacing: CRMSpacing.m,
               mainAxisSpacing: CRMSpacing.m,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: isWide ? 2.2 : 2.5,
+              childAspectRatio: isWide ? 2.2 : 1.5,
               children: [
                 CRMKPICard(
                   title: "TOTAL PROPERTIES",

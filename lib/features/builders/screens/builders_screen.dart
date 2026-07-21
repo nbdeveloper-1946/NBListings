@@ -181,12 +181,12 @@ class _BuildersScreenState extends State<BuildersScreen> {
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 700;
             return GridView.count(
-              crossAxisCount: isWide ? 3 : 1,
+              crossAxisCount: isWide ? 3 : 2,
               crossAxisSpacing: CRMSpacing.m,
               mainAxisSpacing: CRMSpacing.m,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: isWide ? 2.5 : 4,
+              childAspectRatio: isWide ? 2.5 : 1.5,
               children: [
                 CRMKPICard(
                   title: "DEVELOPER PARTNERS",

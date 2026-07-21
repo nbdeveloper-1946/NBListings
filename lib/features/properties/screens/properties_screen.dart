@@ -33,6 +33,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   final ScrollController _scrollController = ScrollController();
   String? _highlightedPropertyId;
   String _activeTab = 'All';
+  String _activeListingTab = 'Rent'; // 'Rent' or 'Sale/Re-Sale'
   bool _hasAutoOpenedAdd = false;
   bool _hasAutoOpenedProp = false;
   String? _selectedCategory;
@@ -402,7 +403,14 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           Set<String> bookmarkedIds = {};
 
           if (state is PropertiesLoaded) {
-            properties = state.properties;
+            properties = state.properties.where((p) {
+              final ltName = p.listingTypeName.toLowerCase();
+              if (_activeListingTab == 'Rent') {
+                return ltName.contains('rent');
+              } else {
+                return ltName.contains('sale') || ltName.contains('resale') || !ltName.contains('rent');
+              }
+            }).toList();
             metadata = state.metadata;
             bookmarkedIds = state.bookmarkedIds;
 
@@ -511,7 +519,6 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       DataColumn(label: Text('Area')),
                       DataColumn(label: Text('BHK')),
                       DataColumn(label: Text('Price')),
-                      DataColumn(label: Text('Category')),
                       DataColumn(label: Text('Date')),
                       DataColumn(label: Text('Status')),
                       DataColumn(label: Text('Photos')),
@@ -548,23 +555,75 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                           DataCell(Text(p.areaName)),
                           DataCell(Text('${p.bedrooms} BHK')),
                           DataCell(Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))),
-                          DataCell(Text(p.listingTypeName)),
                           DataCell(Text(DateFormat('dd-MM-yyyy').format(p.createdAt))),
                           DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: p.isStatusAvailable 
-                                    ? CRMColors.success.withOpacity(0.1) 
-                                    : CRMColors.warning.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                              ),
-                              child: Text(
-                                p.statusDisplayName,
-                                style: TextStyle(
-                                  color: p.isStatusAvailable ? CRMColors.success : CRMColors.warning,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold
+                            PopupMenuButton<String>(
+                              tooltip: 'Change Status',
+                              onSelected: (String statusName) {
+                                LookupItem? targetLookup;
+                                if (metadata != null) {
+                                  for (final s in metadata.statuses) {
+                                    if (s.name.toLowerCase().replaceAll(' ', '') == statusName.toLowerCase().replaceAll(' ', '')) {
+                                      targetLookup = s;
+                                      break;
+                                    }
+                                  }
+                                }
+                                final statusId = targetLookup?.id ?? statusName;
+                                context.read<PropertiesBloc>().add(
+                                  UpdatePropertyEvent(
+                                    p.id,
+                                    {'property_status_id': statusId},
+                                    activeTab: _activeTab,
+                                  ),
+                                );
+                              },
+                              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                const PopupMenuItem<String>(
+                                  value: 'Available',
+                                  child: Text('Available'),
+                                ),
+                                const PopupMenuItem<String>(
+                                  value: 'Sold Out',
+                                  child: Text('Sold Out'),
+                                ),
+                                const PopupMenuItem<String>(
+                                  value: 'Rented Out',
+                                  child: Text('Rented Out'),
+                                ),
+                              ],
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: p.isStatusAvailable 
+                                        ? CRMColors.success.withValues(alpha: 0.12) 
+                                        : CRMColors.warning.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                                    border: Border.all(
+                                      color: (p.isStatusAvailable ? CRMColors.success : CRMColors.warning).withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        p.statusDisplayName,
+                                        style: TextStyle(
+                                          color: p.isStatusAvailable ? CRMColors.success : CRMColors.warning,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Icon(
+                                        Icons.arrow_drop_down_rounded,
+                                        size: 16,
+                                        color: p.isStatusAvailable ? CRMColors.success : CRMColors.warning,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -755,50 +814,41 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
         ? (context.read<PropertiesBloc>().state as PropertiesLoaded).bookmarkedIds
         : <String>{};
 
-    final total = properties.length;
     final verified = properties.where((p) => p.isVerified).length;
     final active = properties.where((p) => p.propertyStatusName == 'Available').length;
     final shortlisted = properties.where((p) => bookmarkedIds.contains(p.id)).length;
 
     final double screenWidth = MediaQuery.of(context).size.width;
-    int crossAxisCount;
-    double childAspectRatio;
-
-    if (screenWidth >= 1440) {
-      crossAxisCount = 4;
-      childAspectRatio = 1.5;
-    } else if (screenWidth >= 1024) {
-      crossAxisCount = 4;
-      childAspectRatio = 1.35;
-    } else if (screenWidth >= 600) {
-      crossAxisCount = 2;
-      childAspectRatio = 1.5;
-    } else {
-      // Mobile 2-column view: Lower ratio gives cards more height for wrapped titles
-      crossAxisCount = 2;
-      childAspectRatio = 0.8;
-    }
 
     final cards = [
-      CRMKPICard(title: 'Properties Count', value: '$total', icon: Icons.inventory_2_outlined),
-      CRMKPICard(title: 'Verified listings', value: '$verified', icon: Icons.verified_user_outlined, iconColor: CRMColors.success),
       CRMKPICard(title: 'Active listings', value: '$active', icon: Icons.bolt_rounded, iconColor: CRMColors.primary),
+      CRMKPICard(title: 'Verified listings', value: '$verified', icon: Icons.verified_user_outlined, iconColor: CRMColors.success),
       CRMKPICard(title: 'Shortlisted listings', value: '$shortlisted', icon: Icons.star_outline_rounded, iconColor: CRMColors.warning),
     ];
 
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: CRMSpacing.m,
-        mainAxisSpacing: CRMSpacing.m,
-        childAspectRatio: childAspectRatio,
-      ),
-      itemCount: cards.length,
-      itemBuilder: (context, index) {
-        return cards[index];
-      },
+    if (screenWidth < 600) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: CRMSpacing.m,
+          mainAxisSpacing: CRMSpacing.m,
+          childAspectRatio: 1.15,
+        ),
+        itemCount: cards.length,
+        itemBuilder: (context, index) => cards[index],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(child: cards[0]),
+        const SizedBox(width: CRMSpacing.m),
+        Expanded(child: cards[1]),
+        const SizedBox(width: CRMSpacing.m),
+        Expanded(child: cards[2]),
+      ],
     );
   }
 
@@ -903,18 +953,23 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       },
                       width: targetWidth,
                     ),
-                    _buildDropdown(
-                      label: 'Listing Type',
-                      value: _selectedListingType,
-                      items: listingTypes.map((l) => DropdownMenuItem<String>(value: l.id, child: Text(l.name))).toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedListingType = val;
-                          _currentPage = 0;
-                        });
-                        _loadProperties();
-                      },
+                    // Rent vs Sale/Re-Sale Toggle Tabs
+                    Container(
+                      height: 48,
                       width: targetWidth,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: CRMColors.background,
+                        borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                        border: Border.all(color: CRMColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(child: _buildPropertyListingTabButton('Rent')),
+                          const SizedBox(width: 4),
+                          Expanded(child: _buildPropertyListingTabButton('Sale/Re-Sale')),
+                        ],
+                      ),
                     ),
                     _buildVerificationDropdown(targetWidth),
                     SizedBox(
@@ -936,6 +991,33 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     );
   }
 
+  Widget _buildPropertyListingTabButton(String label) {
+    final isSelected = _activeListingTab == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _activeListingTab = label;
+          _currentPage = 0;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? CRMColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+        ),
+        child: Text(
+          label,
+          style: CRMTypography.captionBold.copyWith(
+            color: isSelected ? Colors.white : CRMColors.textSecondary,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   void _clearFilters() {
     setState(() {
       _searchController.clear();
@@ -943,6 +1025,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
       _selectedArea = null;
       _selectedListingType = null;
       _selectedVerification = null;
+      _activeListingTab = 'Rent';
       _currentPage = 0;
     });
     _loadProperties();

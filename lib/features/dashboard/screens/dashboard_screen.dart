@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -37,6 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   int _followupPage = 1;
   static const int _followupsPerPage = 5;
+  DateTime _selectedFollowupDate = DateTime.now();
 
   @override
   void initState() {
@@ -237,29 +239,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildKPIGrids(DashboardSummary summary) {
     final double screenWidth = MediaQuery.of(context).size.width;
 
-    // Total Properties card removed per requirements
-    final cards = [
+    int availableVal = summary.available;
+    int soldVal = summary.sold;
+    int rentedVal = summary.rented;
+
+    if (_fullProperties.isNotEmpty) {
+      final categoryProperties = _fullProperties.where((p) {
+        final ltName = p.listingTypeName.toLowerCase();
+        if (_activeTab == 'Rental') {
+          return ltName.contains('rent');
+        } else {
+          return ltName.contains('sale') || ltName.contains('resale') || !ltName.contains('rent');
+        }
+      }).toList();
+
+      availableVal = categoryProperties.where((p) => p.propertyStatusName.toLowerCase().contains('available')).length;
+      soldVal = categoryProperties.where((p) => p.propertyStatusName.toLowerCase().contains('sold')).length;
+      rentedVal = categoryProperties.where((p) => p.propertyStatusName.toLowerCase().contains('rented')).length;
+    }
+
+    final List<Widget> cards = [
       CRMKPICard(
         title: 'Available',
-        value: '${summary.available}',
+        value: '$availableVal',
         icon: Icons.check_circle_outline_rounded,
         iconColor: CRMColors.success,
         growthPercent: summary.availableTrend,
       ),
-      CRMKPICard(
-        title: 'Sold',
-        value: '${summary.sold}',
-        icon: Icons.sell_outlined,
-        iconColor: CRMColors.warning,
-        growthPercent: summary.soldTrend,
-      ),
-      CRMKPICard(
-        title: 'Rented',
-        value: '${summary.rented}',
-        icon: Icons.key_outlined,
-        iconColor: CRMColors.info,
-        growthPercent: summary.rentedTrend,
-      ),
+      if (_activeTab == 'Sale/Re-Sale')
+        CRMKPICard(
+          title: 'Sold',
+          value: '$soldVal',
+          icon: Icons.sell_outlined,
+          iconColor: CRMColors.warning,
+          growthPercent: summary.soldTrend,
+        ),
+      if (_activeTab == 'Rental')
+        CRMKPICard(
+          title: 'Rented',
+          value: '$rentedVal',
+          icon: Icons.key_outlined,
+          iconColor: CRMColors.info,
+          growthPercent: summary.rentedTrend,
+        ),
       CRMKPICard(
         title: 'Requirements',
         value: '${summary.requirements}',
@@ -269,20 +291,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
 
     final int crossAxisCount = screenWidth >= 1100
-        ? 4
-        : (screenWidth >= 700 ? 4 : 2);
+        ? cards.length
+        : (screenWidth >= 700 ? cards.length : 2);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: CRMSpacing.xs, bottom: CRMSpacing.s),
-          child: Text(
-            'Property Metrics',
-            style: CRMTypography.sectionTitle.copyWith(
-              color: CRMColors.textOf(context),
-              fontWeight: FontWeight.bold,
-            ),
+          padding: const EdgeInsets.only(left: CRMSpacing.xs, bottom: CRMSpacing.m),
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: CRMSpacing.s,
+            runSpacing: CRMSpacing.xs,
+            children: [
+              Text(
+                'Property Metrics',
+                style: CRMTypography.sectionTitle.copyWith(
+                  color: CRMColors.textOf(context),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Container(
+                height: 38,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: CRMColors.cardBgOf(context),
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                  border: Border.all(color: CRMColors.border),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildMetricsTabButton('Rental'),
+                    const SizedBox(width: 4),
+                    _buildMetricsTabButton('Sale/Re-Sale'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         GridView.builder(
@@ -292,7 +339,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: CRMSpacing.m,
             mainAxisSpacing: CRMSpacing.m,
-            childAspectRatio: screenWidth < 600 ? 0.9 : (screenWidth < 950 ? 1.0 : 1.3),
+            childAspectRatio: screenWidth < 600 ? 1.15 : (screenWidth < 950 ? 1.1 : 1.3),
           ),
           itemCount: cards.length,
           itemBuilder: (context, index) {
@@ -303,137 +350,168 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildMetricsTabButton(String label) {
+    final isSelected = _activeTab == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _activeTab = label;
+          _propertyPage = 1;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? CRMColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+        ),
+        child: Text(
+          label,
+          style: CRMTypography.captionBold.copyWith(
+            color: isSelected ? Colors.white : CRMColors.textSecondaryOf(context),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatusPieChart(DashboardSummary summary) {
-    // Real data counts for Won, Live, Dead
-    int wonCount = summary.sold + summary.rented;
-    int liveCount = summary.available;
-    int deadCount = 0;
+    // Filter properties for current active tab ('Rental' vs 'Sale/Re-Sale')
+    int wonCount = 0;
+    int liveCount = 0;
 
-    if (_fullProperties.isNotEmpty) {
-      int fullWon = 0;
-      int fullLive = 0;
-      int fullDead = 0;
+    final categoryProperties = _fullProperties.where((p) {
+      final ltName = p.listingTypeName.toLowerCase();
+      if (_activeTab == 'Rental') {
+        return ltName.contains('rent');
+      } else {
+        return ltName.contains('sale') || ltName.contains('resale') || !ltName.contains('rent');
+      }
+    }).toList();
 
-      for (final p in _fullProperties) {
+    if (categoryProperties.isNotEmpty) {
+      for (final p in categoryProperties) {
         final statusLower = p.propertyStatusName.toLowerCase();
         if (statusLower.contains('sold') || statusLower.contains('rented')) {
-          fullWon++;
-        } else if (statusLower.contains('available')) {
-          fullLive++;
-        } else if (statusLower.contains('dead') || statusLower.contains('inactive') || statusLower.contains('cancelled') || statusLower.contains('lost')) {
-          fullDead++;
+          wonCount++;
         } else {
-          fullLive++;
+          liveCount++;
         }
       }
-      wonCount = fullWon;
-      liveCount = fullLive;
-      deadCount = fullDead;
+    } else {
+      wonCount = summary.sold + summary.rented;
+      liveCount = summary.available;
     }
 
-    final totalCount = wonCount + liveCount + deadCount;
+    final totalCount = wonCount + liveCount;
     final wonPct = totalCount > 0 ? (wonCount / totalCount * 100).toStringAsFixed(1) : '0.0';
     final livePct = totalCount > 0 ? (liveCount / totalCount * 100).toStringAsFixed(1) : '0.0';
-    final deadPct = totalCount > 0 ? (deadCount / totalCount * 100).toStringAsFixed(1) : '0.0';
 
     final wonColor = CRMColors.success;
     final liveColor = CRMColors.primary;
     final deadColor = CRMColors.danger;
 
     final isMobile = MediaQuery.of(context).size.width < 500;
+    final chartTooltipMsg = 'Property Breakdown:\nWon Deals: $wonCount ($wonPct%)\nLive Listings: $liveCount ($livePct%)';
 
     return CRMCard(
       title: 'Property Deals Status',
-      subtitle: 'Real-time breakdown of Won, Live, and Dead property deals',
+      subtitle: 'Real-time breakdown of Won and Live property deals',
       child: Padding(
         padding: const EdgeInsets.only(top: CRMSpacing.m, bottom: CRMSpacing.xs),
         child: isMobile
             ? Column(
                 children: [
-                  SizedBox(
-                    height: 180,
-                    width: 180,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CustomPaint(
-                          size: const Size(180, 180),
-                          painter: StatusPieChartPainter(
-                            won: wonCount.toDouble(),
-                            live: liveCount.toDouble(),
-                            dead: deadCount.toDouble(),
-                            wonColor: wonColor,
-                            liveColor: liveColor,
-                            deadColor: deadColor,
+                  Tooltip(
+                    message: chartTooltipMsg,
+                    child: SizedBox(
+                      height: 180,
+                      width: 180,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CustomPaint(
+                            size: const Size(180, 180),
+                            painter: StatusPieChartPainter(
+                              won: wonCount.toDouble(),
+                              live: liveCount.toDouble(),
+                              dead: 0,
+                              wonColor: wonColor,
+                              liveColor: liveColor,
+                              deadColor: deadColor,
+                            ),
                           ),
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '$totalCount',
-                              style: CRMTypography.pageTitle.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: CRMColors.textOf(context),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$wonCount',
+                                style: CRMTypography.pageTitle.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: CRMColors.textOf(context),
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Total Deals',
-                              style: CRMTypography.caption.copyWith(
-                                color: CRMColors.textSecondaryOf(context),
+                              Text(
+                                'Deals Won',
+                                style: CRMTypography.caption.copyWith(
+                                  color: CRMColors.textSecondaryOf(context),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: CRMSpacing.m),
                   _buildPieLegend('Won Deals', wonCount, '$wonPct%', wonColor),
                   const SizedBox(height: 8),
                   _buildPieLegend('Live Listings', liveCount, '$livePct%', liveColor),
-                  const SizedBox(height: 8),
-                  _buildPieLegend('Dead Deals', deadCount, '$deadPct%', deadColor),
                 ],
               )
             : Row(
                 children: [
-                  SizedBox(
-                    height: 180,
-                    width: 180,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CustomPaint(
-                          size: const Size(180, 180),
-                          painter: StatusPieChartPainter(
-                            won: wonCount.toDouble(),
-                            live: liveCount.toDouble(),
-                            dead: deadCount.toDouble(),
-                            wonColor: wonColor,
-                            liveColor: liveColor,
-                            deadColor: deadColor,
+                  Tooltip(
+                    message: chartTooltipMsg,
+                    child: SizedBox(
+                      height: 180,
+                      width: 180,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CustomPaint(
+                            size: const Size(180, 180),
+                            painter: StatusPieChartPainter(
+                              won: wonCount.toDouble(),
+                              live: liveCount.toDouble(),
+                              dead: 0,
+                              wonColor: wonColor,
+                              liveColor: liveColor,
+                              deadColor: deadColor,
+                            ),
                           ),
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '$totalCount',
-                              style: CRMTypography.pageTitle.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: CRMColors.textOf(context),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$wonCount',
+                                style: CRMTypography.pageTitle.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: CRMColors.textOf(context),
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Total Deals',
-                              style: CRMTypography.caption.copyWith(
-                                color: CRMColors.textSecondaryOf(context),
+                              Text(
+                                'Deals Won',
+                                style: CRMTypography.caption.copyWith(
+                                  color: CRMColors.textSecondaryOf(context),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: CRMSpacing.xl),
@@ -445,8 +523,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         _buildPieLegend('Won Deals (Sold / Rented)', wonCount, '$wonPct%', wonColor),
                         const SizedBox(height: CRMSpacing.m),
                         _buildPieLegend('Live Listings (Available)', liveCount, '$livePct%', liveColor),
-                        const SizedBox(height: CRMSpacing.m),
-                        _buildPieLegend('Dead Deals (Inactive / Lost)', deadCount, '$deadPct%', deadColor),
                       ],
                     ),
                   ),
@@ -457,34 +533,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildPieLegend(String label, int count, String percentage, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: CRMSpacing.s),
-        Expanded(
-          child: Text(
-            label,
-            style: CRMTypography.bodyMedium.copyWith(
-              color: CRMColors.textOf(context),
-              fontWeight: FontWeight.w500,
+    return Tooltip(
+      message: '$label: $count ($percentage)',
+      child: Row(
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
             ),
           ),
-        ),
-        Text(
-          '$count ($percentage)',
-          style: CRMTypography.bodyMedium.copyWith(
-            color: color,
-            fontWeight: FontWeight.bold,
+          const SizedBox(width: CRMSpacing.s),
+          Expanded(
+            child: Text(
+              label,
+              style: CRMTypography.bodyMedium.copyWith(
+                color: CRMColors.textOf(context),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
-        ),
-      ],
+          Text(
+            '$count ($percentage)',
+            style: CRMTypography.bodyMedium.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -593,25 +672,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Tabs Row: Rental vs Sale/Re-Sale
-            Container(
-              decoration: BoxDecoration(
-                color: CRMColors.backgroundOf(context),
-                borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              ),
-              padding: const EdgeInsets.all(4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildTabButton('Rental'),
-                  ),
-                  Expanded(
-                    child: _buildTabButton('Sale/Re-Sale'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: CRMSpacing.m),
 
             // Display Active Filter Chips if any
             if (hasActiveFilter) ...[
@@ -685,7 +745,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
                             ),
                             children: [
-                              _buildTableHeaderCell('Title'),
+                              _buildTableHeaderCell('Property Name'),
                               _buildTableHeaderCell('Area'),
                               _buildTableHeaderCell('Price'),
                             ],
@@ -782,43 +842,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTabButton(String label) {
-    final isSelected = _activeTab == label;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _activeTab = label;
-          _propertyPage = 1;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? CRMColors.cardBgOf(context) : Colors.transparent,
-          borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: isSelected ? CRMColors.primary : CRMColors.textSecondaryOf(context),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
+
 
   void _showFilterModal(List<_DisplayProperty> allItems) {
     // Extract all distinct non-empty area names
@@ -1062,7 +1086,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildTodayWork(List<ChecklistItem> items) {
     return CRMCard(
-      title: "Today's Work checklist",
+      title: "Note's",
       subtitle: 'Operations and tasks assigned for today',
       headerAction: IconButton(
         icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary, size: 20),
@@ -1184,16 +1208,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildFollowups(List<DashboardFollowup> followups) {
-    // 1. Sort followups: latest scheduled/created followups on top
-    final sortedFollowups = List<DashboardFollowup>.from(followups);
-    sortedFollowups.sort((a, b) {
+    // 1. Filter followups by _selectedFollowupDate (default today)
+    final filteredFollowups = followups.where((f) {
+      final parsed = DateTime.tryParse(f.followupDate);
+      if (parsed == null) return false;
+      return parsed.year == _selectedFollowupDate.year &&
+          parsed.month == _selectedFollowupDate.month &&
+          parsed.day == _selectedFollowupDate.day;
+    }).toList();
+
+    // 2. Sort followups: latest scheduled/created followups on top
+    filteredFollowups.sort((a, b) {
       final dateA = DateTime.tryParse(a.followupDate) ?? DateTime.fromMillisecondsSinceEpoch(0);
       final dateB = DateTime.tryParse(b.followupDate) ?? DateTime.fromMillisecondsSinceEpoch(0);
       return dateB.compareTo(dateA); // Latest on top
     });
 
-    // 2. Pagination calculation
-    final totalCount = sortedFollowups.length;
+    // 3. Pagination calculation
+    final totalCount = filteredFollowups.length;
     final totalPages = (totalCount / _followupsPerPage).ceil();
     final currentPage = _followupPage.clamp(1, totalPages > 0 ? totalPages : 1);
 
@@ -1201,24 +1233,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final endIndex = (startIndex + _followupsPerPage).clamp(0, totalCount);
 
     final pageItems = (startIndex < totalCount)
-        ? sortedFollowups.sublist(startIndex, endIndex)
+        ? filteredFollowups.sublist(startIndex, endIndex)
         : <DashboardFollowup>[];
+
+    final dateStr = DateFormat('dd/MM/yyyy').format(_selectedFollowupDate);
 
     return CRMCard(
       title: "Upcoming Follow-ups",
-      subtitle: 'Schedule of communications and clients appointments',
-      headerAction: IconButton(
-        icon: Icon(Icons.alarm_add_rounded, color: CRMColors.primary, size: 20),
-        onPressed: _showCreateFollowupDialog,
-        tooltip: 'Add Follow-up',
+      subtitle: 'Schedule of communications and client appointments',
+      headerAction: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            dateStr,
+            style: CRMTypography.captionBold.copyWith(color: CRMColors.primary),
+          ),
+          IconButton(
+            icon: Icon(Icons.calendar_today_rounded, color: CRMColors.primary, size: 18),
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedFollowupDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2030),
+              );
+              if (picked != null) {
+                setState(() {
+                  _selectedFollowupDate = picked;
+                  _followupPage = 1;
+                });
+              }
+            },
+            tooltip: 'Filter by Date',
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.only(top: CRMSpacing.m),
-        child: sortedFollowups.isEmpty
+        child: filteredFollowups.isEmpty
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text('No upcoming follow-ups.', style: TextStyle(color: CRMColors.textSecondaryOf(context))),
+                  child: Text(
+                    'No follow-ups for $dateStr.',
+                    style: TextStyle(color: CRMColors.textSecondaryOf(context)),
+                  ),
                 ),
               )
             : Column(

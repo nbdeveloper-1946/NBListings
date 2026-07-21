@@ -39,6 +39,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   String? _selectedFurnishing = 'None';
   String _selectedStatus = "Live";
   final List<String> _selectedAreaIds = [];
+  String _areaSearchQuery = '';
   bool _isSaved = false;
 
   bool _isLoadingMetadata = true;
@@ -531,7 +532,11 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                     _buildDropdown(
                       label: 'Status *',
                       value: _selectedStatus,
-                      items: ["Live", "Won", "Dead"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                      items: const [
+                        DropdownMenuItem(value: "Live", child: Text("Interested")),
+                        DropdownMenuItem(value: "Won", child: Text("Won")),
+                        DropdownMenuItem(value: "Dead", child: Text("Not Interested")),
+                      ],
                       onChanged: (val) => setState(() => _selectedStatus = val ?? "Live"),
                     ),
                   ] else ...[
@@ -555,7 +560,11 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                           child: _buildDropdown(
                             label: 'Status *',
                             value: _selectedStatus,
-                            items: ["Live", "Won", "Dead"].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                            items: const [
+                              DropdownMenuItem(value: "Live", child: Text("Interested")),
+                              DropdownMenuItem(value: "Won", child: Text("Won")),
+                              DropdownMenuItem(value: "Dead", child: Text("Not Interested")),
+                            ],
                             onChanged: (val) => setState(() => _selectedStatus = val ?? "Live"),
                           ),
                         ),
@@ -640,30 +649,85 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                         constraints: const BoxConstraints(),
                         padding: EdgeInsets.zero,
                       ),
+                      const Spacer(),
+                      SizedBox(
+                        width: 180,
+                        height: 36,
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search area...',
+                            prefixIcon: const Icon(Icons.search_rounded, size: 16),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            filled: true,
+                            fillColor: CRMColors.backgroundOf(context),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                              borderSide: BorderSide(color: CRMColors.borderOf(context)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                              borderSide: BorderSide(color: CRMColors.borderOf(context).withValues(alpha: 0.5)),
+                            ),
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _areaSearchQuery = val.trim();
+                            });
+                          },
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: CRMSpacing.xs),
-                  Wrap(
-                    spacing: CRMSpacing.xs,
-                    runSpacing: CRMSpacing.xxs,
-                    children: _areas.map((a) {
-                      final isSelected = _selectedAreaIds.contains(a.id);
-                      return FilterChip(
-                        label: Text(a.name, style: const TextStyle(fontSize: 12)),
-                        selected: isSelected,
-                        selectedColor: CRMColors.primary.withOpacity(0.12),
-                        checkmarkColor: CRMColors.primary,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected) {
-                              _selectedAreaIds.add(a.id);
-                            } else {
-                              _selectedAreaIds.remove(a.id);
-                            }
-                          });
-                        },
+                  Builder(
+                    builder: (context) {
+                      final filteredAreas = _areas.where((a) {
+                        if (_areaSearchQuery.isEmpty) return true;
+                        return a.name.toLowerCase().contains(_areaSearchQuery.toLowerCase());
+                      }).toList();
+
+                      List<AreaLookup> displayAreas;
+                      if (_areaSearchQuery.isNotEmpty) {
+                        displayAreas = filteredAreas;
+                      } else {
+                        final selected = filteredAreas.where((a) => _selectedAreaIds.contains(a.id)).toList();
+                        final unselected = filteredAreas.where((a) => !_selectedAreaIds.contains(a.id)).take(5).toList();
+                        displayAreas = [...selected, ...unselected];
+                      }
+
+                      if (displayAreas.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'No matching areas found',
+                            style: TextStyle(fontSize: 12, color: CRMColors.textSecondaryOf(context)),
+                          ),
+                        );
+                      }
+
+                      return Wrap(
+                        spacing: CRMSpacing.xs,
+                        runSpacing: CRMSpacing.xxs,
+                        children: displayAreas.map((a) {
+                          final isSelected = _selectedAreaIds.contains(a.id);
+                          return FilterChip(
+                            label: Text(a.name, style: const TextStyle(fontSize: 12)),
+                            selected: isSelected,
+                            selectedColor: CRMColors.primary.withValues(alpha: 0.12),
+                            checkmarkColor: CRMColors.primary,
+                            onSelected: (selected) {
+                              setState(() {
+                                if (selected) {
+                                  _selectedAreaIds.add(a.id);
+                                } else {
+                                  _selectedAreaIds.remove(a.id);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
                       );
-                    }).toList(),
+                    },
                   ),
                   const SizedBox(height: CRMSpacing.m),
 

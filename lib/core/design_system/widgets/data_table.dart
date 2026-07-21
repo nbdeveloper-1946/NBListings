@@ -58,17 +58,18 @@ class CRMDataTable extends StatelessWidget {
         builder: (context, constraints) {
           final double availableWidth = constraints.maxWidth;
           final int colCount = columns.length;
-          // Dynamically adjust spacing: assume average column content is 115px, plus margins
-          final double estimatedContentWidth = colCount * 115.0 + CRMSpacing.m * 2;
-          double spacing = CRMSpacing.l;
-          if (colCount > 1 && availableWidth > estimatedContentWidth) {
-            spacing = ((availableWidth - estimatedContentWidth) / (colCount - 1)).clamp(CRMSpacing.l, 70.0);
+          final double baseContentWidth = colCount * 95.0 + CRMSpacing.m * 2;
+          
+          double spacing = CRMSpacing.m;
+          if (colCount > 1 && availableWidth > baseContentWidth) {
+            spacing = (availableWidth - baseContentWidth) / (colCount - 1);
+            if (spacing < CRMSpacing.s) spacing = CRMSpacing.s;
           }
 
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxWidth),
+              constraints: BoxConstraints(minWidth: availableWidth),
               child: DataTable(
                 headingRowColor: WidgetStateProperty.all(CRMColors.sidebarBg),
                 headingTextStyle: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
