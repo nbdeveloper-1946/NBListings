@@ -13,6 +13,8 @@ class CRMDataTable extends StatelessWidget {
   final String emptyDescription;
   final IconData emptyIcon;
   final bool showCheckboxColumn;
+  final double? dataRowMinHeight;
+  final double? dataRowMaxHeight;
 
   const CRMDataTable({
     super.key,
@@ -23,6 +25,8 @@ class CRMDataTable extends StatelessWidget {
     this.emptyDescription = 'Try adjusting your search filters or add a new record.',
     this.emptyIcon = Icons.folder_open_rounded,
     this.showCheckboxColumn = true,
+    this.dataRowMinHeight,
+    this.dataRowMaxHeight,
   });
 
   @override
@@ -58,7 +62,7 @@ class CRMDataTable extends StatelessWidget {
         builder: (context, constraints) {
           final double availableWidth = constraints.maxWidth;
           final int colCount = columns.length;
-          final double baseContentWidth = colCount * 95.0 + CRMSpacing.m * 2;
+          final double baseContentWidth = colCount * 130.0 + CRMSpacing.m * 2;
           
           double spacing = CRMSpacing.m;
           if (colCount > 1 && availableWidth > baseContentWidth) {
@@ -74,6 +78,8 @@ class CRMDataTable extends StatelessWidget {
                 headingRowColor: WidgetStateProperty.all(CRMColors.sidebarBg),
                 headingTextStyle: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
                 dataTextStyle: CRMTypography.body.copyWith(color: CRMColors.text),
+                dataRowMinHeight: dataRowMinHeight ?? 64.0,
+                dataRowMaxHeight: dataRowMaxHeight ?? 128.0,
                 dividerThickness: 1.0,
                 horizontalMargin: CRMSpacing.m,
                 columnSpacing: spacing,

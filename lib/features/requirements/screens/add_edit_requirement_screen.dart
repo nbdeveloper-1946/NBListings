@@ -6,15 +6,20 @@ import '../../properties/repository/properties_repository.dart';
 import '../../properties/models/property_model.dart';
 import '../../../core/design_system/crm_design_system.dart';
 import '../../../core/storage/crm_draft_repository.dart';
+import '../../owners/repository/owners_repository.dart';
+import '../../owners/models/owner_model.dart';
+import '../../requirements/repository/requirements_repository.dart';
 
 class AddEditRequirementScreen extends StatefulWidget {
   final RequirementModel? requirement;
   final VoidCallback onSaved;
+  final bool isInline;
 
   const AddEditRequirementScreen({
     super.key,
     this.requirement,
     required this.onSaved,
+    this.isInline = false,
   });
 
   @override
@@ -24,6 +29,8 @@ class AddEditRequirementScreen extends StatefulWidget {
 class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   final _formKey = GlobalKey<FormState>();
   final PropertiesRepository _propertiesRepository = PropertiesRepository();
+  late PageController _pageController;
+  int _activeStep = 0;
 
   final _nameController = TextEditingController();
   final _mobileController = TextEditingController();
@@ -36,10 +43,10 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   String? _selectedTypeId;
   String? _selectedConfigId;
   String? _selectedListingTypeId;
-  String? _selectedFurnishing = 'None';
-  String _selectedStatus = "Live";
+  String _selectedStatus = "Not Started";
   final List<String> _selectedAreaIds = [];
   String _areaSearchQuery = '';
+  String? _customerFoundMessage;
   bool _isSaved = false;
 
   bool _isLoadingMetadata = true;
@@ -47,12 +54,13 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   List<LookupItem> _types = [];
   List<LookupItem> _configurations = [];
   List<AreaLookup> _areas = [];
-  List<LookupItem> _cities = [];
   List<LookupItem> _listingTypes = [];
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: 0);
+    _mobileController.addListener(_handleMobileChange);
     _loadMetadata();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.requirement == null && CRMDraftRepository().hasDraft('requirement')) {
@@ -63,12 +71,14 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
 
   @override
   void dispose() {
+    _mobileController.removeListener(_handleMobileChange);
     _nameController.dispose();
     _mobileController.dispose();
     _budgetController.dispose();
     _minAreaController.dispose();
     _maxAreaController.dispose();
     _remarksController.dispose();
+    _pageController.dispose();
     if (!_isSaved && widget.requirement == null) {
       _saveCurrentDraft();
     }
@@ -83,7 +93,6 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
         _types = metadata.types;
         _configurations = metadata.configurations;
         _areas = metadata.areas;
-        _cities = metadata.cities;
         _listingTypes = metadata.listingTypes;
         
         if (widget.requirement == null) {
@@ -98,30 +107,18 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
           _budgetController.text = CRMCurrencyFormatter.format(avgBudget);
           _minAreaController.text = req.minArea?.toStringAsFixed(0) ?? '';
           _maxAreaController.text = req.maxArea?.toStringAsFixed(0) ?? '';
-          
-          String remarks = req.remarks ?? '';
-          String? extractedFurnishing = 'None';
-          if (remarks.startsWith('[Furnishing: ')) {
-            final endIdx = remarks.indexOf(']');
-            if (endIdx != -1) {
-              extractedFurnishing = remarks.substring('[Furnishing: '.length, endIdx);
-              remarks = remarks.substring(endIdx + 1).trim();
-            }
-          }
-          _remarksController.text = remarks;
-          _selectedFurnishing = extractedFurnishing;
-
+          _remarksController.text = req.remarks ?? '';
           _selectedCategoryId = req.categoryId;
           _selectedTypeId = req.propertyTypeId;
           _selectedConfigId = req.configurationId;
           _selectedListingTypeId = req.listingTypeId;
           
-          String mappedStatus = req.status;
-          if (mappedStatus == 'Active') mappedStatus = 'Live';
-          if (mappedStatus == 'Closed') mappedStatus = 'Won';
-          if (mappedStatus == 'Suspended') mappedStatus = 'Dead';
-          _selectedStatus = mappedStatus;
-          
+          String statusVal = req.status;
+          if (statusVal == 'Active' || statusVal == 'Live') statusVal = 'Interested';
+          if (statusVal == 'Closed' || statusVal == 'Won') statusVal = 'Won';
+          if (statusVal == 'Suspended' || statusVal == 'Dead') statusVal = 'Not Interested';
+          _selectedStatus = statusVal;
+
           _selectedAreaIds.addAll(req.areaIds);
         }
         
@@ -137,13 +134,13 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   void _saveCurrentDraft() {
     if (widget.requirement != null) return;
     final draftData = {
+      'activeStep': _activeStep,
       'clientName': _nameController.text,
       'clientMobile': _mobileController.text,
       'category_id': _selectedCategoryId,
       'property_type_id': _selectedTypeId,
       'configuration_id': _selectedConfigId,
       'listing_type_id': _selectedListingTypeId,
-      'furnishing': _selectedFurnishing,
       'budget': _budgetController.text,
       'minArea': _minAreaController.text,
       'maxArea': _maxAreaController.text,
@@ -158,8 +155,9 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Restore Unsaved Draft?'),
-        content: const Text('We found an unsaved draft from your previous session. Would you like to restore it?'),
+        backgroundColor: CRMColors.cardBg,
+        title: Text('Restore Unsaved Draft?', style: TextStyle(color: CRMColors.textOf(ctx))),
+        content: Text('We found an unsaved draft from your previous session. Would you like to restore it?', style: TextStyle(color: CRMColors.textSecondaryOf(ctx))),
         actions: [
           TextButton(
             child: const Text('Discard'),
@@ -174,23 +172,26 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
               final draft = CRMDraftRepository().getDraft('requirement');
               if (draft != null) {
                 setState(() {
+                  _activeStep = draft['activeStep'] ?? 0;
                   _nameController.text = draft['clientName'] ?? '';
                   _mobileController.text = draft['clientMobile'] ?? '';
                   _selectedCategoryId = draft['category_id'];
                   _selectedTypeId = draft['property_type_id'];
                   _selectedConfigId = draft['configuration_id'];
                   _selectedListingTypeId = draft['listing_type_id'];
-                  _selectedFurnishing = draft['furnishing'] ?? 'None';
                   _budgetController.text = draft['budget'] ?? '';
                   _minAreaController.text = draft['minArea'] ?? '';
                   _maxAreaController.text = draft['maxArea'] ?? '';
                   _remarksController.text = draft['remarks'] ?? '';
-                  _selectedStatus = draft['status'] ?? 'Live';
+                  _selectedStatus = draft['status'] ?? 'Not Started';
                   
                   final List<String> areas = List<String>.from(draft['areaIds'] ?? []);
                   _selectedAreaIds.clear();
                   _selectedAreaIds.addAll(areas);
                 });
+                if (_pageController.hasClients) {
+                  _pageController.jumpToPage(_activeStep);
+                }
               }
               Navigator.pop(ctx);
             },
@@ -198,6 +199,63 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
         ],
       ),
     );
+  }
+
+  void _handleMobileChange() {
+    _onMobileChanged(_mobileController.text);
+  }
+
+  Future<void> _onMobileChanged(String mobile) async {
+    if (mobile.length < 10) {
+      setState(() {
+        _customerFoundMessage = null;
+      });
+      return;
+    }
+    
+    // 1. Search Owners repository
+    try {
+      final owners = await OwnersRepository().getOwners();
+      final cleanMobile = mobile.replaceAll(RegExp(r'\D'), '');
+      final matchedOwner = owners.firstWhere(
+        (o) => o.mobile.replaceAll(RegExp(r'\D'), '').contains(cleanMobile),
+        orElse: () => OwnerModel(id: '', name: '', mobile: '', email: '', createdAt: DateTime.now()),
+      );
+      
+      if (matchedOwner.id.isNotEmpty) {
+        setState(() {
+          _nameController.text = matchedOwner.name;
+          _customerFoundMessage = "🟢 Found in Contacts: ${matchedOwner.name}";
+        });
+        return;
+      }
+    } catch (_) {}
+    
+    // 2. Search existing local requirements
+    try {
+      final reqs = await RequirementsRepository().getRequirements();
+      final cleanMobile = mobile.replaceAll(RegExp(r'\D'), '');
+      final matchedReq = reqs.firstWhere(
+        (r) => r.clientMobile.replaceAll(RegExp(r'\D'), '').contains(cleanMobile),
+        orElse: () => RequirementModel(
+          id: '', clientName: '', clientMobile: '', categoryId: '', categoryName: '',
+          propertyTypeId: '', propertyTypeName: '', minBudget: 0, maxBudget: 0,
+          areaIds: [], areaNames: [], status: '', createdAt: DateTime.now()
+        ),
+      );
+      
+      if (matchedReq.id.isNotEmpty) {
+        setState(() {
+          _nameController.text = matchedReq.clientName;
+          _customerFoundMessage = "🔵 Found in Requirements: ${matchedReq.clientName}";
+        });
+        return;
+      }
+    } catch (_) {}
+    
+    setState(() {
+      _customerFoundMessage = null;
+    });
   }
 
   List<LookupItem> _getFilteredTypes() {
@@ -210,106 +268,86 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
     return _configurations.where((c) => c.categoryId == _selectedCategoryId).toList();
   }
 
-  void _showAddAreaDialog() {
-    final nameController = TextEditingController();
-    final pincodeController = TextEditingController();
-    String? selectedCityId = _cities.isNotEmpty ? _cities.first.id : null;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: CRMColors.cardBg,
-            title: Text('Add New Area', style: TextStyle(color: CRMColors.textOf(context))),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  value: selectedCityId,
-                  dropdownColor: CRMColors.cardBg,
-                  style: TextStyle(color: CRMColors.textOf(context)),
-                  decoration: const InputDecoration(labelText: 'City *'),
-                  items: _cities.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                  onChanged: (val) {
-                    setDialogState(() {
-                      selectedCityId = val;
-                    });
-                  },
-                ),
-                const SizedBox(height: CRMSpacing.m),
-                TextField(
-                  controller: nameController,
-                  style: TextStyle(color: CRMColors.textOf(context)),
-                  decoration: const InputDecoration(labelText: 'Area Name *'),
-                ),
-                const SizedBox(height: CRMSpacing.m),
-                TextField(
-                  controller: pincodeController,
-                  style: TextStyle(color: CRMColors.textOf(context)),
-                  decoration: const InputDecoration(labelText: 'Pincode *'),
-                  keyboardType: TextInputType.number,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                child: const Text('Cancel'),
-                onPressed: () => Navigator.pop(ctx),
-              ),
-              TextButton(
-                child: const Text('Add'),
-                onPressed: () async {
-                  final name = nameController.text.trim();
-                  final pincode = pincodeController.text.trim();
-                  if (selectedCityId != null && name.isNotEmpty && pincode.isNotEmpty) {
-                    try {
-                      final repository = PropertiesRepository();
-                      final payload = {
-                        'city_id': selectedCityId!,
-                        'area_name': name,
-                        'pincode': pincode,
-                      };
-                      final response = await repository.createLookup('area', payload);
-                      final newArea = AreaLookup(
-                        id: response.id,
-                        name: response.name,
-                        cityId: selectedCityId!,
-                        pincode: pincode,
-                      );
-                      setState(() {
-                        _areas.add(newArea);
-                        _selectedAreaIds.add(newArea.id);
-                      });
-                      if (mounted) Navigator.pop(ctx);
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to add area: $e'), backgroundColor: CRMColors.danger),
-                      );
-                    }
-                  }
-                },
-              ),
-            ],
-          );
-        }
+  bool _validateStatusTransition(String newStatus) {
+    if (widget.requirement == null) return true;
+    final currentStatus = widget.requirement!.status;
+    
+    if (newStatus == 'Not Interested' || newStatus == 'Bin') return true;
+    
+    final steps = ['Not Started', 'Interested', 'Follow-up', 'Site Visit', 'Negotiation', 'Won'];
+    final currentIndex = steps.indexOf(currentStatus);
+    final newIndex = steps.indexOf(newStatus);
+    
+    if (currentIndex == -1 || newIndex == -1) return true;
+    
+    if (newIndex <= currentIndex + 1) {
+      return true;
+    }
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Cannot skip pipeline stages from '$currentStatus' to '$newStatus'."),
+        backgroundColor: CRMColors.warning,
       ),
     );
+    return false;
   }
 
   void _submitForm() {
-    if (!CRMFormUtils.validateAndScroll(_formKey, context)) return;
-    if (_selectedAreaIds.isEmpty) {
+    if (_nameController.text.trim().isEmpty || _mobileController.text.trim().isEmpty) {
+      _jumpToStep(0);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select at least one target area."), backgroundColor: CRMColors.danger),
+        const SnackBar(content: Text("Please fill Customer Name and Mobile."), backgroundColor: CRMColors.danger),
       );
       return;
     }
 
-    final cat = _categories.firstWhere((c) => c.id == _selectedCategoryId);
-    final type = _types.firstWhere((t) => t.id == _selectedTypeId);
+    if (_selectedListingTypeId == null) {
+      _jumpToStep(1);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a Listing Type (Rent or Re-Sale)."), backgroundColor: CRMColors.danger),
+      );
+      return;
+    }
+
+    if (_selectedCategoryId == null || _selectedTypeId == null) {
+      _jumpToStep(2);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a Category and Property Type."), backgroundColor: CRMColors.danger),
+      );
+      return;
+    }
+
+    if (_selectedAreaIds.isEmpty) {
+      _jumpToStep(3);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select at least one Target Area."), backgroundColor: CRMColors.danger),
+      );
+      return;
+    }
+
+    if (_budgetController.text.isEmpty) {
+      _jumpToStep(4);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a Target Budget."), backgroundColor: CRMColors.danger),
+      );
+      return;
+    }
+
+    final cat = _categories.firstWhere(
+      (c) => c.id == _selectedCategoryId,
+      orElse: () => LookupItem(id: '', name: 'N/A'),
+    );
+    final type = _types.firstWhere(
+      (t) => t.id == _selectedTypeId,
+      orElse: () => LookupItem(id: '', name: 'N/A'),
+    );
     final config = _configurations.firstWhere(
       (c) => c.id == _selectedConfigId,
+      orElse: () => LookupItem(id: '', name: 'N/A'),
+    );
+    final listingType = _listingTypes.firstWhere(
+      (lt) => lt.id == _selectedListingTypeId,
       orElse: () => LookupItem(id: '', name: 'N/A'),
     );
 
@@ -319,35 +357,28 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
     }).toList();
 
     final budgetVal = CRMCurrencyFormatter.parse(_budgetController.text);
-    final String remarksText = _remarksController.text.trim();
-    final String? finalRemarks = (_selectedFurnishing != null && _selectedFurnishing != 'None')
-        ? '[Furnishing: $_selectedFurnishing] $remarksText'
-        : (remarksText.isEmpty ? null : remarksText);
-
-    final listingType = _listingTypes.firstWhere(
-      (lt) => lt.id == _selectedListingTypeId,
-      orElse: () => LookupItem(id: '', name: 'N/A'),
-    );
+    final minBudget = budgetVal * 0.8;
+    final maxBudget = budgetVal * 1.2;
 
     final req = RequirementModel(
       id: widget.requirement?.id ?? '',
       clientName: _nameController.text.trim(),
       clientMobile: _mobileController.text.trim(),
-      categoryId: _selectedCategoryId!,
+      categoryId: _selectedCategoryId ?? '',
       categoryName: cat.name,
-      propertyTypeId: _selectedTypeId!,
+      propertyTypeId: _selectedTypeId ?? '',
       propertyTypeName: type.name,
       configurationId: _selectedConfigId,
       configurationName: config.id.isNotEmpty ? config.name : null,
       listingTypeId: _selectedListingTypeId,
       listingTypeName: listingType.id.isNotEmpty ? listingType.name : null,
-      minBudget: budgetVal * 0.8,
-      maxBudget: budgetVal * 1.2,
+      minBudget: minBudget,
+      maxBudget: maxBudget,
       minArea: double.tryParse(_minAreaController.text),
       maxArea: double.tryParse(_maxAreaController.text),
       areaIds: _selectedAreaIds,
       areaNames: areaNames,
-      remarks: finalRemarks,
+      remarks: _remarksController.text.trim().isEmpty ? null : _remarksController.text.trim(),
       status: _selectedStatus,
       createdAt: widget.requirement?.createdAt ?? DateTime.now(),
     );
@@ -363,6 +394,43 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
 
     widget.onSaved();
     Navigator.pop(context);
+  }
+
+  void _nextStep() {
+    if (_activeStep < 6) {
+      setState(() {
+        _activeStep++;
+      });
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _submitForm();
+    }
+  }
+
+  void _prevStep() {
+    if (_activeStep > 0) {
+      setState(() {
+        _activeStep--;
+      });
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _jumpToStep(int step) {
+    setState(() {
+      _activeStep = step;
+    });
+    _pageController.animateToPage(
+      step,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -383,10 +451,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       );
     }
 
-    final isEditing = widget.requirement != null;
-
     final double screenWidth = MediaQuery.of(context).size.width;
-    final bool isMobile = screenWidth < 600;
+    final bool isMobile = screenWidth < 700;
 
     final filteredTypes = _getFilteredTypes();
     if (_selectedTypeId != null && !filteredTypes.any((t) => t.id == _selectedTypeId)) {
@@ -397,371 +463,620 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       _selectedConfigId = null;
     }
 
-    return Dialog(
-      backgroundColor: CRMColors.cardBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.m)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: Padding(
-          padding: const EdgeInsets.all(CRMSpacing.l),
-          child: CRMForm(
-            formKey: _formKey,
-            isDirty: true,
-            onSave: () async {
-              _submitForm();
-              return true;
-            },
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isEditing ? "Edit Client Inquiry" : "Publish Buyer Requirement",
-                    style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
-                  ),
-                  const SizedBox(height: CRMSpacing.xs),
-                  Text(
-                    "Setup search parameters for automated property matching",
-                    style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
-                  ),
-                  const SizedBox(height: CRMSpacing.l),
+    final formContent = Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header (only if not inline)
+          if (!widget.isInline) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.requirement != null ? "Edit Requirement" : "Add Requirement",
+                  style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.s),
+          ] else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Edit Requirement Details",
+                  style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: CRMSpacing.xs),
+          ],
+          
+          // Progress stepper indicator (Interactive horizontal tabs)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                children: List.generate(7, (index) {
+                  final isCurrent = index == _activeStep;
+                  final isPassed = index < _activeStep;
+                  const stepLabels = ["Customer", "Type", "Prefs", "Location", "Budget", "Notes", "Review"];
                   
-                  // Client info
-                  if (isMobile) ...[
-                    CRMTextField(
-                      controller: _nameController,
-                      labelText: 'Client Name *',
-                      hintText: 'Enter name',
-                      prefixIcon: Icons.person_rounded,
-                      validator: (v) => v == null || v.isEmpty ? 'Client name required' : null,
-                    ),
-                    const SizedBox(height: CRMSpacing.m),
-                    CRMPhoneField(
-                      controller: _mobileController,
-                      labelText: 'Client Mobile',
-                      isRequired: true,
-                    ),
-                  ] else ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CRMTextField(
-                            controller: _nameController,
-                            labelText: 'Client Name *',
-                            hintText: 'Enter name',
-                            prefixIcon: Icons.person_rounded,
-                            validator: (v) => v == null || v.isEmpty ? 'Client name required' : null,
-                          ),
+                  return GestureDetector(
+                    onTap: () => _jumpToStep(index),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isCurrent 
+                            ? CRMColors.primary 
+                            : isPassed 
+                                ? CRMColors.primary.withValues(alpha: 0.1) 
+                                : CRMColors.backgroundOf(context),
+                        borderRadius: BorderRadius.circular(CRMBorderRadius.round),
+                        border: Border.all(
+                          color: isCurrent 
+                              ? CRMColors.primary 
+                              : isPassed 
+                                  ? CRMColors.primary.withValues(alpha: 0.3) 
+                                  : CRMColors.borderOf(context),
                         ),
-                        const SizedBox(width: CRMSpacing.m),
-                        Expanded(
-                          child: CRMPhoneField(
-                            controller: _mobileController,
-                            labelText: 'Client Mobile',
-                            isRequired: true,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: isCurrent ? Colors.white : CRMColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              "${index + 1}",
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isCurrent ? CRMColors.primary : Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: CRMSpacing.m),
-
-                  // Category & Type Selection
-                  if (isMobile) ...[
-                    _buildDropdown(
-                      label: 'Category *',
-                      value: _selectedCategoryId,
-                      items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                      onChanged: (val) => setState(() {
-                        _selectedCategoryId = val;
-                        _selectedTypeId = null;
-                        _selectedConfigId = null;
-                      }),
-                    ),
-                    const SizedBox(height: CRMSpacing.m),
-                    _buildDropdown(
-                      label: 'Property Type *',
-                      value: _selectedTypeId,
-                      items: filteredTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
-                      onChanged: (val) => setState(() => _selectedTypeId = val),
-                    ),
-                  ] else ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDropdown(
-                            label: 'Category *',
-                            value: _selectedCategoryId,
-                            items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                            onChanged: (val) => setState(() {
-                              _selectedCategoryId = val;
-                              _selectedTypeId = null;
-                              _selectedConfigId = null;
-                            }),
+                          const SizedBox(width: 6),
+                          Text(
+                            stepLabels[index],
+                            style: CRMTypography.captionBold.copyWith(
+                              color: isCurrent 
+                                  ? Colors.white 
+                                  : isPassed 
+                                      ? CRMColors.primary 
+                                      : CRMColors.textSecondaryOf(context),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: CRMSpacing.m),
-                        Expanded(
-                          child: _buildDropdown(
-                            label: 'Property Type *',
-                            value: _selectedTypeId,
-                            items: filteredTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
-                            onChanged: (val) => setState(() => _selectedTypeId = val),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: CRMSpacing.m),
-
-                  // Configuration & Status
-                  if (isMobile) ...[
-                    if (filteredConfigs.isNotEmpty) ...[
-                      _buildDropdown(
-                        label: 'Configuration',
-                        value: _selectedConfigId,
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text("None")),
-                          ...filteredConfigs.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
                         ],
-                        onChanged: (val) => setState(() => _selectedConfigId = val),
                       ),
-                      const SizedBox(height: CRMSpacing.m),
-                    ],
-                    _buildDropdown(
-                      label: 'Status *',
-                      value: _selectedStatus,
-                      items: const [
-                        DropdownMenuItem(value: "Live", child: Text("Interested")),
-                        DropdownMenuItem(value: "Won", child: Text("Won")),
-                        DropdownMenuItem(value: "Dead", child: Text("Not Interested")),
-                      ],
-                      onChanged: (val) => setState(() => _selectedStatus = val ?? "Live"),
                     ),
-                  ] else ...[
-                    Row(
-                      children: [
-                        if (filteredConfigs.isNotEmpty) ...[
-                          Expanded(
-                            child: _buildDropdown(
-                              label: 'Configuration',
-                              value: _selectedConfigId,
-                              items: [
-                                const DropdownMenuItem(value: null, child: Text("None")),
-                                ...filteredConfigs.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-                              ],
-                              onChanged: (val) => setState(() => _selectedConfigId = val),
-                            ),
-                          ),
-                          const SizedBox(width: CRMSpacing.m),
-                        ],
-                        Expanded(
-                          child: _buildDropdown(
-                            label: 'Status *',
-                            value: _selectedStatus,
-                            items: const [
-                              DropdownMenuItem(value: "Live", child: Text("Interested")),
-                              DropdownMenuItem(value: "Won", child: Text("Won")),
-                              DropdownMenuItem(value: "Dead", child: Text("Not Interested")),
-                            ],
-                            onChanged: (val) => setState(() => _selectedStatus = val ?? "Live"),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: CRMSpacing.m),
-
-                  // Listing Type & Furnishing
-                  if (isMobile) ...[
-                    _buildDropdown(
-                      label: 'Listing Type',
-                      value: _selectedListingTypeId,
-                      items: (_listingTypes.isNotEmpty ? _listingTypes : [
-                        LookupItem(id: 'rent', name: 'Rent'),
-                        LookupItem(id: 'resale', name: 'Re-Sale'),
-                      ]).map((lt) => DropdownMenuItem(value: lt.id, child: Text(lt.name))).toList(),
-                      onChanged: (val) => setState(() => _selectedListingTypeId = val),
-                    ),
-                    const SizedBox(height: CRMSpacing.m),
-                    _buildDropdown(
-                      label: 'Furnishing',
-                      value: _selectedFurnishing,
-                      items: const [
-                        DropdownMenuItem(value: 'None', child: Text('None')),
-                        DropdownMenuItem(value: 'Unfurnished', child: Text('Unfurnished')),
-                        DropdownMenuItem(value: 'Semi-Furnished', child: Text('Semi-Furnished')),
-                        DropdownMenuItem(value: 'Fully Furnished', child: Text('Fully Furnished')),
-                      ],
-                      onChanged: (val) => setState(() => _selectedFurnishing = val),
-                    ),
-                  ] else ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildDropdown(
-                            label: 'Listing Type',
-                            value: _selectedListingTypeId,
-                            items: (_listingTypes.isNotEmpty ? _listingTypes : [
-                              LookupItem(id: 'rent', name: 'Rent'),
-                              LookupItem(id: 'resale', name: 'Re-Sale'),
-                            ]).map((lt) => DropdownMenuItem(value: lt.id, child: Text(lt.name))).toList(),
-                            onChanged: (val) => setState(() => _selectedListingTypeId = val),
-                          ),
-                        ),
-                        const SizedBox(width: CRMSpacing.m),
-                        Expanded(
-                          child: _buildDropdown(
-                            label: 'Furnishing',
-                            value: _selectedFurnishing,
-                            items: const [
-                              DropdownMenuItem(value: 'None', child: Text('None')),
-                              DropdownMenuItem(value: 'Unfurnished', child: Text('Unfurnished')),
-                              DropdownMenuItem(value: 'Semi-Furnished', child: Text('Semi-Furnished')),
-                              DropdownMenuItem(value: 'Fully Furnished', child: Text('Fully Furnished')),
-                            ],
-                            onChanged: (val) => setState(() => _selectedFurnishing = val),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  const SizedBox(height: CRMSpacing.m),
-
-                  CRMCurrencyField(
-                    controller: _budgetController,
-                    labelText: 'Target Budget',
-                    isRequired: true,
-                  ),
-                  const SizedBox(height: CRMSpacing.m),
-
-                  // Target Area list chips selection
-                  Row(
-                    children: [
-                      Text("Select Target Area(s) *", style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary)),
-                      const SizedBox(width: CRMSpacing.xs),
-                      IconButton(
-                        icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary, size: 20),
-                        onPressed: _showAddAreaDialog,
-                        tooltip: 'Add New Area',
-                        constraints: const BoxConstraints(),
-                        padding: EdgeInsets.zero,
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: 180,
-                        height: 36,
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Search area...',
-                            prefixIcon: const Icon(Icons.search_rounded, size: 16),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            filled: true,
-                            fillColor: CRMColors.backgroundOf(context),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                              borderSide: BorderSide(color: CRMColors.borderOf(context)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                              borderSide: BorderSide(color: CRMColors.borderOf(context).withValues(alpha: 0.5)),
-                            ),
-                          ),
-                          onChanged: (val) {
-                            setState(() {
-                              _areaSearchQuery = val.trim();
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: CRMSpacing.xs),
-                  Builder(
-                    builder: (context) {
-                      final filteredAreas = _areas.where((a) {
-                        if (_areaSearchQuery.isEmpty) return true;
-                        return a.name.toLowerCase().contains(_areaSearchQuery.toLowerCase());
-                      }).toList();
-
-                      List<AreaLookup> displayAreas;
-                      if (_areaSearchQuery.isNotEmpty) {
-                        displayAreas = filteredAreas;
-                      } else {
-                        final selected = filteredAreas.where((a) => _selectedAreaIds.contains(a.id)).toList();
-                        final unselected = filteredAreas.where((a) => !_selectedAreaIds.contains(a.id)).take(5).toList();
-                        displayAreas = [...selected, ...unselected];
-                      }
-
-                      if (displayAreas.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Text(
-                            'No matching areas found',
-                            style: TextStyle(fontSize: 12, color: CRMColors.textSecondaryOf(context)),
-                          ),
-                        );
-                      }
-
-                      return Wrap(
-                        spacing: CRMSpacing.xs,
-                        runSpacing: CRMSpacing.xxs,
-                        children: displayAreas.map((a) {
-                          final isSelected = _selectedAreaIds.contains(a.id);
-                          return FilterChip(
-                            label: Text(a.name, style: const TextStyle(fontSize: 12)),
-                            selected: isSelected,
-                            selectedColor: CRMColors.primary.withValues(alpha: 0.12),
-                            checkmarkColor: CRMColors.primary,
-                            onSelected: (selected) {
-                              setState(() {
-                                if (selected) {
-                                  _selectedAreaIds.add(a.id);
-                                } else {
-                                  _selectedAreaIds.remove(a.id);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: CRMSpacing.m),
-
-                  // Remarks Input
-                  CRMTextField(
-                    controller: _remarksController,
-                    labelText: 'Internal CRM Remarks',
-                    hintText: 'Add additional requirements here...',
-                    prefixIcon: Icons.chat_bubble_outline_rounded,
-                    maxLength: 150,
-                  ),
-                  const SizedBox(height: CRMSpacing.xl),
-
-                  // Actions
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      CRMButton(
-                        label: 'Cancel',
-                        variant: CRMButtonVariant.outline,
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const SizedBox(width: CRMSpacing.s),
-                      CRMButton(
-                        label: isEditing ? 'Save Changes' : 'Publish Requirement',
-                        onPressed: _submitForm,
-                      ),
-                    ],
-                  ),
-                ],
+                  );
+                }),
               ),
             ),
           ),
+          const SizedBox(height: CRMSpacing.s),
+
+          // PageView Content
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [
+                _buildStep1Customer(),
+                _buildStep2Type(),
+                _buildStep3Preference(filteredTypes, filteredConfigs),
+                _buildStep4Location(),
+                _buildStep5BudgetAndArea(),
+                _buildStep6Notes(),
+                _buildStep7Review(),
+              ],
+            ),
+          ),
+          const Divider(),
+          const SizedBox(height: CRMSpacing.s),
+
+          // Actions Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (_activeStep > 0)
+                CRMButton(
+                  label: "Back",
+                  variant: CRMButtonVariant.outline,
+                  onPressed: _prevStep,
+                  height: widget.isInline ? 32 : 40,
+                )
+              else
+                const SizedBox.shrink(),
+              CRMButton(
+                label: _activeStep == 6 ? "Submit" : "Next",
+                onPressed: _nextStep,
+                height: widget.isInline ? 32 : 40,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final container = Container(
+      width: isMobile ? double.infinity : 600,
+      height: widget.isInline ? 450 : 600,
+      padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.l, vertical: CRMSpacing.m),
+      child: formContent,
+    );
+
+    if (widget.isInline) {
+      return container;
+    }
+
+    return Dialog(
+      backgroundColor: CRMColors.cardBgOf(context),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.l)),
+      child: container,
+    );
+  }
+
+  // --- STEPS ---
+
+  Widget _buildStep1Customer() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Step 1: Customer Details", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: CRMSpacing.m),
+          CRMPhoneField(
+            controller: _mobileController,
+            labelText: 'Client Mobile *',
+            isRequired: true,
+          ),
+          if (_customerFoundMessage != null) ...[
+            const SizedBox(height: CRMSpacing.xs),
+            Text(
+              _customerFoundMessage!,
+              style: CRMTypography.caption.copyWith(color: CRMColors.primary, fontWeight: FontWeight.bold),
+            ),
+          ],
+          const SizedBox(height: CRMSpacing.m),
+          CRMTextField(
+            controller: _nameController,
+            labelText: 'Client Name *',
+            hintText: 'Enter name',
+            prefixIcon: Icons.person_rounded,
+            validator: (v) => v == null || v.trim().isEmpty ? 'Client name required' : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep2Type() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Step 2: Requirement Type", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: CRMSpacing.l),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final rentType = _listingTypes.firstWhere(
+                      (lt) => lt.name.toLowerCase().contains('rent'),
+                      orElse: () => LookupItem(id: 'rent', name: 'Rent'),
+                    );
+                    setState(() {
+                      _selectedListingTypeId = rentType.id;
+                    });
+                  },
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: (_selectedListingTypeId != null &&
+                              _listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('rent'))
+                          ? CRMColors.primary.withValues(alpha: 0.1)
+                          : CRMColors.backgroundOf(context),
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+                      border: Border.all(
+                        color: (_selectedListingTypeId != null &&
+                                _listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('rent'))
+                            ? CRMColors.primary
+                            : CRMColors.borderOf(context),
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.vpn_key_rounded,
+                            color: (_selectedListingTypeId != null &&
+                                    _listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('rent'))
+                                ? CRMColors.primary
+                                : CRMColors.textSecondaryOf(context)),
+                        const SizedBox(height: 8),
+                        Text("For Rent", style: CRMTypography.body.copyWith(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: CRMSpacing.m),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final saleType = _listingTypes.firstWhere(
+                      (lt) => lt.name.toLowerCase().contains('sale') || lt.name.toLowerCase().contains('resale'),
+                      orElse: () => LookupItem(id: 'resale', name: 'Re-Sale'),
+                    );
+                    setState(() {
+                      _selectedListingTypeId = saleType.id;
+                    });
+                  },
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: (_selectedListingTypeId != null &&
+                              (_listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('sale') ||
+                               _listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('resale')))
+                          ? CRMColors.primary.withValues(alpha: 0.1)
+                          : CRMColors.backgroundOf(context),
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+                      border: Border.all(
+                        color: (_selectedListingTypeId != null &&
+                                (_listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('sale') ||
+                                 _listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('resale')))
+                            ? CRMColors.primary
+                            : CRMColors.borderOf(context),
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.monetization_on_rounded,
+                            color: (_selectedListingTypeId != null &&
+                                    (_listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('sale') ||
+                                     _listingTypes.firstWhere((lt) => lt.id == _selectedListingTypeId, orElse: () => LookupItem(id: '', name: '')).name.toLowerCase().contains('resale')))
+                                ? CRMColors.primary
+                                : CRMColors.textSecondaryOf(context)),
+                        const SizedBox(height: 8),
+                        Text("For Re-Sale", style: CRMTypography.body.copyWith(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (widget.requirement != null) ...[
+            const SizedBox(height: CRMSpacing.l),
+            _buildDropdown(
+              label: 'Pipeline Status Stage *',
+              value: _selectedStatus,
+              items: const [
+                DropdownMenuItem(value: "Not Started", child: Text("Not Started")),
+                DropdownMenuItem(value: "Interested", child: Text("Interested")),
+                DropdownMenuItem(value: "Follow-up", child: Text("Follow-up")),
+                DropdownMenuItem(value: "Site Visit", child: Text("Site Visit")),
+                DropdownMenuItem(value: "Negotiation", child: Text("Negotiation")),
+                DropdownMenuItem(value: "Won", child: Text("Won")),
+                DropdownMenuItem(value: "Not Interested", child: Text("Not Interested")),
+                DropdownMenuItem(value: "Bin", child: Text("Bin")),
+              ],
+              onChanged: (val) {
+                if (val != null && _validateStatusTransition(val)) {
+                  setState(() => _selectedStatus = val);
+                }
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep3Preference(List<LookupItem> filteredTypes, List<LookupItem> filteredConfigs) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Step 3: Property Preferences", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: CRMSpacing.m),
+          _buildDropdown(
+            label: 'Category *',
+            value: _selectedCategoryId,
+            items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+            onChanged: (val) => setState(() {
+              _selectedCategoryId = val;
+              _selectedTypeId = null;
+              _selectedConfigId = null;
+            }),
+          ),
+          const SizedBox(height: CRMSpacing.m),
+          _buildDropdown(
+            label: 'Property Type *',
+            value: _selectedTypeId,
+            items: filteredTypes.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+            onChanged: (val) => setState(() => _selectedTypeId = val),
+          ),
+          const SizedBox(height: CRMSpacing.m),
+          if (filteredConfigs.isNotEmpty) ...[
+            _buildDropdown(
+              label: 'Configuration',
+              value: _selectedConfigId,
+              items: [
+                const DropdownMenuItem(value: null, child: Text("None")),
+                ...filteredConfigs.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+              ],
+              onChanged: (val) => setState(() => _selectedConfigId = val),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep4Location() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text("Step 4: Target Area(s) *", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+            const Spacer(),
+            SizedBox(
+              width: 160,
+              height: 32,
+              child: TextField(
+                style: const TextStyle(fontSize: 12),
+                decoration: InputDecoration(
+                  hintText: 'Filter areas...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 14),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  filled: true,
+                  fillColor: CRMColors.backgroundOf(context),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                ),
+                onChanged: (val) => setState(() => _areaSearchQuery = val.trim()),
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: CRMSpacing.m),
+        Expanded(
+          child: Builder(
+            builder: (context) {
+              final filtered = _areas.where((a) {
+                if (_areaSearchQuery.isEmpty) return true;
+                return a.name.toLowerCase().contains(_areaSearchQuery.toLowerCase());
+              }).toList();
+
+              if (filtered.isEmpty) {
+                return const Center(child: Text("No areas found."));
+              }
+
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final area = filtered[index];
+                  final isSelected = _selectedAreaIds.contains(area.id);
+                  return CheckboxListTile(
+                    title: Text(area.name, style: const TextStyle(fontSize: 13)),
+                    subtitle: Text(area.pincode, style: const TextStyle(fontSize: 11)),
+                    value: isSelected,
+                    activeColor: CRMColors.primary,
+                    onChanged: (val) {
+                      setState(() {
+                        if (val == true) {
+                          _selectedAreaIds.add(area.id);
+                        } else {
+                          _selectedAreaIds.remove(area.id);
+                        }
+                      });
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStep5BudgetAndArea() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Step 5: Budget & Size Limits", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: CRMSpacing.m),
+          CRMCurrencyField(
+            controller: _budgetController,
+            labelText: 'Target Budget *',
+            isRequired: true,
+          ),
+          const SizedBox(height: CRMSpacing.m),
+          Row(
+            children: [
+              Expanded(
+                child: CRMTextField(
+                  controller: _minAreaController,
+                  labelText: 'Min Area (Sq.Ft)',
+                  hintText: 'e.g. 800',
+                  prefixIcon: Icons.square_foot_rounded,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: CRMSpacing.m),
+              Expanded(
+                child: CRMTextField(
+                  controller: _maxAreaController,
+                  labelText: 'Max Area (Sq.Ft)',
+                  hintText: 'e.g. 1500',
+                  prefixIcon: Icons.square_foot_rounded,
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep6Notes() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Step 6: Additional Remarks", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: CRMSpacing.m),
+          CRMTextField(
+            controller: _remarksController,
+            labelText: 'Internal CRM Remarks',
+            hintText: 'Enter preferences, customer remarks, or internal notes...',
+            prefixIcon: Icons.chat_bubble_outline_rounded,
+            maxLines: 4,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep7Review() {
+    final cat = _categories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => LookupItem(id: '', name: 'None'));
+    final type = _types.firstWhere((t) => t.id == _selectedTypeId, orElse: () => LookupItem(id: '', name: 'None'));
+    final config = _configurations.firstWhere((c) => c.id == _selectedConfigId, orElse: () => LookupItem(id: '', name: 'None'));
+    
+    // Completeness score mock check for review
+    double comp = 0.0;
+    if (_nameController.text.isNotEmpty) comp += 0.15;
+    if (_mobileController.text.isNotEmpty) comp += 0.15;
+    if (_selectedCategoryId != null) comp += 0.15;
+    if (_selectedTypeId != null) comp += 0.10;
+    if (_selectedConfigId != null) comp += 0.10;
+    if (_selectedAreaIds.isNotEmpty) comp += 0.15;
+    if (_budgetController.text.isNotEmpty) comp += 0.20;
+
+    final readiness = (_selectedCategoryId != null && _budgetController.text.isNotEmpty && _selectedAreaIds.isNotEmpty)
+        ? (_selectedConfigId != null ? 'Ready' : 'Needs Information')
+        : 'Cannot Match';
+
+    final List<String> warnings = [];
+    if (_selectedConfigId == null) warnings.add("Missing Configuration");
+    if (_budgetController.text.isEmpty) warnings.add("Missing Budget");
+    if (_selectedAreaIds.isEmpty) warnings.add("Missing Target Area");
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Step 7: Review & Validate", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: CRMSpacing.m),
+          
+          // Scores Card
+          Container(
+            padding: const EdgeInsets.all(CRMSpacing.m),
+            decoration: BoxDecoration(
+              color: CRMColors.backgroundOf(context),
+              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              border: Border.all(color: CRMColors.borderOf(context)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Completeness:", style: CRMTypography.caption),
+                    Text("${(comp * 100).toStringAsFixed(0)}%", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                LinearProgressIndicator(value: comp, color: CRMColors.success, backgroundColor: CRMColors.borderOf(context)),
+                const SizedBox(height: CRMSpacing.s),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Matching Readiness:", style: CRMTypography.caption),
+                    Text(
+                      readiness == 'Ready'
+                          ? "🟢 Ready"
+                          : readiness == 'Needs Information'
+                              ? "🟡 Needs Information"
+                              : "🔴 Cannot Match",
+                      style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: CRMSpacing.m),
+
+          // Warnings List
+          if (warnings.isNotEmpty) ...[
+            Text("Missing Requirements Details:", style: CRMTypography.bodyMedium.copyWith(color: CRMColors.danger, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            ...warnings.map((w) => Padding(
+                  padding: const EdgeInsets.only(bottom: 2.0),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, size: 14, color: CRMColors.danger),
+                      const SizedBox(width: 4),
+                      Text(w, style: CRMTypography.caption.copyWith(color: CRMColors.danger)),
+                    ],
+                  ),
+                )),
+            const SizedBox(height: CRMSpacing.m),
+          ],
+
+          // Details List
+          Text("Summary Details:", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+          const Divider(),
+          _buildSummaryRow("Client", _nameController.text),
+          _buildSummaryRow("Mobile", _mobileController.text),
+          _buildSummaryRow("Category", cat.name),
+          _buildSummaryRow("Property Type", type.name),
+          _buildSummaryRow("Configuration", config.name),
+          _buildSummaryRow("Target Areas", "${_selectedAreaIds.length} Selected"),
+          _buildSummaryRow("Budget", _budgetController.text),
+          _buildSummaryRow("Pipeline Status", _selectedStatus),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: CRMTypography.caption),
+          Text(value.isNotEmpty ? value : "None", style: CRMTypography.caption.copyWith(fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
@@ -772,27 +1087,36 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
   }) {
+    final bool hasValue = items.any((item) => item.value == value);
+    final T? safeValue = hasValue ? value : null;
+
+    final List<DropdownMenuItem<T?>> safeItems = [
+      if (safeValue == null && !items.any((item) => item.value == null))
+        DropdownMenuItem<T?>(value: null, child: Text("Select $label")),
+      ...items.map((item) => DropdownMenuItem<T?>(value: item.value, child: item.child)),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary)),
+        Text(label, style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondaryOf(context))),
         const SizedBox(height: CRMSpacing.xs),
-        DropdownButtonFormField<T>(
-          value: value,
-          dropdownColor: CRMColors.cardBg,
-          style: CRMTypography.body.copyWith(color: CRMColors.text),
+        DropdownButtonFormField<T?>(
+          value: safeValue,
+          dropdownColor: CRMColors.cardBgOf(context),
+          style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.s),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: BorderSide(color: CRMColors.border),
+              borderSide: BorderSide(color: CRMColors.borderOf(context)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: BorderSide(color: CRMColors.border),
+              borderSide: BorderSide(color: CRMColors.borderOf(context)),
             ),
           ),
-          items: items,
+          items: safeItems,
           onChanged: onChanged,
         ),
       ],

@@ -60,15 +60,15 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
 
   void _loadProperties() {
     context.read<PropertiesBloc>().add(
-      LoadPropertiesEvent(
-        search: _searchController.text.trim(),
-        categoryId: _selectedCategory,
-        areaId: _selectedArea,
-        listingTypeId: _selectedListingType,
-        isVerified: _selectedVerification,
-        activeTab: _activeTab,
-      ),
-    );
+          LoadPropertiesEvent(
+            search: _searchController.text.trim(),
+            categoryId: _selectedCategory,
+            areaId: _selectedArea,
+            listingTypeId: _selectedListingType,
+            isVerified: _selectedVerification,
+            activeTab: _activeTab,
+          ),
+        );
   }
 
   Future<void> _launchWhatsApp(PropertyModel property) async {
@@ -82,7 +82,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
         'I am $userName from NB Prop Tech.\n'
         'Is your property still available?\n'
         'Thank you.';
-    final url = 'https://wa.me/${property.ownerMobile}?text=${Uri.encodeComponent(text)}';
+    final url =
+        'https://wa.me/${property.ownerMobile}?text=${Uri.encodeComponent(text)}';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -104,258 +105,287 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     return false;
   }
 
-  Widget _buildMobilePropertyCard(PropertyModel p, UserModel? currentUser, Set<String> bookmarkedIds, PropertyMetadataModel? metadata) {
+  Widget _buildMobilePropertyCard(PropertyModel p, UserModel? currentUser,
+      Set<String> bookmarkedIds, PropertyMetadataModel? metadata) {
     final isMine = _hasEditAccess(p, currentUser);
     final isBookmarked = bookmarkedIds.contains(p.id);
     final isHighlighted = p.id == _highlightedPropertyId;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(CRMBorderRadius.m),
-        border: Border.all(
-          color: isHighlighted ? CRMColors.primary : Colors.transparent,
-          width: 2,
+        duration: const Duration(milliseconds: 300),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+          border: Border.all(
+            color: isHighlighted ? CRMColors.primary : Colors.transparent,
+            width: 2,
+          ),
         ),
-      ),
-      child: CRMCard(
-        padding: const EdgeInsets.all(CRMSpacing.m),
-        child: InkWell(
-          onTap: () => _openPropertyDetails(context, p),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  p.propertyCode,
-                  style: CRMTypography.bodyMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: CRMColors.primary,
-                  ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: CRMColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                      ),
-                      child: Text(
-                        p.listingTypeName,
-                        style: TextStyle(
-                          color: CRMColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: p.isStatusAvailable 
-                            ? CRMColors.success.withOpacity(0.1) 
-                            : CRMColors.warning.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                      ),
-                      child: Text(
-                        p.statusDisplayName,
-                        style: TextStyle(
-                          color: p.isStatusAvailable 
-                              ? CRMColors.success 
-                              : CRMColors.warning,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: CRMSpacing.s),
-            Text(
-              p.title,
-              style: CRMTypography.cardTitle.copyWith(
-                color: CRMColors.textOf(context),
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: CRMSpacing.xs),
-            Row(
-              children: [
-                Icon(Icons.person_outline_rounded, size: 14, color: CRMColors.textSecondaryOf(context)),
-                const SizedBox(width: 4),
-                Text(
-                  'Owner: ',
-                  style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
-                ),
-                Expanded(
-                  child: Text(
-                    '${p.ownerName} (${p.ownerMobile})',
-                    style: CRMTypography.captionBold.copyWith(
-                      color: CRMColors.textOf(context),
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: CRMSpacing.xs),
-            Row(
-              children: [
-                Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
-                const SizedBox(width: 4),
-                Text(
-                  '${p.areaName}, ${p.cityName}',
-                  style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
-                ),
-              ],
-            ),
-            const SizedBox(height: CRMSpacing.xs),
-            Row(
+        child: CRMCard(
+          padding: const EdgeInsets.all(CRMSpacing.m),
+          child: InkWell(
+            onTap: () => _openPropertyDetails(context, p),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(_getPropertyBhkOrAreaIcon(p), size: 14, color: CRMColors.textSecondaryOf(context)),
-                    const SizedBox(width: 4),
                     Text(
-                      _getPropertyBhkOrAreaValue(p),
-                      style: CRMTypography.captionBold.copyWith(
-                        color: CRMColors.textOf(context),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: CRMSpacing.m),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.sell_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
-                    const SizedBox(width: 4),
-                    Text(
-                      '₹${p.price.toStringAsFixed(0)}',
-                      style: CRMTypography.captionBold.copyWith(
-                        color: CRMColors.textOf(context),
+                      p.propertyCode,
+                      style: CRMTypography.bodyMedium.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: CRMColors.primary,
                       ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: CRMColors.primary.withOpacity(0.1),
+                            borderRadius:
+                                BorderRadius.circular(CRMBorderRadius.xs),
+                          ),
+                          child: Text(
+                            p.listingTypeName,
+                            style: TextStyle(
+                              color: CRMColors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: p.isStatusAvailable
+                                ? CRMColors.success.withOpacity(0.1)
+                                : CRMColors.warning.withOpacity(0.1),
+                            borderRadius:
+                                BorderRadius.circular(CRMBorderRadius.xs),
+                          ),
+                          child: Text(
+                            p.statusDisplayName,
+                            style: TextStyle(
+                              color: p.isStatusAvailable
+                                  ? CRMColors.success
+                                  : CRMColors.warning,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: CRMSpacing.xs),
-            Row(
-              children: [
-                Icon(Icons.calendar_today_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
-                const SizedBox(width: 4),
+                const SizedBox(height: CRMSpacing.s),
                 Text(
-                  DateFormat('dd-MM-yyyy').format(p.createdAt),
-                  style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                  p.title,
+                  style: CRMTypography.cardTitle.copyWith(
+                    color: CRMColors.textOf(context),
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-            const Divider(height: CRMSpacing.l),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+                const SizedBox(height: CRMSpacing.xs),
                 Row(
                   children: [
+                    Icon(Icons.person_outline_rounded,
+                        size: 14, color: CRMColors.textSecondaryOf(context)),
+                    const SizedBox(width: 4),
                     Text(
-                      'Verified: ',
-                      style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                      'Owner: ',
+                      style: CRMTypography.caption
+                          .copyWith(color: CRMColors.textSecondaryOf(context)),
                     ),
-                    Transform.scale(
-                      scale: 0.8,
-                      child: Switch(
-                        value: p.isVerified,
-                        activeColor: CRMColors.success,
-                        onChanged: (val) {
-                          context.read<PropertiesBloc>().add(
-                            ToggleVerificationEvent(p.id, val, activeTab: _activeTab),
-                          );
-                        },
+                    Expanded(
+                      child: Text(
+                        '${p.ownerName} (${p.ownerMobile})',
+                        style: CRMTypography.captionBold.copyWith(
+                          color: CRMColors.textOf(context),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: CRMSpacing.xs),
                 Row(
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
-                        color: isBookmarked ? CRMColors.warning : CRMColors.textMutedOf(context),
-                        size: 20,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () {
-                        context.read<PropertiesBloc>().add(
-                          ToggleBookmarkEvent(p.id, activeTab: _activeTab),
-                        );
-                      },
+                    Icon(Icons.location_on_outlined,
+                        size: 14, color: CRMColors.textSecondaryOf(context)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${p.areaName}, ${p.cityName}',
+                      style: CRMTypography.caption
+                          .copyWith(color: CRMColors.textSecondaryOf(context)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: CRMSpacing.xs),
+                Row(
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_getPropertyBhkOrAreaIcon(p),
+                            size: 14,
+                            color: CRMColors.textSecondaryOf(context)),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getPropertyBhkOrAreaValue(p),
+                          style: CRMTypography.captionBold.copyWith(
+                            color: CRMColors.textOf(context),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(width: CRMSpacing.m),
-                    if (isMine && _activeTab != 'My Deleted') ...[
-                      IconButton(
-                        icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 20),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          if (metadata != null) {
-                            _showAddEditPropertyDialog(context, metadata, p);
-                          }
-                        },
-                      ),
-                      const SizedBox(width: CRMSpacing.m),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 20),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          context.read<PropertiesBloc>().add(
-                            DeletePropertyEvent(p.id, activeTab: _activeTab),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: CRMSpacing.m),
-                    ] else if (isMine && _activeTab == 'My Deleted') ...[
-                      IconButton(
-                        icon: Icon(Icons.restore_rounded, color: CRMColors.success, size: 20),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () {
-                          context.read<PropertiesBloc>().add(
-                            RestorePropertyEvent(p.id, activeTab: _activeTab),
-                          );
-                        },
-                      ),
-                      const SizedBox(width: CRMSpacing.m),
-                    ],
-                    IconButton(
-                      icon: Icon(Icons.chat_bubble_outline_rounded, color: CRMColors.success, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () => _launchWhatsApp(p),
-                      tooltip: 'Contact on WhatsApp',
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.sell_outlined,
+                            size: 14,
+                            color: CRMColors.textSecondaryOf(context)),
+                        const SizedBox(width: 4),
+                        Text(
+                          '₹${p.price.toStringAsFixed(0)}',
+                          style: CRMTypography.captionBold.copyWith(
+                            color: CRMColors.textOf(context),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: CRMSpacing.xs),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today_outlined,
+                        size: 14, color: CRMColors.textSecondaryOf(context)),
+                    const SizedBox(width: 4),
+                    Text(
+                      DateFormat('dd-MM-yyyy').format(p.createdAt),
+                      style: CRMTypography.caption
+                          .copyWith(color: CRMColors.textSecondaryOf(context)),
+                    ),
+                  ],
+                ),
+                const Divider(height: CRMSpacing.l),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Verified: ',
+                          style: CRMTypography.caption.copyWith(
+                              color: CRMColors.textSecondaryOf(context)),
+                        ),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: p.isVerified,
+                            activeColor: CRMColors.success,
+                            onChanged: (val) {
+                              context.read<PropertiesBloc>().add(
+                                    ToggleVerificationEvent(p.id, val,
+                                        activeTab: _activeTab),
+                                  );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            isBookmarked
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: isBookmarked
+                                ? CRMColors.warning
+                                : CRMColors.textMutedOf(context),
+                            size: 20,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            context.read<PropertiesBloc>().add(
+                                  ToggleBookmarkEvent(p.id,
+                                      activeTab: _activeTab),
+                                );
+                          },
+                        ),
+                        const SizedBox(width: CRMSpacing.m),
+                        if (isMine && _activeTab != 'My Deleted') ...[
+                          IconButton(
+                            icon: Icon(Icons.edit_outlined,
+                                color: CRMColors.primary, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              if (metadata != null) {
+                                _showAddEditPropertyDialog(
+                                    context, metadata, p);
+                              }
+                            },
+                          ),
+                          const SizedBox(width: CRMSpacing.m),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline_rounded,
+                                color: CRMColors.danger, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              context.read<PropertiesBloc>().add(
+                                    DeletePropertyEvent(p.id,
+                                        activeTab: _activeTab),
+                                  );
+                            },
+                          ),
+                          const SizedBox(width: CRMSpacing.m),
+                        ] else if (isMine && _activeTab == 'My Deleted') ...[
+                          IconButton(
+                            icon: Icon(Icons.restore_rounded,
+                                color: CRMColors.success, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              context.read<PropertiesBloc>().add(
+                                    RestorePropertyEvent(p.id,
+                                        activeTab: _activeTab),
+                                  );
+                            },
+                          ),
+                          const SizedBox(width: CRMSpacing.m),
+                        ],
+                        IconButton(
+                          icon: Icon(Icons.chat_bubble_outline_rounded,
+                              color: CRMColors.success, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _launchWhatsApp(p),
+                          tooltip: 'Contact on WhatsApp',
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-    ));
+          ),
+        ));
   }
 
   @override
@@ -375,13 +405,17 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
         listener: (context, state) {
           if (state is PropertiesError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: CRMColors.danger),
+              SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: CRMColors.danger),
             );
           } else if (state is PropertyCreatedState) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _openPropertyDetails(context, state.property);
               if (_scrollController.hasClients) {
-                _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeOut);
+                _scrollController.animateTo(0,
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOut);
               }
               setState(() {
                 _highlightedPropertyId = state.property.id;
@@ -397,7 +431,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           }
         },
         builder: (context, state) {
-          final isLoading = state is PropertiesLoading || state is PropertiesInitial;
+          final isLoading =
+              state is PropertiesLoading || state is PropertiesInitial;
           List<PropertyModel> properties = [];
           PropertyMetadataModel? metadata;
           Set<String> bookmarkedIds = {};
@@ -408,21 +443,27 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
               if (_activeListingTab == 'Rent') {
                 return ltName.contains('rent');
               } else {
-                return ltName.contains('sale') || ltName.contains('resale') || !ltName.contains('rent');
+                return ltName.contains('sale') ||
+                    ltName.contains('resale') ||
+                    !ltName.contains('rent');
               }
             }).toList();
             metadata = state.metadata;
             bookmarkedIds = state.bookmarkedIds;
 
-            final action = GoRouterState.of(context).uri.queryParameters['action'];
-            if (action == 'add' && !_hasAutoOpenedAdd && state.metadata != null) {
+            final action =
+                GoRouterState.of(context).uri.queryParameters['action'];
+            if (action == 'add' &&
+                !_hasAutoOpenedAdd &&
+                state.metadata != null) {
               _hasAutoOpenedAdd = true;
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _showAddEditPropertyDialog(context, state.metadata!);
               });
             }
 
-            final openId = widget.openPropertyId ?? GoRouterState.of(context).uri.queryParameters['openId'];
+            final openId = widget.openPropertyId ??
+                GoRouterState.of(context).uri.queryParameters['openId'];
             if (openId != null && !_hasAutoOpenedProp) {
               _hasAutoOpenedProp = true;
               PropertyModel? matched;
@@ -446,7 +487,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
             }
           }
 
-          final totalPages = properties.isEmpty ? 1 : (properties.length / _pageSize).ceil();
+          final totalPages =
+              properties.isEmpty ? 1 : (properties.length / _pageSize).ceil();
           final safePage = _currentPage.clamp(0, totalPages - 1);
           final pageStart = safePage * _pageSize;
           final pageEnd = (pageStart + _pageSize).clamp(0, properties.length);
@@ -483,16 +525,23 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                 // 6. Property Table (Desktop) / Property Cards (Mobile) & 7. Pagination
                 if (screenWidth < 768) ...[
                   if (isLoading)
-                    const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
+                    const Center(
+                        child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: CircularProgressIndicator()))
                   else if (pagedProperties.isEmpty)
                     CRMCard(
                       child: Padding(
                         padding: const EdgeInsets.all(CRMSpacing.xl),
                         child: Column(
                           children: [
-                            Text('No Properties Found', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
+                            Text('No Properties Found',
+                                style: CRMTypography.sectionTitle
+                                    .copyWith(color: CRMColors.text)),
                             const SizedBox(height: CRMSpacing.s),
-                            Text('No records match your active search terms.', style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
+                            Text('No records match your active search terms.',
+                                style: CRMTypography.body
+                                    .copyWith(color: CRMColors.textSecondary)),
                           ],
                         ),
                       ),
@@ -502,7 +551,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       children: pagedProperties.map((p) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: CRMSpacing.m),
-                          child: _buildMobilePropertyCard(p, currentUser, bookmarkedIds, metadata),
+                          child: _buildMobilePropertyCard(
+                              p, currentUser, bookmarkedIds, metadata),
                         );
                       }).toList(),
                     ),
@@ -510,11 +560,12 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                   CRMDataTable(
                     isLoading: isLoading,
                     emptyTitle: 'No Properties Found',
-                    emptyDescription: 'No records match your active search terms.',
+                    emptyDescription:
+                        'No records match your active search terms.',
                     showCheckboxColumn: false,
                     columns: [
                       const DataColumn(label: Text('Code')),
-                      const DataColumn(label: Text('Society Name')),
+                      const DataColumn(label: Text('Property Name')),
                       const DataColumn(label: Text('Owner')),
                       const DataColumn(label: Text('Area')),
                       DataColumn(label: Text(_getBhkColumnHeader(metadata))),
@@ -529,43 +580,59 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       final isMine = _hasEditAccess(p, currentUser);
                       final isBookmarked = bookmarkedIds.contains(p.id);
                       return DataRow(
-                        color: WidgetStateProperty.resolveWith<Color?>((states) {
+                        color:
+                            WidgetStateProperty.resolveWith<Color?>((states) {
                           if (p.id == _highlightedPropertyId) {
                             return CRMColors.primary.withOpacity(0.08);
                           }
                           return null;
                         }),
-                        onSelectChanged: (_) => _openPropertyDetails(context, p),
+                        onSelectChanged: (_) =>
+                            _openPropertyDetails(context, p),
                         cells: [
-                          DataCell(Text(p.propertyCode, style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataCell(Text(p.propertyCode,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold))),
                           DataCell(Text(p.title)),
                           DataCell(
                             Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 4.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(p.ownerName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                  Text(p.ownerMobile, style: TextStyle(color: CRMColors.textMuted, fontSize: 11)),
+                                  Text(p.ownerName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600)),
+                                  Text(p.ownerMobile,
+                                      style: TextStyle(
+                                          color: CRMColors.textMuted,
+                                          fontSize: 11)),
                                 ],
                               ),
                             ),
                           ),
                           DataCell(Text(p.areaName)),
                           DataCell(Text(_getPropertyBhkOrAreaValue(p))),
-                          DataCell(Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))),
-                          DataCell(Text(DateFormat('dd-MM-yyyy').format(p.createdAt))),
+                          DataCell(Text('₹${p.price.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600))),
+                          DataCell(Text(
+                              DateFormat('dd-MM-yyyy').format(p.createdAt))),
                           DataCell(
                             PopupMenuButton<String>(
                               tooltip: 'Change Status',
                               onSelected: (String statusName) async {
                                 if (statusName == 'To Be Available') {
-                                  final DateTime? pickedDate = await showDatePicker(
+                                  final DateTime? pickedDate =
+                                      await showDatePicker(
                                     context: context,
-                                    initialDate: DateTime.now().add(const Duration(days: 1)),
+                                    initialDate: DateTime.now()
+                                        .add(const Duration(days: 1)),
                                     firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                                    lastDate: DateTime.now()
+                                        .add(const Duration(days: 365 * 5)),
                                     helpText: 'Select Available Date',
                                   );
                                   if (pickedDate == null) return;
@@ -573,24 +640,29 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                   LookupItem? targetLookup;
                                   if (metadata != null) {
                                     for (final s in metadata.statuses) {
-                                      if (s.name.toLowerCase().contains('to be available')) {
+                                      if (s.name
+                                          .toLowerCase()
+                                          .contains('to be available')) {
                                         targetLookup = s;
                                         break;
                                       }
                                     }
                                   }
-                                  final statusId = targetLookup?.id ?? '05a73434-e99b-425b-99b2-1825d529ac35';
+                                  final statusId = targetLookup?.id ??
+                                      '05a73434-e99b-425b-99b2-1825d529ac35';
                                   if (context.mounted) {
                                     context.read<PropertiesBloc>().add(
-                                      UpdatePropertyEvent(
-                                        p.id,
-                                        {
-                                          'property_status_id': statusId,
-                                          'possession_date': pickedDate.toIso8601String().substring(0, 10),
-                                        },
-                                        activeTab: _activeTab,
-                                      ),
-                                    );
+                                          UpdatePropertyEvent(
+                                            p.id,
+                                            {
+                                              'property_status_id': statusId,
+                                              'possession_date': pickedDate
+                                                  .toIso8601String()
+                                                  .substring(0, 10),
+                                            },
+                                            activeTab: _activeTab,
+                                          ),
+                                        );
                                   }
                                   return;
                                 }
@@ -598,7 +670,12 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                 LookupItem? targetLookup;
                                 if (metadata != null) {
                                   for (final s in metadata.statuses) {
-                                    if (s.name.toLowerCase().replaceAll(' ', '') == statusName.toLowerCase().replaceAll(' ', '')) {
+                                    if (s.name
+                                            .toLowerCase()
+                                            .replaceAll(' ', '') ==
+                                        statusName
+                                            .toLowerCase()
+                                            .replaceAll(' ', '')) {
                                       targetLookup = s;
                                       break;
                                     }
@@ -606,15 +683,17 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                 }
                                 final statusId = targetLookup?.id ?? statusName;
                                 context.read<PropertiesBloc>().add(
-                                  UpdatePropertyEvent(
-                                    p.id,
-                                    {'property_status_id': statusId},
-                                    activeTab: _activeTab,
-                                  ),
-                                );
+                                      UpdatePropertyEvent(
+                                        p.id,
+                                        {'property_status_id': statusId},
+                                        activeTab: _activeTab,
+                                      ),
+                                    );
                               },
                               itemBuilder: (BuildContext context) {
-                                final isRent = p.listingTypeName.toLowerCase().contains('rent');
+                                final isRent = p.listingTypeName
+                                    .toLowerCase()
+                                    .contains('rent');
                                 return <PopupMenuEntry<String>>[
                                   const PopupMenuItem<String>(
                                     value: 'Available',
@@ -640,14 +719,21 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.click,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: p.isStatusAvailable 
-                                        ? CRMColors.success.withValues(alpha: 0.12) 
-                                        : CRMColors.warning.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                                    color: p.isStatusAvailable
+                                        ? CRMColors.success
+                                            .withValues(alpha: 0.12)
+                                        : CRMColors.warning
+                                            .withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(
+                                        CRMBorderRadius.xs),
                                     border: Border.all(
-                                      color: (p.isStatusAvailable ? CRMColors.success : CRMColors.warning).withValues(alpha: 0.3),
+                                      color: (p.isStatusAvailable
+                                              ? CRMColors.success
+                                              : CRMColors.warning)
+                                          .withValues(alpha: 0.3),
                                     ),
                                   ),
                                   child: Row(
@@ -656,7 +742,9 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                       Text(
                                         p.statusDisplayName,
                                         style: TextStyle(
-                                          color: p.isStatusAvailable ? CRMColors.success : CRMColors.warning,
+                                          color: p.isStatusAvailable
+                                              ? CRMColors.success
+                                              : CRMColors.warning,
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -665,7 +753,9 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                       Icon(
                                         Icons.arrow_drop_down_rounded,
                                         size: 16,
-                                        color: p.isStatusAvailable ? CRMColors.success : CRMColors.warning,
+                                        color: p.isStatusAvailable
+                                            ? CRMColors.success
+                                            : CRMColors.warning,
                                       ),
                                     ],
                                   ),
@@ -689,13 +779,15 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                           );
                                         }
                                       : null,
-                                  borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                                  borderRadius:
+                                      BorderRadius.circular(CRMBorderRadius.xs),
                                   child: Container(
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
                                       color: CRMColors.backgroundOf(context),
-                                      borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                                      borderRadius: BorderRadius.circular(
+                                          CRMBorderRadius.xs),
                                       border: Border.all(
                                         color: hasImages
                                             ? CRMColors.primary.withOpacity(0.3)
@@ -707,23 +799,32 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                         ? Stack(
                                             fit: StackFit.expand,
                                             children: [
-                                              _buildPropertyThumbnail(p.images.first),
+                                              _buildPropertyThumbnail(
+                                                  p.images.first),
                                               if (p.images.length > 1)
                                                 Positioned(
                                                   right: 0,
                                                   bottom: 0,
                                                   child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-                                                    decoration: const BoxDecoration(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 3,
+                                                        vertical: 1),
+                                                    decoration:
+                                                        const BoxDecoration(
                                                       color: Color(0xB3000000),
-                                                      borderRadius: BorderRadius.only(topLeft: Radius.circular(4)),
+                                                      borderRadius:
+                                                          BorderRadius.only(
+                                                              topLeft: Radius
+                                                                  .circular(4)),
                                                     ),
                                                     child: Text(
                                                       '+${p.images.length - 1}',
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                         fontSize: 9,
-                                                        fontWeight: FontWeight.bold,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
@@ -733,7 +834,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                         : Icon(
                                             Icons.image_not_supported_outlined,
                                             size: 18,
-                                            color: CRMColors.textMutedOf(context),
+                                            color:
+                                                CRMColors.textMutedOf(context),
                                           ),
                                   ),
                                 );
@@ -743,13 +845,18 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                           DataCell(
                             IconButton(
                               icon: Icon(
-                                isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
-                                color: isBookmarked ? CRMColors.warning : CRMColors.textMuted,
+                                isBookmarked
+                                    ? Icons.star_rounded
+                                    : Icons.star_border_rounded,
+                                color: isBookmarked
+                                    ? CRMColors.warning
+                                    : CRMColors.textMuted,
                               ),
                               onPressed: () {
                                 context.read<PropertiesBloc>().add(
-                                  ToggleBookmarkEvent(p.id, activeTab: _activeTab),
-                                );
+                                      ToggleBookmarkEvent(p.id,
+                                          activeTab: _activeTab),
+                                    );
                               },
                             ),
                           ),
@@ -759,24 +866,29 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                               children: [
                                 if (isMine) ...[
                                   IconButton(
-                                    icon: Icon(Icons.edit_outlined, color: CRMColors.primary, size: 18),
+                                    icon: Icon(Icons.edit_outlined,
+                                        color: CRMColors.primary, size: 18),
                                     onPressed: () {
                                       if (metadata != null) {
-                                        _showAddEditPropertyDialog(context, metadata!, p);
+                                        _showAddEditPropertyDialog(
+                                            context, metadata!, p);
                                       }
                                     },
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                                    icon: Icon(Icons.delete_outline_rounded,
+                                        color: CRMColors.danger, size: 18),
                                     onPressed: () {
                                       context.read<PropertiesBloc>().add(
-                                        DeletePropertyEvent(p.id, activeTab: _activeTab),
-                                      );
+                                            DeletePropertyEvent(p.id,
+                                                activeTab: _activeTab),
+                                          );
                                     },
                                   ),
                                 ],
                                 IconButton(
-                                  icon: Icon(Icons.chat_bubble_outline_rounded, color: CRMColors.success, size: 18),
+                                  icon: Icon(Icons.chat_bubble_outline_rounded,
+                                      color: CRMColors.success, size: 18),
                                   onPressed: () => _launchWhatsApp(p),
                                   tooltip: 'Contact on WhatsApp',
                                 ),
@@ -807,9 +919,10 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     Widget leftColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Workspace', style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
+        Text('Workspace',
+            style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
         Text(
-          'Properties Operating System', 
+          'Properties Operating System',
           style: CRMTypography.pageTitle.copyWith(
             color: CRMColors.text,
             fontSize: isMobile ? 20 : 26,
@@ -825,7 +938,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
       onPressed: () {
         if (metadata == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Metadata lookups loading, please try again.')),
+            const SnackBar(
+                content: Text('Metadata lookups loading, please try again.')),
           );
           return;
         }
@@ -855,24 +969,41 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   }
 
   Widget _buildStatisticsRow(List<PropertyModel> properties) {
-    final bookmarkedIds = (context.read<PropertiesBloc>().state is PropertiesLoaded)
-        ? (context.read<PropertiesBloc>().state as PropertiesLoaded).bookmarkedIds
-        : <String>{};
+    final bookmarkedIds =
+        (context.read<PropertiesBloc>().state is PropertiesLoaded)
+            ? (context.read<PropertiesBloc>().state as PropertiesLoaded)
+                .bookmarkedIds
+            : <String>{};
 
     final verified = properties.where((p) => p.isVerified).length;
-    final active = properties.where((p) => p.propertyStatusName == 'Available').length;
-    final shortlisted = properties.where((p) => bookmarkedIds.contains(p.id)).length;
+    final active =
+        properties.where((p) => p.propertyStatusName == 'Available').length;
+    final shortlisted =
+        properties.where((p) => bookmarkedIds.contains(p.id)).length;
 
     final double screenWidth = MediaQuery.of(context).size.width;
 
     final cards = [
-      CRMKPICard(title: 'Active listings', value: '$active', icon: Icons.bolt_rounded, iconColor: CRMColors.primary),
-      CRMKPICard(title: 'Verified listings', value: '$verified', icon: Icons.verified_user_outlined, iconColor: CRMColors.success),
-      CRMKPICard(title: 'Shortlisted listings', value: '$shortlisted', icon: Icons.star_outline_rounded, iconColor: CRMColors.warning),
+      CRMKPICard(
+          title: 'Active listings',
+          value: '$active',
+          icon: Icons.bolt_rounded,
+          iconColor: CRMColors.primary),
+      CRMKPICard(
+          title: 'Verified listings',
+          value: '$verified',
+          icon: Icons.verified_user_outlined,
+          iconColor: CRMColors.success),
+      CRMKPICard(
+          title: 'Shortlisted listings',
+          value: '$shortlisted',
+          icon: Icons.star_outline_rounded,
+          iconColor: CRMColors.warning),
     ];
 
     final int crossAxisCount = screenWidth >= 1000 ? cards.length : 2;
-    final double childAspectRatio = screenWidth >= 1000 ? (cards.length == 4 ? 2.2 : 2.5) : 1.5;
+    final double childAspectRatio =
+        screenWidth >= 1000 ? (cards.length == 4 ? 2.2 : 2.5) : 1.5;
 
     return GridView.builder(
       shrinkWrap: true,
@@ -891,7 +1022,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   Widget _buildSearchAndFilters(PropertyMetadataModel? metadata) {
     final categories = metadata != null ? metadata.categories : <LookupItem>[];
     final areas = metadata != null ? metadata.areas : <AreaLookup>[];
-    final listingTypes = metadata != null ? metadata.listingTypes : <LookupItem>[];
+    final listingTypes =
+        metadata != null ? metadata.listingTypes : <LookupItem>[];
 
     return CRMCard(
       title: 'Advanced Search Filter Drawer',
@@ -904,7 +1036,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
             LayoutBuilder(
               builder: (context, searchConstraints) {
                 final isCompactSearch = searchConstraints.maxWidth < 500;
-                
+
                 final searchField = TextField(
                   controller: _searchController,
                   style: CRMTypography.body.copyWith(color: CRMColors.text),
@@ -913,7 +1045,9 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     prefixIcon: const Icon(Icons.search_rounded),
                     filled: true,
                     fillColor: CRMColors.background,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+                        borderSide: BorderSide.none),
                   ),
                   onChanged: (_) => _loadProperties(),
                 );
@@ -944,13 +1078,13 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
               },
             ),
             const SizedBox(height: CRMSpacing.m),
-            
+
             // Filters Dropdowns Grid
             LayoutBuilder(
               builder: (context, constraints) {
                 final double width = constraints.maxWidth;
                 double targetWidth;
-                
+
                 if (width >= 900) {
                   targetWidth = (width - (CRMSpacing.m * 4)) / 5;
                 } else if (width >= 600) {
@@ -966,7 +1100,10 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     _buildDropdown(
                       label: 'Category',
                       value: _selectedCategory,
-                      items: categories.map((c) => DropdownMenuItem<String>(value: c.id, child: Text(c.name))).toList(),
+                      items: categories
+                          .map((c) => DropdownMenuItem<String>(
+                              value: c.id, child: Text(c.name)))
+                          .toList(),
                       onChanged: (val) {
                         setState(() {
                           _selectedCategory = val;
@@ -979,7 +1116,10 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     _buildDropdown(
                       label: 'Area',
                       value: _selectedArea,
-                      items: areas.map((a) => DropdownMenuItem<String>(value: a.id, child: Text(a.name))).toList(),
+                      items: areas
+                          .map((a) => DropdownMenuItem<String>(
+                              value: a.id, child: Text(a.name)))
+                          .toList(),
                       onChanged: (val) {
                         setState(() {
                           _selectedArea = val;
@@ -1001,16 +1141,18 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       ),
                       child: Row(
                         children: [
-                          Expanded(child: _buildPropertyListingTabButton('Rent')),
+                          Expanded(
+                              child: _buildPropertyListingTabButton('Rent')),
                           const SizedBox(width: 4),
-                          Expanded(child: _buildPropertyListingTabButton('Re-Sale')),
+                          Expanded(
+                              child: _buildPropertyListingTabButton('Re-Sale')),
                         ],
                       ),
                     ),
                     _buildVerificationDropdown(targetWidth),
                     SizedBox(
                       width: targetWidth,
-                      height: 48, 
+                      height: 48,
                       child: CRMButton(
                         label: 'Clear Filters',
                         variant: CRMButtonVariant.outline,
@@ -1077,13 +1219,22 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           labelText: 'Verification',
           filled: true,
           fillColor: CRMColors.background,
-          contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.s),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: CRMSpacing.m, vertical: CRMSpacing.s),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              borderSide: BorderSide.none),
         ),
         items: const [
-          DropdownMenuItem<bool?>(value: null, child: Text('All Verification', overflow: TextOverflow.ellipsis)),
-          DropdownMenuItem<bool?>(value: true, child: Text('Verified', overflow: TextOverflow.ellipsis)),
-          DropdownMenuItem<bool?>(value: false, child: Text('Unverified', overflow: TextOverflow.ellipsis)),
+          DropdownMenuItem<bool?>(
+              value: null,
+              child: Text('All Verification', overflow: TextOverflow.ellipsis)),
+          DropdownMenuItem<bool?>(
+              value: true,
+              child: Text('Verified', overflow: TextOverflow.ellipsis)),
+          DropdownMenuItem<bool?>(
+              value: false,
+              child: Text('Unverified', overflow: TextOverflow.ellipsis)),
         ],
         onChanged: (val) {
           setState(() {
@@ -1110,13 +1261,16 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     final controls = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Rows:', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
+        Text('Rows:',
+            style:
+                CRMTypography.caption.copyWith(color: CRMColors.textSecondary)),
         const SizedBox(width: CRMSpacing.xs),
         DropdownButton<int>(
           value: _pageSize,
           underline: const SizedBox.shrink(),
           items: _pageSizeOptions
-              .map((size) => DropdownMenuItem(value: size, child: Text('$size')))
+              .map(
+                  (size) => DropdownMenuItem(value: size, child: Text('$size')))
               .toList(),
           onChanged: (val) {
             if (val == null) return;
@@ -1128,9 +1282,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
         ),
         IconButton(
           icon: const Icon(Icons.chevron_left_rounded),
-          onPressed: currentPage > 0
-              ? () => setState(() => _currentPage--)
-              : null,
+          onPressed:
+              currentPage > 0 ? () => setState(() => _currentPage--) : null,
         ),
         Text(
           '${currentPage + 1} / $totalPages',
@@ -1171,7 +1324,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     required ValueChanged<String?> onChanged,
     required double width,
   }) {
-    final bool hasValue = value == null || items.any((item) => item.value == value);
+    final bool hasValue =
+        value == null || items.any((item) => item.value == value);
     final String? safeValue = hasValue ? value : null;
 
     return SizedBox(
@@ -1183,11 +1337,16 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           labelText: label,
           filled: true,
           fillColor: CRMColors.background,
-          contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.s),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: CRMSpacing.m, vertical: CRMSpacing.s),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              borderSide: BorderSide.none),
         ),
         items: [
-          DropdownMenuItem<String>(value: null, child: Text('All $label', overflow: TextOverflow.ellipsis)),
+          DropdownMenuItem<String>(
+              value: null,
+              child: Text('All $label', overflow: TextOverflow.ellipsis)),
           ...items,
         ],
         onChanged: onChanged,
@@ -1209,7 +1368,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           selected: isSelected,
           selectedColor: CRMColors.primary.withOpacity(0.12),
           labelStyle: TextStyle(
-            color: isSelected ? CRMColors.primary : CRMColors.text, 
+            color: isSelected ? CRMColors.primary : CRMColors.text,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 13,
           ),
@@ -1238,7 +1397,9 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Filter Views', style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+              Text('Filter Views',
+                  style: CRMTypography.bodyMedium
+                      .copyWith(fontWeight: FontWeight.bold)),
               refreshButton,
             ],
           ),
@@ -1257,7 +1418,9 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     );
   }
 
-  void _showAddEditPropertyDialog(BuildContext context, PropertyMetadataModel metadata, [PropertyModel? property]) {
+  void _showAddEditPropertyDialog(
+      BuildContext context, PropertyMetadataModel metadata,
+      [PropertyModel? property]) {
     final propertiesBloc = context.read<PropertiesBloc>();
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
@@ -1356,7 +1519,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
           child: CircularProgressIndicator(strokeWidth: 1.5),
         ),
       ),
-      errorWidget: (context, url, error) => const Icon(Icons.broken_image_outlined, size: 16),
+      errorWidget: (context, url, error) =>
+          const Icon(Icons.broken_image_outlined, size: 16),
     );
   }
 }

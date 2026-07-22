@@ -76,6 +76,8 @@ class CRMDataTable<T> extends StatelessWidget {
                   showCheckboxColumn: hasSelection,
                   headingRowColor: WidgetStateProperty.all(CRMColors.background),
                   dataRowColor: WidgetStateProperty.all(CRMColors.cardBgOf(context)),
+                  dataRowMinHeight: 64.0,
+                  dataRowMaxHeight: 128.0,
                   horizontalMargin: CRMSpacing.m,
                   columnSpacing: CRMSpacing.l,
                   sortColumnIndex: sortField != null

@@ -40,7 +40,8 @@ class _CRMAppShellState extends State<CRMAppShell> {
         });
         _showQuickActionsBottomSheet();
       } else {
-        if (index != _previousIndex) {
+        final location = GoRouter.of(context).routerDelegate.currentConfiguration.last.matchedLocation;
+        if (index != _previousIndex || location != _getTabRoutePath(index)) {
           _previousIndex = index;
           context.go(_getTabRoutePath(index));
         }

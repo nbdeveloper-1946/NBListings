@@ -139,7 +139,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 Container(
                   padding: const EdgeInsets.all(CRMSpacing.s),
                   decoration: BoxDecoration(
-                    color: CRMColors.primary.withOpacity(0.08),
+                    color: CRMColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                   ),
                   child: Icon(Icons.library_books_rounded, color: CRMColors.primary, size: 28),
@@ -189,7 +189,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       Container(
                         padding: const EdgeInsets.all(CRMSpacing.m),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.08),
+                          color: color.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                         ),
                         child: Icon(icon, color: color, size: 32),
@@ -200,7 +200,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         style: CRMTypography.cardTitle.copyWith(color: CRMColors.text, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: CRMSpacing.s),
-                      Expanded(
+                      SizedBox(
+                        height: 75,
                         child: Text(
                           cat['description'],
                           style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),

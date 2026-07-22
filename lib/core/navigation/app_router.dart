@@ -22,6 +22,8 @@ import '../../features/profile/screens/profile_screen.dart';
 import '../../features/reports/screens/reports_screen.dart';
 import '../../features/properties/screens/recycle_bin_screen.dart';
 import '../network/sync_manager.dart';
+import '../../features/requirements/screens/share_properties_page.dart';
+import '../../features/requirements/screens/public_property_detail_screen.dart';
 
 
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -128,11 +130,27 @@ class AppRouter {
           return PropertyDetailScreen(propertyId: id);
         },
       ),
+      GoRoute(
+        path: '/share/:sessionId',
+        builder: (context, state) {
+          final sessionId = state.pathParameters['sessionId']!;
+          return SharePropertiesPage(sessionId: sessionId);
+        },
+      ),
+      GoRoute(
+        path: '/share/:sessionId/property/:propertyId',
+        builder: (context, state) {
+          final sessionId = state.pathParameters['sessionId']!;
+          final propertyId = state.pathParameters['propertyId']!;
+          return PublicPropertyDetailScreen(sessionId: sessionId, propertyId: propertyId);
+        },
+      ),
     ],
     redirect: (context, state) {
       final authState = authBloc.state;
       final loggingIn = state.matchedLocation == '/login';
       final onSplash = state.matchedLocation == '/splash';
+      final isPublicShare = state.matchedLocation.startsWith('/share/');
 
       if (authState is Authenticated) {
         if (loggingIn) {
@@ -145,7 +163,7 @@ class AppRouter {
           return '/dashboard';
         }
       } else if (authState is Unauthenticated) {
-        if (!loggingIn && !onSplash) {
+        if (!loggingIn && !onSplash && !isPublicShare) {
           return '/splash';
         }
       }

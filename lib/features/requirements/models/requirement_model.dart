@@ -21,6 +21,9 @@ class RequirementModel {
   final DateTime createdAt;
   final String? adminId;
   final String? organizationId;
+  final String? assigneeName;
+  final String? creatorName;
+  final String? nextFollowupDate;
 
   RequirementModel({
     required this.id,
@@ -45,6 +48,9 @@ class RequirementModel {
     required this.createdAt,
     this.adminId,
     this.organizationId,
+    this.assigneeName,
+    this.creatorName,
+    this.nextFollowupDate,
   });
 
   factory RequirementModel.fromJson(Map<String, dynamic> json) {
@@ -84,6 +90,8 @@ class RequirementModel {
     List<String> aIds = [];
     if (json['areaIds'] != null) {
       aIds = List<String>.from(json['areaIds']);
+    } else if (json['area_ids'] != null) {
+      aIds = List<String>.from(json['area_ids']);
     } else if (json['area_id'] != null) {
       aIds = [json['area_id'].toString()];
     }
@@ -91,6 +99,8 @@ class RequirementModel {
     List<String> aNames = [];
     if (json['areaNames'] != null) {
       aNames = List<String>.from(json['areaNames']);
+    } else if (json['area_names'] != null) {
+      aNames = List<String>.from(json['area_names']);
     } else if (json['area'] != null && json['area'] is Map) {
       aNames = [json['area']['area_name']?.toString() ?? ''];
     }
@@ -122,6 +132,9 @@ class RequirementModel {
               : DateTime.now(),
       adminId: json['admin_id'] as String?,
       organizationId: json['organization_id'] as String?,
+      assigneeName: json['assigneeName'] ?? json['assignee_name'],
+      creatorName: json['creatorName'] ?? json['creator_name'],
+      nextFollowupDate: json['nextFollowupDate'] ?? json['next_followup_date'],
     );
   }
 
@@ -149,6 +162,9 @@ class RequirementModel {
       'createdAt': createdAt.toIso8601String(),
       'adminId': adminId,
       'organizationId': organizationId,
+      'assigneeName': assigneeName,
+      'creatorName': creatorName,
+      'nextFollowupDate': nextFollowupDate,
     };
   }
 
@@ -167,9 +183,62 @@ class RequirementModel {
       'max_area': maxArea,
       'area_id': areaIds.isNotEmpty ? areaIds.first : null,
       'area_ids': areaIds,
+      'area_names': areaNames,
       'remarks': remarks,
       'status': status,
     };
+  }
+
+  double get completenessScore {
+    double score = 0.0;
+    if (clientName.trim().isNotEmpty) score += 0.15;
+    if (clientMobile.trim().isNotEmpty) score += 0.15;
+    if (categoryId.trim().isNotEmpty) score += 0.15;
+    if (propertyTypeId.trim().isNotEmpty) score += 0.10;
+    if (configurationId != null && configurationId!.trim().isNotEmpty) score += 0.10;
+    if (areaIds.isNotEmpty) score += 0.15;
+    if (minBudget > 0 || maxBudget > 0) score += 0.20;
+    return score;
+  }
+
+  String get requirementQuality {
+    if (clientName.trim().isEmpty || clientMobile.trim().isEmpty) return "Poor";
+    final bool missingSpecs = minBudget == 0.0 || maxBudget == 0.0 || areaIds.isEmpty || configurationId == null;
+    if (completenessScore >= 0.85 && !missingSpecs) {
+      return "High";
+    } else if (completenessScore >= 0.60) {
+      return "Medium";
+    } else {
+      return "Low";
+    }
+  }
+
+  String get matchingReadiness {
+    final hasCategory = categoryId.trim().isNotEmpty;
+    final hasConfig = configurationId != null && configurationId!.trim().isNotEmpty;
+    final hasBudget = minBudget > 0 || maxBudget > 0;
+    final hasArea = areaIds.isNotEmpty;
+
+    if (hasCategory && hasConfig && hasBudget && hasArea) {
+      return 'Ready';
+    } else if (hasCategory && hasBudget && hasArea) {
+      return 'Needs Information';
+    } else {
+      return 'Cannot Match';
+    }
+  }
+
+  String get requirementCode {
+    final typeName = (listingTypeName ?? '').toLowerCase();
+    String prefix = 'REQ';
+    if (typeName.contains('rent')) {
+      prefix = 'REQ-R';
+    } else if (typeName.contains('sale')) {
+      prefix = 'REQ-RS';
+    }
+    final int hashVal = id.hashCode.abs() % 1000000;
+    final String suffix = hashVal.toString().padLeft(6, '0');
+    return '$prefix-$suffix';
   }
 
   RequirementModel copyWith({
@@ -195,6 +264,9 @@ class RequirementModel {
     DateTime? createdAt,
     String? adminId,
     String? organizationId,
+    String? assigneeName,
+    String? creatorName,
+    String? nextFollowupDate,
   }) {
     return RequirementModel(
       id: id ?? this.id,
@@ -219,6 +291,9 @@ class RequirementModel {
       createdAt: createdAt ?? this.createdAt,
       adminId: adminId ?? this.adminId,
       organizationId: organizationId ?? this.organizationId,
+      assigneeName: assigneeName ?? this.assigneeName,
+      creatorName: creatorName ?? this.creatorName,
+      nextFollowupDate: nextFollowupDate ?? this.nextFollowupDate,
     );
   }
 }
