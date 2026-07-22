@@ -1331,85 +1331,183 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final formattedTime = "${displayHour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')} $amPm";
     final formattedDate = "${date.day}/${date.month}/${date.year}";
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: CRMSpacing.s),
-      padding: const EdgeInsets.all(CRMSpacing.m),
-      decoration: BoxDecoration(
-        color: CRMColors.backgroundOf(context).withOpacity(0.4),
-        borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-        border: Border.all(color: CRMColors.backgroundOf(context)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            backgroundColor: f.status == 'Pending' ? CRMColors.warning.withOpacity(0.1) : CRMColors.success.withOpacity(0.1),
-            radius: 18,
-            child: Icon(
-              Icons.phone_in_talk_rounded,
-              color: f.status == 'Pending' ? CRMColors.warning : CRMColors.success,
-              size: 18,
+    return InkWell(
+      onTap: () => _showEditFollowupDialog(f),
+      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: CRMSpacing.s),
+        padding: const EdgeInsets.all(CRMSpacing.m),
+        decoration: BoxDecoration(
+          color: CRMColors.backgroundOf(context).withOpacity(0.4),
+          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+          border: Border.all(color: CRMColors.backgroundOf(context)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              backgroundColor: f.status == 'Pending' ? CRMColors.warning.withOpacity(0.1) : CRMColors.success.withOpacity(0.1),
+              radius: 18,
+              child: Icon(
+                Icons.phone_in_talk_rounded,
+                color: f.status == 'Pending' ? CRMColors.warning : CRMColors.success,
+                size: 18,
+              ),
             ),
-          ),
-          const SizedBox(width: CRMSpacing.m),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  f.clientName,
-                  style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context), fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 2),
-                Text('Mobile: ${f.mobile}', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context))),
-                if (f.notes != null && f.notes!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(f.notes!, style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context), fontStyle: FontStyle.italic)),
+            const SizedBox(width: CRMSpacing.m),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    f.clientName,
+                    style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context), fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                  Text('Mobile: ${f.mobile}', style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context))),
+                  if (f.notes != null && f.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(f.notes!, style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context), fontStyle: FontStyle.italic)),
+                  ],
+                  const SizedBox(height: 6),
+                  Text('Scheduled: $formattedDate at $formattedTime', style: CRMTypography.caption.copyWith(color: CRMColors.primary, fontWeight: FontWeight.w600)),
                 ],
-                const SizedBox(height: 6),
-                Text('Scheduled: $formattedDate at $formattedTime', style: CRMTypography.caption.copyWith(color: CRMColors.primary, fontWeight: FontWeight.w600)),
-              ],
+              ),
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (f.status == 'Pending') ...[
-                IconButton(
-                  icon: Icon(Icons.check_circle_outline_rounded, color: CRMColors.success, size: 20),
-                  onPressed: () async {
-                    try {
-                      await DioClient.dio.patch('/followups/${f.id}/status', data: {'status': 'Completed'});
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Follow-up marked as completed.')),
-                        );
-                        context.read<DashboardBloc>().add(RefreshDashboard());
-                      }
-                    } catch (_) {}
-                  },
-                  tooltip: 'Mark Completed',
-                ),
-              ],
+            if (f.status == 'Pending') ...[
               IconButton(
-                icon: Icon(Icons.delete_outline_rounded, color: CRMColors.danger, size: 18),
+                icon: Icon(Icons.check_circle_outline_rounded, color: CRMColors.success, size: 20),
                 onPressed: () async {
                   try {
-                    await DioClient.dio.delete('/followups/${f.id}');
+                    await DioClient.dio.patch('/followups/${f.id}/status', data: {'status': 'Completed'});
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Follow-up deleted.')),
+                        const SnackBar(content: Text('Follow-up marked as completed.')),
                       );
                       context.read<DashboardBloc>().add(RefreshDashboard());
                     }
                   } catch (_) {}
                 },
-                tooltip: 'Delete Follow-up',
+                tooltip: 'Mark Completed',
               ),
             ],
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  void _showEditFollowupDialog(DashboardFollowup f) {
+    final notesController = TextEditingController(text: f.notes);
+    DateTime selectedDate = DateTime.tryParse(f.followupDate)?.toLocal() ?? DateTime.now();
+    TimeOfDay selectedTime = TimeOfDay.fromDateTime(selectedDate);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final hourInt = selectedTime.hour;
+            final displayHour = hourInt > 12 ? hourInt - 12 : (hourInt == 0 ? 12 : hourInt);
+            final amPm = hourInt >= 12 ? 'PM' : 'AM';
+            final formattedTimeStr = "${displayHour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')} $amPm";
+
+            return AlertDialog(
+              backgroundColor: CRMColors.cardBgOf(context),
+              title: Text('Edit / Reschedule Follow-up', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context))),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Client: ${f.clientName}',
+                      style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Mobile: ${f.mobile}',
+                      style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                    ),
+                    const SizedBox(height: CRMSpacing.m),
+                    TextField(
+                      controller: notesController,
+                      decoration: InputDecoration(
+                        labelText: 'Follow-up Notes',
+                        filled: true,
+                        fillColor: CRMColors.backgroundOf(context),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
+                      ),
+                    ),
+                    const SizedBox(height: CRMSpacing.s),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        'Date & Time: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year} at $formattedTimeStr',
+                        style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context)),
+                      ),
+                      trailing: Icon(Icons.access_time_rounded, color: CRMColors.primary),
+                      onTap: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (pickedDate != null && ctx.mounted) {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: selectedTime,
+                          );
+                          if (pickedTime != null) {
+                            setModalState(() {
+                              selectedTime = pickedTime;
+                              selectedDate = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
+                CRMButton(
+                  label: 'Save Changes',
+                  onPressed: () async {
+                    final notes = notesController.text.trim();
+                    try {
+                      await DioClient.dio.patch('/followups/${f.id}', data: {
+                        'notes': notes,
+                        'followup_date': selectedDate.toUtc().toIso8601String(),
+                      });
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Follow-up updated successfully.')),
+                        );
+                        context.read<DashboardBloc>().add(RefreshDashboard());
+                      }
+                    } catch (_) {}
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1519,7 +1617,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           'client_name': clientName,
                           'mobile': mobile,
                           'notes': notes,
-                          'followup_date': selectedDate.toIso8601String(),
+                          'followup_date': selectedDate.toUtc().toIso8601String(),
                         });
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(

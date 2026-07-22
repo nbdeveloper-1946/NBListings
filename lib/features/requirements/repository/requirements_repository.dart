@@ -31,7 +31,10 @@ class RequirementsRepository {
     final isarReadMs = DateTime.now().difference(start).inMilliseconds;
 
     final parseStart = DateTime.now();
-    final requirements = localList.map((item) => item.toModel()).toList();
+    var requirements = localList.map((item) => item.toModel()).toList();
+    if (listingTypeId != null && listingTypeId.isNotEmpty) {
+      requirements = requirements.where((r) => r.listingTypeId == listingTypeId).toList();
+    }
     final jsonParseMs = DateTime.now().difference(parseStart).inMilliseconds;
 
     final totalMs = DateTime.now().difference(start).inMilliseconds;

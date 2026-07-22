@@ -71,6 +71,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
         _metadata = meta;
         _isLoadingMetadata = false;
       });
+      _triggerFetch();
     } catch (e) {
       setState(() {
         _isLoadingMetadata = false;
@@ -1124,12 +1125,12 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
         _followupTime.minute,
       );
 
-      await DioClient.dio.post('/followup', data: {
-        'clientName': widget.requirement.clientName,
-        'clientMobile': widget.requirement.clientMobile,
-        'remarks': remarks,
-        'scheduledAt': scheduledDateTime.toIso8601String(),
-        'requirementId': widget.requirement.id,
+      await DioClient.dio.post('/followups', data: {
+        'client_name': widget.requirement.clientName,
+        'mobile': widget.requirement.clientMobile,
+        'notes': remarks,
+        'followup_date': scheduledDateTime.toUtc().toIso8601String(),
+        'requirement_id': widget.requirement.id,
       });
 
       if (mounted) {

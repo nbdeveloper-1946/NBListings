@@ -167,6 +167,37 @@ extension RequirementLocalExtensions on RequirementLocal {
       safeAreaNames = areaNames;
     } catch (_) {}
 
+    String? decodedRemarks = remarks;
+    String? parsedListingTypeId;
+    String? parsedListingTypeName;
+
+    if (remarks != null && remarks!.startsWith('[lt:')) {
+      final closeBracketIdx = remarks!.indexOf(']');
+      if (closeBracketIdx != -1) {
+        final content = remarks!.substring('[lt:'.length, closeBracketIdx);
+        final parts = content.split(':');
+        if (parts.isNotEmpty) {
+          parsedListingTypeId = parts[0];
+          if (parts.length > 1) {
+            parsedListingTypeName = parts[1];
+          }
+        }
+        decodedRemarks = remarks!.substring(closeBracketIdx + 1).trim();
+        if (decodedRemarks!.isEmpty) decodedRemarks = null;
+      }
+    }
+
+    if (parsedListingTypeId == null) {
+      final avgBudget = (minBudget + maxBudget) / 2;
+      if (avgBudget >= 200000) {
+        parsedListingTypeId = '9050cd9b-0ebf-41f2-a925-2d4f206b64b1'; // Re-Sale ID
+        parsedListingTypeName = 'Re-Sale';
+      } else {
+        parsedListingTypeId = '1c1ccfc1-d318-4b66-9a43-c551532d1802'; // Rent ID
+        parsedListingTypeName = 'Rent';
+      }
+    }
+
     return RequirementModel(
       id: id,
       clientName: clientName,
@@ -183,17 +214,24 @@ extension RequirementLocalExtensions on RequirementLocal {
       maxArea: maxArea,
       areaIds: safeAreaIds,
       areaNames: safeAreaNames,
-      remarks: remarks,
+      remarks: decodedRemarks,
       status: status,
       createdAt: createdAt,
       adminId: adminId,
       organizationId: organizationId,
+      listingTypeId: parsedListingTypeId,
+      listingTypeName: parsedListingTypeName,
     );
   }
 }
 
 extension RequirementModelExtensions on RequirementModel {
   RequirementLocal toLocal() {
+    String? encodedRemarks = remarks;
+    if (listingTypeId != null && listingTypeId!.isNotEmpty) {
+      encodedRemarks = '[lt:$listingTypeId:${listingTypeName ?? ''}] ${remarks ?? ''}';
+    }
+
     return RequirementLocal()
       ..id = id
       ..clientName = clientName
@@ -210,7 +248,7 @@ extension RequirementModelExtensions on RequirementModel {
       ..maxArea = maxArea ?? 0.0
       ..areaIds = areaIds
       ..areaNames = areaNames
-      ..remarks = remarks
+      ..remarks = encodedRemarks
       ..status = status
       ..createdAt = createdAt
       ..budget = (minBudget + maxBudget) / 2
