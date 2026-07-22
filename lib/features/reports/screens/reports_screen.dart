@@ -487,48 +487,47 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     final int salesReps = _users.where((u) => u.roleName.toLowerCase() == 'sales').length;
     final int totalCities = _cities.length;
 
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final int crossAxisCount = screenWidth >= 1000 ? 4 : 2;
+    final double childAspectRatio = screenWidth >= 1000 ? 2.2 : 1.5;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // KPI Summary Cards Grid
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 800;
-            return GridView.count(
-              crossAxisCount: isWide ? 4 : 2,
-              crossAxisSpacing: CRMSpacing.m,
-              mainAxisSpacing: CRMSpacing.m,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: isWide ? 2.2 : 1.5,
-              children: [
-                CRMKPICard(
-                  title: "TOTAL PROPERTIES",
-                  value: totalProps.toString(),
-                  icon: Icons.home_work_rounded,
-                  iconColor: CRMColors.primary,
-                ),
-                CRMKPICard(
-                  title: "SALES REPRESENTATIVES",
-                  value: salesReps.toString(),
-                  icon: Icons.people_alt_rounded,
-                  iconColor: CRMColors.info,
-                ),
-                CRMKPICard(
-                  title: "ADMINISTRATORS",
-                  value: activeAdmins.toString(),
-                  icon: Icons.admin_panel_settings_rounded,
-                  iconColor: const Color(0xFF8E24AA),
-                ),
-                CRMKPICard(
-                  title: "COVERED CITIES",
-                  value: totalCities.toString(),
-                  icon: Icons.location_city_rounded,
-                  iconColor: CRMColors.success,
-                ),
-              ],
-            );
-          },
+        GridView.count(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: CRMSpacing.m,
+          mainAxisSpacing: CRMSpacing.m,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: childAspectRatio,
+          children: [
+            CRMKPICard(
+              title: "TOTAL PROPERTIES",
+              value: totalProps.toString(),
+              icon: Icons.home_work_rounded,
+              iconColor: CRMColors.primary,
+            ),
+            CRMKPICard(
+              title: "SALES REPRESENTATIVES",
+              value: salesReps.toString(),
+              icon: Icons.people_alt_rounded,
+              iconColor: CRMColors.info,
+            ),
+            CRMKPICard(
+              title: "ADMINISTRATORS",
+              value: activeAdmins.toString(),
+              icon: Icons.admin_panel_settings_rounded,
+              iconColor: const Color(0xFF8E24AA),
+            ),
+            CRMKPICard(
+              title: "COVERED CITIES",
+              value: totalCities.toString(),
+              icon: Icons.location_city_rounded,
+              iconColor: CRMColors.success,
+            ),
+          ],
         ),
         const SizedBox(height: CRMSpacing.l),
 

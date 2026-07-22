@@ -589,48 +589,37 @@ class _UsersScreenState extends State<UsersScreen> {
           admins = state.users.where((u) => u.roleName.toLowerCase() == 'admin').length;
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 700;
-            double mobileRatio = 1.35;
-            if (!isWide) {
-              final double cardWidth = (constraints.maxWidth - CRMSpacing.m) / 2;
-              if (cardWidth < 150) {
-                mobileRatio = 1.1;
-              } else if (cardWidth < 180) {
-                mobileRatio = 1.25;
-              }
-            }
+        final double screenWidth = MediaQuery.of(context).size.width;
+        final int crossAxisCount = screenWidth >= 1000 ? 3 : 2;
+        final double childAspectRatio = screenWidth >= 1000 ? 2.5 : 1.5;
 
-            return GridView.count(
-              crossAxisCount: isWide ? 3 : 2,
-              crossAxisSpacing: CRMSpacing.m,
-              mainAxisSpacing: CRMSpacing.m,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: isWide ? 2.5 : mobileRatio,
-              children: [
-                CRMKPICard(
-                  title: "TOTAL EMPLOYEES",
-                  value: total.toString(),
-                  icon: Icons.people_rounded,
-                  iconColor: CRMColors.primary,
-                ),
-                CRMKPICard(
-                  title: "ACTIVE SYSTEM USERS",
-                  value: active.toString(),
-                  icon: Icons.check_circle_outline_rounded,
-                  iconColor: CRMColors.success,
-                ),
-                CRMKPICard(
-                  title: "ADMINISTRATORS",
-                  value: admins.toString(),
-                  icon: Icons.admin_panel_settings_rounded,
-                  iconColor: CRMColors.info,
-                ),
-              ],
-            );
-          },
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: CRMSpacing.m,
+          mainAxisSpacing: CRMSpacing.m,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: childAspectRatio,
+          children: [
+            CRMKPICard(
+              title: "TOTAL EMPLOYEES",
+              value: total.toString(),
+              icon: Icons.people_rounded,
+              iconColor: CRMColors.primary,
+            ),
+            CRMKPICard(
+              title: "ACTIVE SYSTEM USERS",
+              value: active.toString(),
+              icon: Icons.check_circle_outline_rounded,
+              iconColor: CRMColors.success,
+            ),
+            CRMKPICard(
+              title: "ADMINISTRATORS",
+              value: admins.toString(),
+              icon: Icons.admin_panel_settings_rounded,
+              iconColor: CRMColors.info,
+            ),
+          ],
         );
       },
     );

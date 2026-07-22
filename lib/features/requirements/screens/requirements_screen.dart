@@ -36,6 +36,7 @@ class RequirementsScreen extends StatefulWidget {
 class _RequirementsScreenState extends State<RequirementsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String? _selectedConfigId;
+  String? _selectedCategoryId;
   String _selectedStatus = "All";
   String _activeListingTab = "Rent"; // "Rent" or "Re-Sale"
   String _activeMainTab = "Requirements"; // "Requirements" or "Follow-ups"
@@ -104,6 +105,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     setState(() {
       _searchController.clear();
       _selectedConfigId = null;
+      _selectedCategoryId = null;
       _selectedStatus = "All";
       _activeListingTab = "Rent";
       _currentPage = 1;
@@ -381,6 +383,18 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                   _triggerFetch();
                 },
               ),
+              _buildDropdownFilter<String?>(
+                label: 'Category',
+                value: _selectedCategoryId,
+                items: [
+                  const DropdownMenuItem(value: null, child: Text("All Categories")),
+                  ...?_metadata?.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                ],
+                onChanged: (val) {
+                  setState(() => _selectedCategoryId = val);
+                  _triggerFetch();
+                },
+              ),
               _buildDropdownFilter(
                 label: 'Status',
                 value: _selectedStatus,
@@ -493,7 +507,9 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
         if (state is RequirementsLoaded) {
           requirements = state.requirements.where((r) {
-            return getListingTypeLabel(r) == _activeListingTab;
+            final matchesListingType = getListingTypeLabel(r) == _activeListingTab;
+            final matchesCategory = _selectedCategoryId == null || r.categoryId == _selectedCategoryId;
+            return matchesListingType && matchesCategory;
           }).toList();
         }
 

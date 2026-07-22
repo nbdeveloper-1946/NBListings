@@ -13,9 +13,9 @@ import '../../features/requirements/screens/requirements_screen.dart';
 import '../../features/clients/screens/clients_screen.dart';
 import '../../features/owners/screens/owners_screen.dart';
 import '../../features/builders/screens/builders_screen.dart';
+import '../../features/library/screens/library_screen.dart';
 import '../../splash.dart';
 import '../design_system/widgets/app_shell.dart';
-import '../design_system/widgets/placeholder_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/audit_logs_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
@@ -96,17 +96,8 @@ class AppRouter {
             builder: (context, state) => const BuildersScreen(),
           ),
           GoRoute(
-            path: '/finance',
-            builder: (context, state) => const CRMPlaceholderScreen(
-              title: 'Finance & Invoices',
-              icon: Icons.monetization_on_rounded,
-              description: 'Track agency commissions, invoice ledger systems, and split transactions.',
-              upcomingFeatures: [
-                'Automated broker brokerage invoices generator',
-                'Split fee schedules and agency payouts ledger',
-                'GST tax billing audits and audit history export',
-              ],
-            ),
+            path: '/library',
+            builder: (context, state) => const LibraryScreen(),
           ),
           GoRoute(
             path: '/reports',

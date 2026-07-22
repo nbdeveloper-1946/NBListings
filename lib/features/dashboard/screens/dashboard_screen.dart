@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../properties/repository/properties_repository.dart';
 import '../../properties/models/property_model.dart';
+import '../../requirements/repository/requirements_repository.dart';
+import '../../requirements/models/requirement_model.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
@@ -25,10 +27,12 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final PropertiesRepository _propertiesRepository = PropertiesRepository();
+  final RequirementsRepository _requirementsRepository = RequirementsRepository();
   List<PropertyModel> _fullProperties = [];
+  List<RequirementModel> _fullRequirements = [];
 
   // Table filter and tab states
-  String _activeTab = 'Rental'; // 'Rental' or 'Sale/Re-Sale'
+  String _activeTab = 'Rental'; // 'Rental' or 'Only Re-Sale'
   Set<String> _selectedAreaFilters = {};
   String _priceSortOrder = 'none'; // 'none', 'high_to_low', 'low_to_high'
 
@@ -45,6 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     context.read<DashboardBloc>().add(LoadDashboard());
     _fetchFullProperties();
+    _fetchFullRequirements();
   }
 
   Future<void> _fetchFullProperties() async {
@@ -53,6 +58,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) {
         setState(() {
           _fullProperties = properties;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchFullRequirements() async {
+    try {
+      final requirements = await _requirementsRepository.getRequirements();
+      if (mounted) {
+        setState(() {
+          _fullRequirements = requirements;
         });
       }
     } catch (_) {}
@@ -104,6 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onRefresh: () async {
               context.read<DashboardBloc>().add(RefreshDashboard());
               await _fetchFullProperties();
+              await _fetchFullRequirements();
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -236,6 +253,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  String _getRequirementListingTypeLabel(RequirementModel r) {
+    final name = r.listingTypeName ?? '';
+    final id = r.listingTypeId ?? '';
+    final combined = '$name $id'.toLowerCase();
+    if (combined.contains('rent')) {
+      return 'Rent';
+    } else if (combined.contains('sale') || combined.contains('resale')) {
+      return 'Re-Sale';
+    }
+    return 'Other';
+  }
+
   Widget _buildKPIGrids(DashboardSummary summary) {
     final double screenWidth = MediaQuery.of(context).size.width;
 
@@ -267,6 +296,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }).length;
     }
 
+    int requirementsVal = summary.requirements;
+    if (_fullRequirements.isNotEmpty) {
+      final categoryRequirements = _fullRequirements.where((r) {
+        final label = _getRequirementListingTypeLabel(r);
+        if (_activeTab == 'Rental') {
+          return label == 'Rent';
+        } else {
+          return label == 'Re-Sale';
+        }
+      }).toList();
+      requirementsVal = categoryRequirements.length;
+    }
+
     final List<Widget> cards = [
       CRMKPICard(
         title: 'Available',
@@ -275,7 +317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         iconColor: CRMColors.success,
         growthPercent: summary.availableTrend,
       ),
-      if (_activeTab == 'Sale/Re-Sale')
+      if (_activeTab == 'Re-Sale')
         CRMKPICard(
           title: 'Sold',
           value: '$soldVal',
@@ -293,15 +335,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       CRMKPICard(
         title: 'Requirements',
-        value: '${summary.requirements}',
+        value: '$requirementsVal',
         icon: Icons.assignment_turned_in_outlined,
         growthPercent: summary.requirementsTrend,
       ),
     ];
 
-    final int crossAxisCount = screenWidth >= 1100
-        ? cards.length
-        : (screenWidth >= 700 ? cards.length : 2);
+    final int crossAxisCount = screenWidth >= 1000 ? cards.length : 2;
+    final double childAspectRatio = screenWidth >= 1000 ? (cards.length == 4 ? 2.2 : 2.5) : 1.5;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,7 +375,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     _buildMetricsTabButton('Rental'),
                     const SizedBox(width: 4),
-                    _buildMetricsTabButton('Sale/Re-Sale'),
+                    _buildMetricsTabButton('Re-Sale'),
                   ],
                 ),
               ),
@@ -348,7 +389,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: CRMSpacing.m,
             mainAxisSpacing: CRMSpacing.m,
-            childAspectRatio: screenWidth < 600 ? 1.15 : (screenWidth < 950 ? 1.1 : 1.3),
+            childAspectRatio: childAspectRatio,
           ),
           itemCount: cards.length,
           itemBuilder: (context, index) {
@@ -475,7 +516,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const SizedBox(height: CRMSpacing.m),
-                  _buildPieLegend('Won Deals', wonCount, '$wonPct%', wonColor),
+                  _buildPieLegend(_activeTab == 'Rental' ? 'Won Deals (Rented)' : 'Won Deals (Sale/Resale)', wonCount, '$wonPct%', wonColor),
                   const SizedBox(height: 8),
                   _buildPieLegend('Live Listings', liveCount, '$livePct%', liveColor),
                 ],
@@ -529,7 +570,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildPieLegend('Won Deals (Sold / Rented)', wonCount, '$wonPct%', wonColor),
+                        _buildPieLegend(_activeTab == 'Rental' ? 'Won Deals (Rented)' : 'Won Deals (Sale/Resale)', wonCount, '$wonPct%', wonColor),
                         const SizedBox(height: CRMSpacing.m),
                         _buildPieLegend('Live Listings (Available)', liveCount, '$livePct%', liveColor),
                       ],

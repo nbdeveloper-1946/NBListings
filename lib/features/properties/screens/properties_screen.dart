@@ -33,7 +33,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   final ScrollController _scrollController = ScrollController();
   String? _highlightedPropertyId;
   String _activeTab = 'All';
-  String _activeListingTab = 'Rent'; // 'Rent' or 'Sale/Re-Sale'
+  String _activeListingTab = 'Rent'; // 'Rent' or 'Only Re-Sale'
   bool _hasAutoOpenedAdd = false;
   bool _hasAutoOpenedProp = false;
   String? _selectedCategory;
@@ -225,10 +225,10 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.king_bed_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
+                    Icon(_getPropertyBhkOrAreaIcon(p), size: 14, color: CRMColors.textSecondaryOf(context)),
                     const SizedBox(width: 4),
                     Text(
-                      '${p.bedrooms} BHK',
+                      _getPropertyBhkOrAreaValue(p),
                       style: CRMTypography.captionBold.copyWith(
                         color: CRMColors.textOf(context),
                         fontWeight: FontWeight.w600,
@@ -512,18 +512,18 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     emptyTitle: 'No Properties Found',
                     emptyDescription: 'No records match your active search terms.',
                     showCheckboxColumn: false,
-                    columns: const [
-                      DataColumn(label: Text('Code')),
-                      DataColumn(label: Text('Society Name')),
-                      DataColumn(label: Text('Owner')),
-                      DataColumn(label: Text('Area')),
-                      DataColumn(label: Text('BHK')),
-                      DataColumn(label: Text('Price')),
-                      DataColumn(label: Text('Date')),
-                      DataColumn(label: Text('Status')),
-                      DataColumn(label: Text('Photos')),
-                      DataColumn(label: Text('Shortlist')),
-                      DataColumn(label: Text('Actions')),
+                    columns: [
+                      const DataColumn(label: Text('Code')),
+                      const DataColumn(label: Text('Society Name')),
+                      const DataColumn(label: Text('Owner')),
+                      const DataColumn(label: Text('Area')),
+                      DataColumn(label: Text(_getBhkColumnHeader(metadata))),
+                      const DataColumn(label: Text('Price')),
+                      const DataColumn(label: Text('Date')),
+                      const DataColumn(label: Text('Status')),
+                      const DataColumn(label: Text('Photos')),
+                      const DataColumn(label: Text('Shortlist')),
+                      const DataColumn(label: Text('Actions')),
                     ],
                     rows: pagedProperties.map((p) {
                       final isMine = _hasEditAccess(p, currentUser);
@@ -553,7 +553,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                             ),
                           ),
                           DataCell(Text(p.areaName)),
-                          DataCell(Text('${p.bedrooms} BHK')),
+                          DataCell(Text(_getPropertyBhkOrAreaValue(p))),
                           DataCell(Text('₹${p.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))),
                           DataCell(Text(DateFormat('dd-MM-yyyy').format(p.createdAt))),
                           DataCell(
@@ -871,29 +871,20 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
       CRMKPICard(title: 'Shortlisted listings', value: '$shortlisted', icon: Icons.star_outline_rounded, iconColor: CRMColors.warning),
     ];
 
-    if (screenWidth < 600) {
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: CRMSpacing.m,
-          mainAxisSpacing: CRMSpacing.m,
-          childAspectRatio: 1.15,
-        ),
-        itemCount: cards.length,
-        itemBuilder: (context, index) => cards[index],
-      );
-    }
+    final int crossAxisCount = screenWidth >= 1000 ? cards.length : 2;
+    final double childAspectRatio = screenWidth >= 1000 ? (cards.length == 4 ? 2.2 : 2.5) : 1.5;
 
-    return Row(
-      children: [
-        Expanded(child: cards[0]),
-        const SizedBox(width: CRMSpacing.m),
-        Expanded(child: cards[1]),
-        const SizedBox(width: CRMSpacing.m),
-        Expanded(child: cards[2]),
-      ],
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: CRMSpacing.m,
+        mainAxisSpacing: CRMSpacing.m,
+        childAspectRatio: childAspectRatio,
+      ),
+      itemCount: cards.length,
+      itemBuilder: (context, index) => cards[index],
     );
   }
 
@@ -1012,7 +1003,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                         children: [
                           Expanded(child: _buildPropertyListingTabButton('Rent')),
                           const SizedBox(width: 4),
-                          Expanded(child: _buildPropertyListingTabButton('Sale/Re-Sale')),
+                          Expanded(child: _buildPropertyListingTabButton('Re-Sale')),
                         ],
                       ),
                     ),
@@ -1211,7 +1202,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
     final chipsList = Wrap(
       spacing: CRMSpacing.s,
       runSpacing: CRMSpacing.xs,
-      children: ['All', 'My Active', 'Shortlisted'].map((tab) {
+      children: ['All', 'Shortlisted'].map((tab) {
         final isSelected = _activeTab == tab;
         return ChoiceChip(
           label: Text(tab),
@@ -1305,6 +1296,47 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
   void _openPropertyDetails(BuildContext context, PropertyModel p) {
     final String url = '${Uri.base.origin}/#/properties/${p.id}';
     launchUrl(Uri.parse(url), webOnlyWindowName: '_blank');
+  }
+
+  String _getBhkColumnHeader(PropertyMetadataModel? metadata) {
+    if (_selectedCategory == null || metadata == null) {
+      return 'BHK';
+    }
+    final selectedCat = metadata.categories.firstWhere(
+      (c) => c.id == _selectedCategory,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final name = selectedCat.name.toLowerCase();
+    if (name.contains('commercial') || name.contains('industrial')) {
+      return 'Super Built-up Area';
+    } else if (name.contains('land') || name.contains('plot')) {
+      return 'Plot Area';
+    }
+    return 'BHK';
+  }
+
+  String _getPropertyBhkOrAreaValue(PropertyModel p) {
+    final catName = p.categoryName.toLowerCase();
+    if (catName.contains('commercial') || catName.contains('industrial')) {
+      return p.superBuiltupArea != null && p.superBuiltupArea! > 0
+          ? '${p.superBuiltupArea!.toStringAsFixed(0)} Sq.Ft'
+          : 'N/A';
+    } else if (catName.contains('land') || catName.contains('plot')) {
+      return p.plotArea != null && p.plotArea! > 0
+          ? '${p.plotArea!.toStringAsFixed(0)} Sq.Ft'
+          : 'N/A';
+    }
+    return '${p.bedrooms} BHK';
+  }
+
+  IconData _getPropertyBhkOrAreaIcon(PropertyModel p) {
+    final catName = p.categoryName.toLowerCase();
+    if (catName.contains('commercial') || catName.contains('industrial')) {
+      return Icons.business_center_outlined;
+    } else if (catName.contains('land') || catName.contains('plot')) {
+      return Icons.landscape_outlined;
+    }
+    return Icons.king_bed_outlined;
   }
 
   Widget _buildPropertyThumbnail(String url) {

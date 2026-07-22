@@ -844,11 +844,20 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
         orElse: () => LookupItem(id: '', name: ''),
       );
       final propertyTypeName = selectedTypeItem.name.trim().toLowerCase();
-      final isBungalow = propertyTypeName.contains('bungalow') || 
+      final selectedCategoryItem = widget.metadata.categories.firstWhere(
+        (c) => c.id == _selectedCategory,
+        orElse: () => LookupItem(id: '', name: ''),
+      );
+      final categoryName = selectedCategoryItem.name.trim().toLowerCase();
+      final isLandOrIndustrial = categoryName.contains('land') || 
+                                 categoryName.contains('plot') || 
+                                 categoryName.contains('industrial');
+      final isBungalow = !isLandOrIndustrial && (
+                         propertyTypeName.contains('bungalow') || 
                          propertyTypeName.contains('villa') || 
                          propertyTypeName.contains('rowhouse') || 
                          propertyTypeName.contains('house') || 
-                         propertyTypeName.contains('tenament');
+                         propertyTypeName.contains('tenament'));
 
       final String typedFacing = _facingController.text.trim();
       if (typedFacing.isNotEmpty) {
@@ -1614,11 +1623,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       orElse: () => LookupItem(id: '', name: ''),
     );
     final propertyTypeName = selectedTypeItem.name.trim().toLowerCase();
-    final isBungalow = propertyTypeName.contains('bungalow') || 
+    final isLandOrIndustrial = categoryName.contains('land') || 
+                               categoryName.contains('plot') || 
+                               categoryName.contains('industrial');
+    final isBungalow = !isLandOrIndustrial && (
+                       propertyTypeName.contains('bungalow') || 
                        propertyTypeName.contains('villa') || 
                        propertyTypeName.contains('rowhouse') || 
                        propertyTypeName.contains('house') || 
-                       propertyTypeName.contains('tenament');
+                       propertyTypeName.contains('tenament'));
 
     final blockWingField = TextFormField(
       controller: _blockWingController,
@@ -1657,21 +1670,23 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
               ],
             ),
           ],
-          const SizedBox(height: CRMSpacing.m),
-          if (isBungalow) ...[
-            blockWingField,
-          ] else if (isMobile) ...[
-            blockWingField,
+          if (!isLandOrIndustrial) ...[
             const SizedBox(height: CRMSpacing.m),
-            flatNoField,
-          ] else ...[
-            Row(
-              children: [
-                Expanded(child: blockWingField),
-                const SizedBox(width: CRMSpacing.s),
-                Expanded(child: flatNoField),
-              ],
-            ),
+            if (isBungalow) ...[
+              blockWingField,
+            ] else if (isMobile) ...[
+              blockWingField,
+              const SizedBox(height: CRMSpacing.m),
+              flatNoField,
+            ] else ...[
+              Row(
+                children: [
+                  Expanded(child: blockWingField),
+                  const SizedBox(width: CRMSpacing.s),
+                  Expanded(child: flatNoField),
+                ],
+              ),
+            ],
           ],
           const SizedBox(height: CRMSpacing.m),
           TextFormField(
@@ -1777,11 +1792,15 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       orElse: () => LookupItem(id: '', name: ''),
     );
     final propertyTypeName = selectedTypeItem.name.trim().toLowerCase();
-    final isBungalow = propertyTypeName.contains('bungalow') || 
+    final isLandOrIndustrial = categoryName.contains('land') || 
+                               categoryName.contains('plot') || 
+                               categoryName.contains('industrial');
+    final isBungalow = !isLandOrIndustrial && (
+                       propertyTypeName.contains('bungalow') || 
                        propertyTypeName.contains('villa') || 
                        propertyTypeName.contains('rowhouse') || 
                        propertyTypeName.contains('house') || 
-                       propertyTypeName.contains('tenament');
+                       propertyTypeName.contains('tenament'));
 
     final showResidentialRooms = !isIndustrial && !isCommercial;
     final showFloors = !isIndustrial;
