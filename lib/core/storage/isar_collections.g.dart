@@ -12742,48 +12742,58 @@ const RequirementLocalSchema = CollectionSchema(
       name: r'id',
       type: IsarType.string,
     ),
-    r'maxArea': PropertySchema(
+    r'listingTypeId': PropertySchema(
       id: 12,
+      name: r'listingTypeId',
+      type: IsarType.string,
+    ),
+    r'listingTypeName': PropertySchema(
+      id: 13,
+      name: r'listingTypeName',
+      type: IsarType.string,
+    ),
+    r'maxArea': PropertySchema(
+      id: 14,
       name: r'maxArea',
       type: IsarType.double,
     ),
     r'maxBudget': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'maxBudget',
       type: IsarType.double,
     ),
     r'minArea': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'minArea',
       type: IsarType.double,
     ),
     r'minBudget': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'minBudget',
       type: IsarType.double,
     ),
     r'organizationId': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'organizationId',
       type: IsarType.string,
     ),
     r'propertyTypeId': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'propertyTypeId',
       type: IsarType.string,
     ),
     r'propertyTypeName': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'propertyTypeName',
       type: IsarType.string,
     ),
     r'remarks': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'remarks',
       type: IsarType.string,
     ),
     r'status': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'status',
       type: IsarType.string,
     )
@@ -12860,6 +12870,18 @@ int _requirementLocalEstimateSize(
   }
   bytesCount += 3 + object.id.length * 3;
   {
+    final value = object.listingTypeId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.listingTypeName;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.organizationId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -12905,15 +12927,17 @@ void _requirementLocalSerialize(
   writer.writeString(offsets[9], object.configurationName);
   writer.writeDateTime(offsets[10], object.createdAt);
   writer.writeString(offsets[11], object.id);
-  writer.writeDouble(offsets[12], object.maxArea);
-  writer.writeDouble(offsets[13], object.maxBudget);
-  writer.writeDouble(offsets[14], object.minArea);
-  writer.writeDouble(offsets[15], object.minBudget);
-  writer.writeString(offsets[16], object.organizationId);
-  writer.writeString(offsets[17], object.propertyTypeId);
-  writer.writeString(offsets[18], object.propertyTypeName);
-  writer.writeString(offsets[19], object.remarks);
-  writer.writeString(offsets[20], object.status);
+  writer.writeString(offsets[12], object.listingTypeId);
+  writer.writeString(offsets[13], object.listingTypeName);
+  writer.writeDouble(offsets[14], object.maxArea);
+  writer.writeDouble(offsets[15], object.maxBudget);
+  writer.writeDouble(offsets[16], object.minArea);
+  writer.writeDouble(offsets[17], object.minBudget);
+  writer.writeString(offsets[18], object.organizationId);
+  writer.writeString(offsets[19], object.propertyTypeId);
+  writer.writeString(offsets[20], object.propertyTypeName);
+  writer.writeString(offsets[21], object.remarks);
+  writer.writeString(offsets[22], object.status);
 }
 
 RequirementLocal _requirementLocalDeserialize(
@@ -12936,15 +12960,17 @@ RequirementLocal _requirementLocalDeserialize(
   object.createdAt = reader.readDateTime(offsets[10]);
   object.id = reader.readString(offsets[11]);
   object.isarId = id;
-  object.maxArea = reader.readDoubleOrNull(offsets[12]);
-  object.maxBudget = reader.readDouble(offsets[13]);
-  object.minArea = reader.readDoubleOrNull(offsets[14]);
-  object.minBudget = reader.readDouble(offsets[15]);
-  object.organizationId = reader.readStringOrNull(offsets[16]);
-  object.propertyTypeId = reader.readStringOrNull(offsets[17]);
-  object.propertyTypeName = reader.readStringOrNull(offsets[18]);
-  object.remarks = reader.readStringOrNull(offsets[19]);
-  object.status = reader.readString(offsets[20]);
+  object.listingTypeId = reader.readStringOrNull(offsets[12]);
+  object.listingTypeName = reader.readStringOrNull(offsets[13]);
+  object.maxArea = reader.readDoubleOrNull(offsets[14]);
+  object.maxBudget = reader.readDouble(offsets[15]);
+  object.minArea = reader.readDoubleOrNull(offsets[16]);
+  object.minBudget = reader.readDouble(offsets[17]);
+  object.organizationId = reader.readStringOrNull(offsets[18]);
+  object.propertyTypeId = reader.readStringOrNull(offsets[19]);
+  object.propertyTypeName = reader.readStringOrNull(offsets[20]);
+  object.remarks = reader.readStringOrNull(offsets[21]);
+  object.status = reader.readString(offsets[22]);
   return object;
 }
 
@@ -12980,22 +13006,26 @@ P _requirementLocalDeserializeProp<P>(
     case 11:
       return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 13:
-      return (reader.readDouble(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 14:
       return (reader.readDoubleOrNull(offset)) as P;
     case 15:
       return (reader.readDouble(offset)) as P;
     case 16:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 17:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDouble(offset)) as P;
     case 18:
       return (reader.readStringOrNull(offset)) as P;
     case 19:
       return (reader.readStringOrNull(offset)) as P;
     case 20:
+      return (reader.readStringOrNull(offset)) as P;
+    case 21:
+      return (reader.readStringOrNull(offset)) as P;
+    case 22:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -15004,6 +15034,314 @@ extension RequirementLocalQueryFilter
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'listingTypeId',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'listingTypeId',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'listingTypeId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'listingTypeId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'listingTypeId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'listingTypeId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'listingTypeId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'listingTypeId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'listingTypeId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'listingTypeId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'listingTypeId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'listingTypeId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'listingTypeName',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'listingTypeName',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'listingTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'listingTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'listingTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'listingTypeName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'listingTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'listingTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'listingTypeName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'listingTypeName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'listingTypeName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
+      listingTypeNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'listingTypeName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterFilterCondition>
       maxAreaIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -16204,6 +16542,34 @@ extension RequirementLocalQuerySortBy
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      sortByListingTypeId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'listingTypeId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      sortByListingTypeIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'listingTypeId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      sortByListingTypeName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'listingTypeName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      sortByListingTypeNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'listingTypeName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
       sortByMaxArea() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'maxArea', Sort.asc);
@@ -16486,6 +16852,34 @@ extension RequirementLocalQuerySortThenBy
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      thenByListingTypeId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'listingTypeId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      thenByListingTypeIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'listingTypeId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      thenByListingTypeName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'listingTypeName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
+      thenByListingTypeNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'listingTypeName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QAfterSortBy>
       thenByMaxArea() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'maxArea', Sort.asc);
@@ -16701,6 +17095,22 @@ extension RequirementLocalQueryWhereDistinct
   }
 
   QueryBuilder<RequirementLocal, RequirementLocal, QDistinct>
+      distinctByListingTypeId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'listingTypeId',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QDistinct>
+      distinctByListingTypeName({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'listingTypeName',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<RequirementLocal, RequirementLocal, QDistinct>
       distinctByMaxArea() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'maxArea');
@@ -16853,6 +17263,20 @@ extension RequirementLocalQueryProperty
   QueryBuilder<RequirementLocal, String, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<RequirementLocal, String?, QQueryOperations>
+      listingTypeIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'listingTypeId');
+    });
+  }
+
+  QueryBuilder<RequirementLocal, String?, QQueryOperations>
+      listingTypeNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'listingTypeName');
     });
   }
 
@@ -26240,28 +26664,73 @@ const DashboardSummaryLocalSchema = Schema(
       name: r'available',
       type: IsarType.long,
     ),
-    r'rented': PropertySchema(
+    r'availableTrend': PropertySchema(
       id: 1,
+      name: r'availableTrend',
+      type: IsarType.double,
+    ),
+    r'monthlyGrowth': PropertySchema(
+      id: 2,
+      name: r'monthlyGrowth',
+      type: IsarType.string,
+    ),
+    r'rented': PropertySchema(
+      id: 3,
       name: r'rented',
       type: IsarType.long,
     ),
+    r'rentedTrend': PropertySchema(
+      id: 4,
+      name: r'rentedTrend',
+      type: IsarType.double,
+    ),
     r'requirements': PropertySchema(
-      id: 2,
+      id: 5,
       name: r'requirements',
       type: IsarType.long,
     ),
+    r'requirementsTrend': PropertySchema(
+      id: 6,
+      name: r'requirementsTrend',
+      type: IsarType.double,
+    ),
     r'sold': PropertySchema(
-      id: 3,
+      id: 7,
       name: r'sold',
       type: IsarType.long,
     ),
+    r'soldTrend': PropertySchema(
+      id: 8,
+      name: r'soldTrend',
+      type: IsarType.double,
+    ),
+    r'topArea': PropertySchema(
+      id: 9,
+      name: r'topArea',
+      type: IsarType.string,
+    ),
+    r'topBroker': PropertySchema(
+      id: 10,
+      name: r'topBroker',
+      type: IsarType.string,
+    ),
+    r'topProperty': PropertySchema(
+      id: 11,
+      name: r'topProperty',
+      type: IsarType.string,
+    ),
     r'totalProperties': PropertySchema(
-      id: 4,
+      id: 12,
       name: r'totalProperties',
       type: IsarType.long,
     ),
+    r'totalPropertiesTrend': PropertySchema(
+      id: 13,
+      name: r'totalPropertiesTrend',
+      type: IsarType.double,
+    ),
     r'users': PropertySchema(
-      id: 5,
+      id: 14,
       name: r'users',
       type: IsarType.long,
     )
@@ -26278,6 +26747,30 @@ int _dashboardSummaryLocalEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.monthlyGrowth;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.topArea;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.topBroker;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.topProperty;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   return bytesCount;
 }
 
@@ -26288,11 +26781,20 @@ void _dashboardSummaryLocalSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeLong(offsets[0], object.available);
-  writer.writeLong(offsets[1], object.rented);
-  writer.writeLong(offsets[2], object.requirements);
-  writer.writeLong(offsets[3], object.sold);
-  writer.writeLong(offsets[4], object.totalProperties);
-  writer.writeLong(offsets[5], object.users);
+  writer.writeDouble(offsets[1], object.availableTrend);
+  writer.writeString(offsets[2], object.monthlyGrowth);
+  writer.writeLong(offsets[3], object.rented);
+  writer.writeDouble(offsets[4], object.rentedTrend);
+  writer.writeLong(offsets[5], object.requirements);
+  writer.writeDouble(offsets[6], object.requirementsTrend);
+  writer.writeLong(offsets[7], object.sold);
+  writer.writeDouble(offsets[8], object.soldTrend);
+  writer.writeString(offsets[9], object.topArea);
+  writer.writeString(offsets[10], object.topBroker);
+  writer.writeString(offsets[11], object.topProperty);
+  writer.writeLong(offsets[12], object.totalProperties);
+  writer.writeDouble(offsets[13], object.totalPropertiesTrend);
+  writer.writeLong(offsets[14], object.users);
 }
 
 DashboardSummaryLocal _dashboardSummaryLocalDeserialize(
@@ -26303,11 +26805,20 @@ DashboardSummaryLocal _dashboardSummaryLocalDeserialize(
 ) {
   final object = DashboardSummaryLocal();
   object.available = reader.readLongOrNull(offsets[0]);
-  object.rented = reader.readLongOrNull(offsets[1]);
-  object.requirements = reader.readLongOrNull(offsets[2]);
-  object.sold = reader.readLongOrNull(offsets[3]);
-  object.totalProperties = reader.readLongOrNull(offsets[4]);
-  object.users = reader.readLongOrNull(offsets[5]);
+  object.availableTrend = reader.readDoubleOrNull(offsets[1]);
+  object.monthlyGrowth = reader.readStringOrNull(offsets[2]);
+  object.rented = reader.readLongOrNull(offsets[3]);
+  object.rentedTrend = reader.readDoubleOrNull(offsets[4]);
+  object.requirements = reader.readLongOrNull(offsets[5]);
+  object.requirementsTrend = reader.readDoubleOrNull(offsets[6]);
+  object.sold = reader.readLongOrNull(offsets[7]);
+  object.soldTrend = reader.readDoubleOrNull(offsets[8]);
+  object.topArea = reader.readStringOrNull(offsets[9]);
+  object.topBroker = reader.readStringOrNull(offsets[10]);
+  object.topProperty = reader.readStringOrNull(offsets[11]);
+  object.totalProperties = reader.readLongOrNull(offsets[12]);
+  object.totalPropertiesTrend = reader.readDoubleOrNull(offsets[13]);
+  object.users = reader.readLongOrNull(offsets[14]);
   return object;
 }
 
@@ -26321,14 +26832,32 @@ P _dashboardSummaryLocalDeserializeProp<P>(
     case 0:
       return (reader.readLongOrNull(offset)) as P;
     case 1:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 2:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
       return (reader.readLongOrNull(offset)) as P;
     case 4:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 5:
+      return (reader.readLongOrNull(offset)) as P;
+    case 6:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 7:
+      return (reader.readLongOrNull(offset)) as P;
+    case 8:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readLongOrNull(offset)) as P;
+    case 13:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 14:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -26412,6 +26941,246 @@ extension DashboardSummaryLocalQueryFilter on QueryBuilder<
   }
 
   QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> availableTrendIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'availableTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> availableTrendIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'availableTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> availableTrendEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'availableTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> availableTrendGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'availableTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> availableTrendLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'availableTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> availableTrendBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'availableTrend',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'monthlyGrowth',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'monthlyGrowth',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'monthlyGrowth',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'monthlyGrowth',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'monthlyGrowth',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'monthlyGrowth',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'monthlyGrowth',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'monthlyGrowth',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+          QAfterFilterCondition>
+      monthlyGrowthContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'monthlyGrowth',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+          QAfterFilterCondition>
+      monthlyGrowthMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'monthlyGrowth',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'monthlyGrowth',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> monthlyGrowthIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'monthlyGrowth',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
       QAfterFilterCondition> rentedIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -26481,6 +27250,90 @@ extension DashboardSummaryLocalQueryFilter on QueryBuilder<
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> rentedTrendIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'rentedTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> rentedTrendIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'rentedTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> rentedTrendEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rentedTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> rentedTrendGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'rentedTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> rentedTrendLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'rentedTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> rentedTrendBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'rentedTrend',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }
@@ -26560,6 +27413,90 @@ extension DashboardSummaryLocalQueryFilter on QueryBuilder<
   }
 
   QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> requirementsTrendIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'requirementsTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> requirementsTrendIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'requirementsTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> requirementsTrendEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'requirementsTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> requirementsTrendGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'requirementsTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> requirementsTrendLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'requirementsTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> requirementsTrendBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'requirementsTrend',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
       QAfterFilterCondition> soldIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -26634,6 +27571,558 @@ extension DashboardSummaryLocalQueryFilter on QueryBuilder<
   }
 
   QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> soldTrendIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'soldTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> soldTrendIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'soldTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> soldTrendEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'soldTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> soldTrendGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'soldTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> soldTrendLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'soldTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> soldTrendBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'soldTrend',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'topArea',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'topArea',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'topArea',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'topArea',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'topArea',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'topArea',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'topArea',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'topArea',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+          QAfterFilterCondition>
+      topAreaContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'topArea',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+          QAfterFilterCondition>
+      topAreaMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'topArea',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'topArea',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topAreaIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'topArea',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'topBroker',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'topBroker',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'topBroker',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'topBroker',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'topBroker',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'topBroker',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'topBroker',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'topBroker',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+          QAfterFilterCondition>
+      topBrokerContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'topBroker',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+          QAfterFilterCondition>
+      topBrokerMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'topBroker',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'topBroker',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topBrokerIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'topBroker',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'topProperty',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'topProperty',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'topProperty',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'topProperty',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'topProperty',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'topProperty',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'topProperty',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'topProperty',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+          QAfterFilterCondition>
+      topPropertyContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'topProperty',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+          QAfterFilterCondition>
+      topPropertyMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'topProperty',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'topProperty',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> topPropertyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'topProperty',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
       QAfterFilterCondition> totalPropertiesIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -26703,6 +28192,90 @@ extension DashboardSummaryLocalQueryFilter on QueryBuilder<
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> totalPropertiesTrendIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'totalPropertiesTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> totalPropertiesTrendIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'totalPropertiesTrend',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> totalPropertiesTrendEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'totalPropertiesTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> totalPropertiesTrendGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'totalPropertiesTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> totalPropertiesTrendLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'totalPropertiesTrend',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardSummaryLocal, DashboardSummaryLocal,
+      QAfterFilterCondition> totalPropertiesTrendBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'totalPropertiesTrend',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
       ));
     });
   }

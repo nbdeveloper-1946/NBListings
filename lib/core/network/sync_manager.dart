@@ -256,9 +256,11 @@ class SyncManager {
         }
       } else if (record != null) {
         if (table == "properties") {
-          propertiesToPut.add(PropertyModel.fromJson(record).toLocal());
+          final enriched = await _enrichRawRecord("properties", record);
+          propertiesToPut.add(PropertyModel.fromJson(enriched).toLocal());
         } else if (table == "requirements") {
-          requirementsToPut.add(RequirementModel.fromJson(record).toLocal());
+          final enriched = await _enrichRawRecord("requirements", record);
+          requirementsToPut.add(RequirementModel.fromJson(enriched).toLocal());
         } else if (table == "followups") {
           followupsToPut.add(DashboardFollowup.fromJson(record).toLocal('System'));
         } else if (table == "builders") {
@@ -525,5 +527,52 @@ class SyncManager {
       );
       print("⏱️ [TELEMETRY] Outbox Replay completed | Replayed: $replayedCount | Duration: ${totalMs}ms");
     }
+  }
+
+  Future<Map<String, dynamic>> _enrichRawRecord(String table, Map<String, dynamic> record) async {
+    final enriched = Map<String, dynamic>.from(record);
+
+    Future<String> getName(String category, String? id) async {
+      if (id == null || id.isEmpty) return 'N/A';
+      if (kIsWeb) {
+        for (final l in LookupLocalRepository.inMemory.values) {
+          if (l.category == category && l.id == id) {
+            return l.name;
+          }
+        }
+        return 'N/A';
+      } else {
+        final isar = IsarService().isar;
+        final match = await isar.lookupItemLocals.filter().categoryEqualTo(category).idEqualTo(id).findFirst();
+        return match?.name ?? 'N/A';
+      }
+    }
+
+    if (table == "properties") {
+      enriched['category'] = {'name': await getName('property_category', record['category_id'])};
+      enriched['property_type'] = {'name': await getName('property_type', record['property_type_id'])};
+      enriched['configuration'] = {'name': await getName('configuration', record['configuration_id'])};
+      enriched['listing_type'] = {'name': await getName('listing_type', record['listing_type_id'])};
+      enriched['property_status'] = {'name': await getName('property_status', record['property_status_id'])};
+      enriched['city'] = {'city_name': await getName('city', record['city_id'])};
+      enriched['area'] = {
+        'area_name': await getName('area', record['area_id']),
+        'pincode': record['pincode'] ?? 'N/A'
+      };
+      
+      enriched['furnishing_type'] = {'name': await getName('furnishing_type', record['furnishing_type_id'])};
+      enriched['facing_type'] = {'name': await getName('facing_type', record['facing_type_id'])};
+      enriched['ownership_type'] = {'name': await getName('ownership_type', record['ownership_type_id'])};
+      enriched['brokerage_type'] = {'name': await getName('brokerage_type', record['brokerage_type_id'])};
+    } else if (table == "requirements") {
+      enriched['category'] = {'name': await getName('property_category', record['category_id'])};
+      enriched['property_type'] = {'name': await getName('property_type', record['property_type_id'])};
+      enriched['configuration'] = {'name': await getName('configuration', record['configuration_id'])};
+      enriched['listing_type'] = {'name': await getName('listing_type', record['listing_type_id'])};
+      enriched['city'] = {'city_name': await getName('city', record['city_id'])};
+      enriched['area'] = {'area_name': await getName('area', record['area_id'])};
+    }
+
+    return enriched;
   }
 }

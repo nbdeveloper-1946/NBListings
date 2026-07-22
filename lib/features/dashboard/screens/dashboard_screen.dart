@@ -253,9 +253,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       }).toList();
 
-      availableVal = categoryProperties.where((p) => p.propertyStatusName.toLowerCase().contains('available')).length;
-      soldVal = categoryProperties.where((p) => p.propertyStatusName.toLowerCase().contains('sold')).length;
-      rentedVal = categoryProperties.where((p) => p.propertyStatusName.toLowerCase().contains('rented')).length;
+      availableVal = categoryProperties.where((p) {
+        final status = p.propertyStatusName.toLowerCase();
+        return status == 'available' || status.contains('to be available');
+      }).length;
+      soldVal = categoryProperties.where((p) {
+        final status = p.propertyStatusName.toLowerCase();
+        return status == 'sold out' || status == 'sold';
+      }).length;
+      rentedVal = categoryProperties.where((p) {
+        final status = p.propertyStatusName.toLowerCase();
+        return status == 'rented out' || status == 'rented';
+      }).length;
     }
 
     final List<Widget> cards = [
@@ -394,9 +403,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (categoryProperties.isNotEmpty) {
       for (final p in categoryProperties) {
         final statusLower = p.propertyStatusName.toLowerCase();
-        if (statusLower.contains('sold') || statusLower.contains('rented')) {
+        if (statusLower == 'sold out' || statusLower == 'sold' || statusLower == 'rented out' || statusLower == 'rented') {
           wonCount++;
-        } else {
+        } else if (statusLower == 'available' || statusLower.contains('to be available')) {
           liveCount++;
         }
       }

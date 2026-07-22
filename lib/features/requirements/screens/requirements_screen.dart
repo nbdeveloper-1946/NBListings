@@ -1416,22 +1416,16 @@ class _CRMPropertyMatchesDrawerState extends State<_CRMPropertyMatchesDrawer> {
       final req = widget.requirement;
 
       final matches = properties.where((p) {
-        // 1. Category Check
+        final statusName = p.propertyStatusName.toLowerCase();
+        final statusActive = statusName == 'available' || statusName.contains('to be available');
+        final listingTypeMatch = p.listingTypeId == req.listingTypeId;
         final catMatch = p.categoryId == req.categoryId;
-
-        // 2. Property Type Check
         final typeMatch = p.propertyTypeId == req.propertyTypeId;
-
-        // 3. Configuration Check
         final configMatch = req.configurationId == null || p.configurationId == req.configurationId;
-
-        // 4. Budget Range Check
         final budgetMatch = p.price >= req.minBudget && p.price <= req.maxBudget;
-
-        // 5. Area Check
         final areaMatch = req.areaIds.isEmpty || req.areaIds.contains(p.areaId);
 
-        return catMatch && typeMatch && configMatch && budgetMatch && areaMatch;
+        return statusActive && listingTypeMatch && catMatch && typeMatch && configMatch && budgetMatch && areaMatch;
       }).toList();
 
       setState(() {

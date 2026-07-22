@@ -810,6 +810,22 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
   void _submitForm() async {
     if (!CRMFormUtils.validateAndScroll(_formKey, context)) return;
 
+    final toBeAvailableStatus = widget.metadata.statuses.firstWhere(
+      (s) => s.name.toLowerCase().contains('to be available'),
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final String toBeAvailableId = toBeAvailableStatus.id;
+
+    if (toBeAvailableId.isNotEmpty && _selectedStatus == toBeAvailableId && _availableDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select an Available Date for 'To Be Available' status."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1129,9 +1145,20 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
       _selectedConfig = null;
     }
 
+    final selectedListingTypeItem = widget.metadata.listingTypes.firstWhere(
+      (l) => l.id == _selectedListingType,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final listingName = selectedListingTypeItem.name.trim().toLowerCase();
+    final isRent = listingName.contains('rent');
+
     final filteredStatuses = widget.metadata.statuses.where((s) {
       final name = s.name.toLowerCase();
-      return !name.contains('do not disturb') && !name.contains('inactive');
+      if (isRent) {
+        return name == 'available' || name.contains('rented out') || name.contains('to be available');
+      } else {
+        return name == 'available' || name.contains('sold out') || name == 'sold';
+      }
     }).toList();
 
     final toBeAvailableStatus = widget.metadata.statuses.firstWhere(
@@ -1140,15 +1167,8 @@ class _AddEditPropertyScreenState extends State<AddEditPropertyScreen> {
     );
     final String toBeAvailableId = toBeAvailableStatus.id;
 
-    if (_selectedStatus != null && (toBeAvailableId.isEmpty || _selectedStatus != toBeAvailableId)) {
-      final exists = filteredStatuses.any((s) => s.id == _selectedStatus);
-      if (!exists) {
-        final originalStatus = widget.metadata.statuses.firstWhere(
-          (s) => s.id == _selectedStatus,
-          orElse: () => LookupItem(id: _selectedStatus!, name: 'Inactive / Hidden'),
-        );
-        filteredStatuses.add(originalStatus);
-      }
+    if (_selectedStatus != null && !filteredStatuses.any((s) => s.id == _selectedStatus)) {
+      _selectedStatus = filteredStatuses.isNotEmpty ? filteredStatuses.first.id : null;
     }
 
     return CRMCard(

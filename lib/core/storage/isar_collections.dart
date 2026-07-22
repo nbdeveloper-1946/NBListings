@@ -113,6 +113,8 @@ class RequirementLocal {
   double? budget;
   String? adminId;
   String? organizationId;
+  String? listingTypeId;
+  String? listingTypeName;
 }
 
 @collection

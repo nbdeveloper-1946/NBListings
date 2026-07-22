@@ -46,6 +46,50 @@ class IsarService {
       ],
       directory: dir.path,
     );
+    await _migrateRequirements();
+  }
+
+  Future<void> _migrateRequirements() async {
+    final requirements = await _isar!.requirementLocals.where().findAll();
+    final toUpdate = <RequirementLocal>[];
+
+    for (final req in requirements) {
+      if (req.listingTypeId == null) {
+        String? remarksStr = req.remarks;
+        String? listingTypeId;
+        String? listingTypeName;
+        String? cleanRemarks = remarksStr;
+
+        if (remarksStr != null && remarksStr.startsWith('[lt:')) {
+          final closeBracketIdx = remarksStr.indexOf(']');
+          if (closeBracketIdx != -1) {
+            final content = remarksStr.substring('[lt:'.length, closeBracketIdx);
+            final parts = content.split(':');
+            if (parts.isNotEmpty) {
+              listingTypeId = parts[0];
+              if (parts.length > 1) {
+                listingTypeName = parts[1];
+              }
+            }
+            cleanRemarks = remarksStr.substring(closeBracketIdx + 1).trim();
+            if (cleanRemarks.isEmpty) cleanRemarks = null;
+          }
+        }
+
+        req.listingTypeId = listingTypeId ?? 'Unknown';
+        req.listingTypeName = listingTypeName ?? 'Unknown';
+        req.remarks = cleanRemarks;
+        toUpdate.add(req);
+      }
+    }
+
+    if (toUpdate.isNotEmpty) {
+      print("🔄 [ISAR MIGRATION] Migrating ${toUpdate.length} requirements with listing type columns...");
+      await _isar!.writeTxn(() async {
+        await _isar!.requirementLocals.putAll(toUpdate);
+      });
+      print("✅ [ISAR MIGRATION] Requirements migration complete.");
+    }
   }
 
   Future<void> clearAll() async {

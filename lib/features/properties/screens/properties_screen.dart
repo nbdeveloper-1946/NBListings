@@ -377,7 +377,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message), backgroundColor: CRMColors.danger),
             );
-          } else if (state is PropertySavedState) {
+          } else if (state is PropertyCreatedState) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _openPropertyDetails(context, state.property);
               if (_scrollController.hasClients) {
@@ -559,7 +559,42 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                           DataCell(
                             PopupMenuButton<String>(
                               tooltip: 'Change Status',
-                              onSelected: (String statusName) {
+                              onSelected: (String statusName) async {
+                                if (statusName == 'To Be Available') {
+                                  final DateTime? pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now().add(const Duration(days: 1)),
+                                    firstDate: DateTime.now(),
+                                    lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                                    helpText: 'Select Available Date',
+                                  );
+                                  if (pickedDate == null) return;
+
+                                  LookupItem? targetLookup;
+                                  if (metadata != null) {
+                                    for (final s in metadata.statuses) {
+                                      if (s.name.toLowerCase().contains('to be available')) {
+                                        targetLookup = s;
+                                        break;
+                                      }
+                                    }
+                                  }
+                                  final statusId = targetLookup?.id ?? '05a73434-e99b-425b-99b2-1825d529ac35';
+                                  if (context.mounted) {
+                                    context.read<PropertiesBloc>().add(
+                                      UpdatePropertyEvent(
+                                        p.id,
+                                        {
+                                          'property_status_id': statusId,
+                                          'possession_date': pickedDate.toIso8601String().substring(0, 10),
+                                        },
+                                        activeTab: _activeTab,
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+
                                 LookupItem? targetLookup;
                                 if (metadata != null) {
                                   for (final s in metadata.statuses) {
@@ -578,20 +613,30 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                                   ),
                                 );
                               },
-                              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                                const PopupMenuItem<String>(
-                                  value: 'Available',
-                                  child: Text('Available'),
-                                ),
-                                const PopupMenuItem<String>(
-                                  value: 'Sold Out',
-                                  child: Text('Sold Out'),
-                                ),
-                                const PopupMenuItem<String>(
-                                  value: 'Rented Out',
-                                  child: Text('Rented Out'),
-                                ),
-                              ],
+                              itemBuilder: (BuildContext context) {
+                                final isRent = p.listingTypeName.toLowerCase().contains('rent');
+                                return <PopupMenuEntry<String>>[
+                                  const PopupMenuItem<String>(
+                                    value: 'Available',
+                                    child: Text('Available'),
+                                  ),
+                                  if (isRent) ...[
+                                    const PopupMenuItem<String>(
+                                      value: 'Rented Out',
+                                      child: Text('Rented Out'),
+                                    ),
+                                    const PopupMenuItem<String>(
+                                      value: 'To Be Available',
+                                      child: Text('To Be Available'),
+                                    ),
+                                  ] else ...[
+                                    const PopupMenuItem<String>(
+                                      value: 'Sold Out',
+                                      child: Text('Sold Out'),
+                                    ),
+                                  ],
+                                ];
+                              },
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.click,
                                 child: Container(
