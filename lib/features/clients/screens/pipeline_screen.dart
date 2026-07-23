@@ -111,7 +111,10 @@ class _PipelineScreenState extends State<PipelineScreen> {
     final grouped = _groupRequirementsByStage();
 
     // Calculate quick metrics
-    final totalActive = _requirements.where((r) => r.status == 'Active').length;
+    final totalActive = _requirements.where((r) {
+      final s = r.status.toLowerCase().replaceAll('-', '');
+      return s != 'won' && s != 'dead' && s != 'notinterested' && s != 'bin' && s != 'closed';
+    }).length;
     final totalSiteVisits = _requirements.where((r) {
       final stage = r.calculateClientStage();
       return stage.contains('Site Visit') || stage == 'Negotiation' || stage == 'Booking' || stage == 'Closed';

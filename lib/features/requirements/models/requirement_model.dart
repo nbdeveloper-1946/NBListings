@@ -225,13 +225,16 @@ class RequirementModel {
   }
 
   String calculateClientStage() {
-    final combined = status.toLowerCase();
-    if (combined == 'suspended' || combined == 'closed') return 'Closed';
+    final combined = status.toLowerCase().replaceAll('-', '');
+    if (combined == 'suspended' || combined == 'closed' || combined == 'dead' || combined == 'won') return 'Closed';
     if (combined == 'negotiation') return 'Negotiation';
-    if (combined == 'booked') return 'Booking';
+    if (combined == 'booked' || combined == 'booking') return 'Booking';
     if (combined == 'agreement' || combined == 'documentation') return 'Documentation';
     if (combined == 'payment') return 'Payment';
     if (combined == 'possession') return 'Possession';
+    if (combined.contains('sitevisit')) return 'Site Visit Scheduled';
+    if (combined.contains('followup') || combined.contains('interested')) return 'Client Interested';
+    if (combined == 'notstarted') return 'Lead Created';
 
     if (rawSiteVisits != null && rawSiteVisits!.isNotEmpty) {
       final hasCompleted = rawSiteVisits!.any((v) => v['status'] == 'Completed');
@@ -246,7 +249,7 @@ class RequirementModel {
       return 'Properties Shared';
     }
 
-    if (status == 'Active') return 'Requirement Verified';
+    if (status == 'Active' || status == 'Live') return 'Requirement Verified';
     
     return 'Requirement Added';
   }
