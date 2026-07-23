@@ -858,6 +858,19 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                         },
                                       ),
                                     );
+                                  } else if (newStatus == 'Site Visit') {
+                                    showDialog(
+                                      context: context,
+                                      builder: (dialogContext) => RequirementStepperDialog(
+                                        requirement: req,
+                                        initialStep: 1,
+                                        updateStatusOnSave: true,
+                                        isSiteVisit: true,
+                                        onSaved: () {
+                                          _triggerFetch();
+                                        },
+                                      ),
+                                    );
                                   } else {
                                     context.read<RequirementsBloc>().add(
                                       UpdateRequirementEvent(req.copyWith(status: newStatus)),
@@ -1252,6 +1265,19 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                     },
                                   ),
                                 );
+                              } else if (newStatus == 'Site Visit') {
+                                showDialog(
+                                  context: context,
+                                  builder: (dialogContext) => RequirementStepperDialog(
+                                    requirement: req,
+                                    initialStep: 1,
+                                    updateStatusOnSave: true,
+                                    isSiteVisit: true,
+                                    onSaved: () {
+                                      _triggerFetch();
+                                    },
+                                  ),
+                                );
                               } else {
                                 context.read<RequirementsBloc>().add(
                                   UpdateRequirementEvent(req.copyWith(status: newStatus)),
@@ -1612,7 +1638,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       builder: (context) {
         List<PropertyModel> matchedProps = [];
         List<String> selectedPropIds = [];
-        bool isDialogLoading = true;
+        bool isInitLoading = true;
+        bool isGeneratingLink = false;
         String? error;
         String? generatedLink;
 
@@ -1636,17 +1663,17 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
                 setDialogState(() {
                   matchedProps = matches;
-                  isDialogLoading = false;
+                  isInitLoading = false;
                 });
               } catch (e) {
                 setDialogState(() {
                   error = "Failed to load matching properties.";
-                  isDialogLoading = false;
+                  isInitLoading = false;
                 });
               }
             }
 
-            if (isDialogLoading && error == null && generatedLink == null) {
+            if (isInitLoading && error == null && generatedLink == null) {
               loadMatches();
             }
 
@@ -1697,7 +1724,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                               final url = "https://wa.me/?text=$text";
                               final uri = Uri.parse(url);
                               if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
                               }
                             },
                           ),
@@ -1732,88 +1759,101 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
               );
             }
 
-            return AlertDialog(
-              backgroundColor: CRMColors.cardBgOf(context),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.m)),
-              title: Text("Share Matching Properties", style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context))),
-              content: isDialogLoading
-                  ? const SizedBox(
-                      height: 150,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : error != null
-                      ? Text(error!, style: const TextStyle(color: Colors.red))
-                      : matchedProps.isEmpty
-                          ? const Text("No matching properties found for this requirement.")
-                          : SizedBox(
-                              width: 400,
-                              height: 300,
-                              child: ListView.builder(
-                                itemCount: matchedProps.length,
-                                itemBuilder: (context, idx) {
-                                  final p = matchedProps[idx];
-                                  final isSelected = selectedPropIds.contains(p.id);
-                                  final bhk = p.configurationName ?? "${p.bedrooms} BHK";
-                                  final price = '₹${BudgetFormatter.format(p.price)}';
-                                  final title = "$bhk in ${p.areaName} - $price (${p.propertyCode})";
+            return Stack(
+              children: [
+                AlertDialog(
+                  backgroundColor: CRMColors.cardBgOf(context),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.m)),
+                  title: Text("Share Matching Properties", style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context))),
+                  content: isInitLoading
+                      ? const SizedBox(
+                          height: 150,
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      : error != null
+                          ? Text(error!, style: const TextStyle(color: Colors.red))
+                          : matchedProps.isEmpty
+                              ? const Text("No matching properties found for this requirement.")
+                              : SizedBox(
+                                  width: 400,
+                                  height: 300,
+                                  child: ListView.builder(
+                                    itemCount: matchedProps.length,
+                                    itemBuilder: (context, idx) {
+                                      final p = matchedProps[idx];
+                                      final isSelected = selectedPropIds.contains(p.id);
+                                      final bhk = p.configurationName ?? "${p.bedrooms} BHK";
+                                      final price = '₹${BudgetFormatter.format(p.price)}';
+                                      final title = "$bhk in ${p.areaName} - $price (${p.propertyCode})";
 
-                                  return CheckboxListTile(
-                                    title: Text(title, style: CRMTypography.body.copyWith(color: CRMColors.textOf(context))),
-                                    value: isSelected,
-                                    activeColor: CRMColors.primary,
-                                    onChanged: (val) {
-                                      setDialogState(() {
-                                        if (val == true) {
-                                          selectedPropIds.add(p.id);
-                                        } else {
-                                          selectedPropIds.remove(p.id);
-                                        }
-                                      });
+                                      return CheckboxListTile(
+                                        title: Text(title, style: CRMTypography.body.copyWith(color: CRMColors.textOf(context))),
+                                        value: isSelected,
+                                        activeColor: CRMColors.primary,
+                                        onChanged: isGeneratingLink ? null : (val) {
+                                          setDialogState(() {
+                                            if (val == true) {
+                                              selectedPropIds.add(p.id);
+                                            } else {
+                                              selectedPropIds.remove(p.id);
+                                            }
+                                          });
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                  actions: [
+                    TextButton(
+                      onPressed: isGeneratingLink ? null : () => Navigator.pop(context),
+                      child: const Text("Cancel"),
+                    ),
+                    if (!isInitLoading && error == null && matchedProps.isNotEmpty)
+                      ElevatedButton(
+                        onPressed: selectedPropIds.isEmpty || isGeneratingLink
+                            ? null
+                            : () async {
+                                setDialogState(() => isGeneratingLink = true);
+                                try {
+                                  final response = await DioClient.dio.post(
+                                    '/share-sessions',
+                                    data: {
+                                      'requirement_id': req.id,
+                                      'property_ids': selectedPropIds,
+                                      'expiry_days': 7
                                     },
                                   );
-                                },
-                              ),
-                            ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel"),
+                                  if (response.data != null && response.data['success'] == true) {
+                                    final sessionId = response.data['data']['session']['id'];
+                                    setDialogState(() {
+                                      generatedLink = "${AppConfig.publicShareBaseUrl}/$sessionId";
+                                      isGeneratingLink = false;
+                                    });
+                                  } else {
+                                    setDialogState(() {
+                                      error = "Failed to generate link.";
+                                      isGeneratingLink = false;
+                                    });
+                                  }
+                                } catch (e) {
+                                  setDialogState(() {
+                                    error = "Failed to generate link.";
+                                    isGeneratingLink = false;
+                                  });
+                                }
+                              },
+                        child: const Text("Generate Link"),
+                      ),
+                  ],
                 ),
-                if (!isDialogLoading && error == null && matchedProps.isNotEmpty)
-                  ElevatedButton(
-                    onPressed: selectedPropIds.isEmpty
-                        ? null
-                        : () async {
-                            setDialogState(() => isDialogLoading = true);
-                            try {
-                              final response = await DioClient.dio.post(
-                                '/share-sessions',
-                                data: {
-                                  'requirement_id': req.id,
-                                  'property_ids': selectedPropIds,
-                                  'expiry_days': 7
-                                },
-                              );
-                              if (response.data != null && response.data['success'] == true) {
-                                final sessionId = response.data['data']['session']['id'];
-                                setDialogState(() {
-                                  generatedLink = "${AppConfig.publicShareBaseUrl}/$sessionId";
-                                  isDialogLoading = false;
-                                });
-                              } else {
-                                setDialogState(() {
-                                  error = "Failed to generate link.";
-                                  isDialogLoading = false;
-                                });
-                              }
-                            } catch (e) {
-                              setDialogState(() {
-                                error = "Failed to generate link.";
-                                isDialogLoading = false;
-                              });
-                            }
-                          },
-                    child: const Text("Generate Link"),
+                if (isGeneratingLink)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.3),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
                   ),
               ],
             );
@@ -1840,6 +1880,7 @@ class RequirementStepperDialog extends StatefulWidget {
   final int initialStep;
   final VoidCallback onSaved;
   final bool updateStatusOnSave;
+  final bool isSiteVisit;
 
   const RequirementStepperDialog({
     super.key,
@@ -1847,6 +1888,7 @@ class RequirementStepperDialog extends StatefulWidget {
     this.initialStep = 1,
     required this.onSaved,
     this.updateStatusOnSave = false,
+    this.isSiteVisit = false,
   });
 
   @override
@@ -1876,7 +1918,7 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
     final remarks = _remarksController.text.trim();
     if (remarks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter followup remarks.')),
+        SnackBar(content: Text('Please enter ${widget.isSiteVisit ? "site visit" : "followup"} remarks.')),
       );
       return;
     }
@@ -1891,33 +1933,54 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
         _followupTime.minute,
       );
 
-      await DioClient.dio.post('/followups', data: {
-        'client_name': widget.requirement.clientName,
-        'mobile': widget.requirement.clientMobile,
-        'notes': remarks,
-        'followup_date': scheduledDateTime.toUtc().toIso8601String(),
-        'requirement_id': widget.requirement.id,
-      });
+      if (widget.isSiteVisit) {
+        await DioClient.dio.post('/site-visits', data: {
+          'requirement_id': widget.requirement.id,
+          'visit_date': scheduledDateTime.toUtc().toIso8601String(),
+          'remarks': remarks,
+        });
 
-      if (widget.updateStatusOnSave) {
-        final RequirementsRepository requirementsRepository = RequirementsRepository();
-        await requirementsRepository.updateRequirement(
-          widget.requirement.copyWith(status: 'Follow-up'),
-        );
+        if (widget.updateStatusOnSave) {
+          final RequirementsRepository requirementsRepository = RequirementsRepository();
+          await requirementsRepository.updateRequirement(
+            widget.requirement.copyWith(status: 'Site Visit'),
+          );
+        }
+      } else {
+        await DioClient.dio.post('/followups', data: {
+          'client_name': widget.requirement.clientName,
+          'mobile': widget.requirement.clientMobile,
+          'notes': remarks,
+          'followup_date': scheduledDateTime.toUtc().toIso8601String(),
+          'requirement_id': widget.requirement.id,
+        });
+
+        if (widget.updateStatusOnSave) {
+          final RequirementsRepository requirementsRepository = RequirementsRepository();
+          await requirementsRepository.updateRequirement(
+            widget.requirement.copyWith(status: 'Follow-up'),
+          );
+        }
       }
 
       if (mounted) {
         widget.onSaved();
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Followup added successfully!'), backgroundColor: CRMColors.success),
+          SnackBar(
+            content: Text(widget.isSiteVisit ? 'Site visit scheduled successfully!' : 'Followup added successfully!'),
+            backgroundColor: CRMColors.success,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSavingFollowup = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add followup: $e'), backgroundColor: CRMColors.danger),
+          SnackBar(
+            content: Text(widget.isSiteVisit ? 'Failed to schedule site visit: $e' : 'Failed to add followup: $e'),
+            backgroundColor: CRMColors.danger,
+          ),
         );
       }
     }
@@ -1943,7 +2006,7 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Update Requirement & Add Followup',
+                    widget.isSiteVisit ? 'Update Requirement & Add Site Visit' : 'Update Requirement & Add Followup',
                     style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context)),
                   ),
                   IconButton(
@@ -1979,7 +2042,7 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
                     ),
                   ),
                   Step(
-                    title: const Text('Add Followup'),
+                    title: Text(widget.isSiteVisit ? 'Add Site Visit' : 'Add Followup'),
                     isActive: _currentStep == 1,
                     state: _currentStep == 1 ? StepState.editing : StepState.indexed,
                     content: SingleChildScrollView(
@@ -2014,7 +2077,7 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
                                     },
                                     child: InputDecorator(
                                       decoration: InputDecoration(
-                                        labelText: 'Followup Date *',
+                                        labelText: widget.isSiteVisit ? 'Site Visit Date *' : 'Followup Date *',
                                         prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18),
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                                       ),
@@ -2036,7 +2099,7 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
                                     },
                                     child: InputDecorator(
                                       decoration: InputDecoration(
-                                        labelText: 'Followup Time *',
+                                        labelText: widget.isSiteVisit ? 'Site Visit Time *' : 'Followup Time *',
                                         prefixIcon: const Icon(Icons.access_time_rounded, size: 18),
                                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                                       ),
@@ -2052,8 +2115,10 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
                               controller: _remarksController,
                               maxLines: 3,
                               decoration: InputDecoration(
-                                labelText: 'Followup Remarks *',
-                                hintText: 'Enter call summary, next meeting notes or client feedback...',
+                                labelText: widget.isSiteVisit ? 'Site Visit Remarks *' : 'Followup Remarks *',
+                                hintText: widget.isSiteVisit
+                                    ? 'Enter location, property code, meeting notes...'
+                                    : 'Enter call summary, next meeting notes or client feedback...',
                                 alignLabelWithHint: true,
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                               ),
@@ -2068,7 +2133,9 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
                                 ),
                                 const SizedBox(width: CRMSpacing.m),
                                 CRMButton(
-                                  label: _isSavingFollowup ? 'Saving...' : 'Save Followup',
+                                  label: _isSavingFollowup
+                                      ? 'Saving...'
+                                      : (widget.isSiteVisit ? 'Save Site Visit' : 'Save Followup'),
                                   onPressed: _isSavingFollowup ? null : _saveFollowup,
                                 ),
                               ],

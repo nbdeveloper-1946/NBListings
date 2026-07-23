@@ -154,6 +154,7 @@ class DashboardData {
   final List<RecentProperty> recentProperties;
   final List<ChecklistItem> checklist;
   final List<DashboardFollowup> followups;
+  final List<DashboardSiteVisit> siteVisits;
 
   const DashboardData({
     required this.summary,
@@ -161,6 +162,7 @@ class DashboardData {
     required this.recentProperties,
     required this.checklist,
     required this.followups,
+    required this.siteVisits,
   });
 
   factory DashboardData.fromJson(Map<String, dynamic> json) {
@@ -180,6 +182,10 @@ class DashboardData {
           [],
       followups: (json['followups'] as List?)
               ?.map((item) => DashboardFollowup.fromJson(item))
+              .toList() ??
+          [],
+      siteVisits: (json['siteVisits'] as List?)
+              ?.map((item) => DashboardSiteVisit.fromJson(item))
               .toList() ??
           [],
     );
@@ -241,6 +247,40 @@ class DashboardFollowup {
       mobile: json['mobile'] ?? '',
       followupDate: json['followup_date'] ?? '',
       notes: json['notes'],
+      status: json['status'] ?? 'Pending',
+      propertyCode: property?['property_code'],
+      propertyTitle: property?['title'],
+      requirementCustomerName: requirement?['customer_name'],
+    );
+  }
+}
+
+class DashboardSiteVisit {
+  final String id;
+  final String visitDate;
+  final String? remarks;
+  final String status;
+  final String? propertyCode;
+  final String? propertyTitle;
+  final String? requirementCustomerName;
+
+  const DashboardSiteVisit({
+    required this.id,
+    required this.visitDate,
+    this.remarks,
+    required this.status,
+    this.propertyCode,
+    this.propertyTitle,
+    this.requirementCustomerName,
+  });
+
+  factory DashboardSiteVisit.fromJson(Map<String, dynamic> json) {
+    final property = json['property'] as Map<String, dynamic>?;
+    final requirement = json['requirement'] as Map<String, dynamic>?;
+    return DashboardSiteVisit(
+      id: json['id'] ?? '',
+      visitDate: json['visit_date'] ?? '',
+      remarks: json['remarks'],
       status: json['status'] ?? 'Pending',
       propertyCode: property?['property_code'],
       propertyTitle: property?['title'],

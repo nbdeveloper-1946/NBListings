@@ -134,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 children: [
                                   _buildTodayWork(data.checklist),
                                   const SizedBox(height: CRMSpacing.l),
-                                  _buildFollowups(data.followups),
+                                  _buildFollowups(data.followups, data.siteVisits),
                                 ],
                               ),
                             ),
@@ -149,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: CRMSpacing.l),
                             _buildTodayWork(data.checklist),
                             const SizedBox(height: CRMSpacing.l),
-                            _buildFollowups(data.followups),
+                            _buildFollowups(data.followups, data.siteVisits),
                           ],
                         );
                       }
@@ -1152,7 +1152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildFollowups(List<DashboardFollowup> followups) {
+  Widget _buildFollowups(List<DashboardFollowup> followups, List<DashboardSiteVisit> siteVisits) {
     // 1. Filter followups by _selectedFollowupDate (default today)
     final filteredFollowups = followups.where((f) {
       final parsed = DateTime.tryParse(f.followupDate);
@@ -1169,8 +1169,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return dateB.compareTo(dateA); // Latest on top
     });
 
+    // Filter site visits by _selectedFollowupDate
+    final filteredSiteVisits = siteVisits.where((sv) {
+      final parsed = DateTime.tryParse(sv.visitDate);
+      if (parsed == null) return false;
+      return parsed.year == _selectedFollowupDate.year &&
+          parsed.month == _selectedFollowupDate.month &&
+          parsed.day == _selectedFollowupDate.day;
+    }).toList();
+
+    // Sort site visits: latest scheduled site visits on top
+    filteredSiteVisits.sort((a, b) {
+      final dateA = DateTime.tryParse(a.visitDate) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final dateB = DateTime.tryParse(b.visitDate) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return dateB.compareTo(dateA);
+    });
+
+    final isSiteVisitsTab = _activeFollowupSection == 'Site Visits';
+
     // 3. Pagination calculation
-    final totalCount = filteredFollowups.length;
+    final totalCount = isSiteVisitsTab ? filteredSiteVisits.length : filteredFollowups.length;
     final totalPages = (totalCount / _followupsPerPage).ceil();
     final currentPage = _followupPage.clamp(1, totalPages > 0 ? totalPages : 1);
 
@@ -1178,16 +1196,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final endIndex = (startIndex + _followupsPerPage).clamp(0, totalCount);
 
     final pageItems = (startIndex < totalCount)
-        ? filteredFollowups.sublist(startIndex, endIndex)
-        : <DashboardFollowup>[];
+        ? (isSiteVisitsTab
+            ? filteredSiteVisits.sublist(startIndex, endIndex)
+            : filteredFollowups.sublist(startIndex, endIndex))
+        : [];
 
     final dateStr = DateFormat('dd/MM/yyyy').format(_selectedFollowupDate);
-    final isScheduleTab = _activeFollowupSection == 'Schedule';
 
     return CRMCard(
-      title: isScheduleTab ? "Schedule" : "Upcoming Follow-ups",
-      subtitle: isScheduleTab
-          ? 'Create & view scheduled appointments and client tasks'
+      title: isSiteVisitsTab ? "Site Visits" : "Upcoming Follow-ups",
+      subtitle: isSiteVisitsTab
+          ? 'Scheduled property site visits and client meetings'
           : 'Schedule of communications and client appointments',
       headerAction: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1204,7 +1223,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
-                  onTap: () => setState(() => _activeFollowupSection = 'Follow-ups'),
+                  onTap: () => setState(() {
+                    _activeFollowupSection = 'Follow-ups';
+                    _followupPage = 1;
+                  }),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -1223,17 +1245,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(width: 2),
                 GestureDetector(
-                  onTap: () => setState(() => _activeFollowupSection = 'Schedule'),
+                  onTap: () => setState(() {
+                    _activeFollowupSection = 'Site Visits';
+                    _followupPage = 1;
+                  }),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _activeFollowupSection == 'Schedule' ? CRMColors.primary : Colors.transparent,
+                      color: _activeFollowupSection == 'Site Visits' ? CRMColors.primary : Colors.transparent,
                       borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
                     ),
                     child: Text(
-                      'Schedule',
+                      'Site Visits',
                       style: TextStyle(
-                        color: _activeFollowupSection == 'Schedule' ? Colors.white : CRMColors.textSecondaryOf(context),
+                        color: _activeFollowupSection == 'Site Visits' ? Colors.white : CRMColors.textSecondaryOf(context),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1273,30 +1298,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (isScheduleTab) ...[
+            if (!isSiteVisitsTab) ...[
               SizedBox(
                 width: double.infinity,
                 child: CRMButton(
-                  label: "Create Schedule",
+                  label: "Create Follow-up",
                   prefixIcon: Icons.add_circle_outline_rounded,
                   onPressed: _showCreateFollowupDialog,
                 ),
               ),
               const SizedBox(height: CRMSpacing.m),
             ],
-            filteredFollowups.isEmpty
+            pageItems.isEmpty
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       child: Text(
-                        isScheduleTab ? 'No scheduled items for $dateStr.' : 'No follow-ups for $dateStr.',
+                        isSiteVisitsTab ? 'No scheduled site visits for $dateStr.' : 'No follow-ups for $dateStr.',
                         style: TextStyle(color: CRMColors.textSecondaryOf(context)),
                       ),
                     ),
                   )
                 : Column(
                     children: [
-                      ...pageItems.map((f) => _buildFollowupTile(f)),
+                      ...pageItems.map((item) {
+                        if (isSiteVisitsTab) {
+                          return _buildSiteVisitTile(item as DashboardSiteVisit);
+                        } else {
+                          return _buildFollowupTile(item as DashboardFollowup);
+                        }
+                      }),
                       if (totalPages > 1) ...[
                         const SizedBox(height: CRMSpacing.m),
                         Row(
@@ -1335,6 +1366,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSiteVisitTile(DashboardSiteVisit sv) {
+    final date = DateTime.tryParse(sv.visitDate)?.toLocal() ?? DateTime.now();
+    final hourInt = date.hour;
+    final displayHour = hourInt > 12 ? hourInt - 12 : (hourInt == 0 ? 12 : hourInt);
+    final amPm = hourInt >= 12 ? 'PM' : 'AM';
+    final formattedTime = "${displayHour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')} $amPm";
+    final formattedDate = "${date.day}/${date.month}/${date.year}";
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: CRMSpacing.s),
+      padding: const EdgeInsets.all(CRMSpacing.m),
+      decoration: BoxDecoration(
+        color: CRMColors.backgroundOf(context).withOpacity(0.4),
+        borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+        border: Border.all(color: CRMColors.backgroundOf(context)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: sv.status == 'Pending' ? CRMColors.warning.withOpacity(0.1) : CRMColors.success.withOpacity(0.1),
+            radius: 18,
+            child: Icon(
+              Icons.location_on_rounded,
+              color: sv.status == 'Pending' ? CRMColors.warning : CRMColors.success,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: CRMSpacing.m),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  sv.requirementCustomerName ?? 'Client Site Visit',
+                  style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context), fontWeight: FontWeight.bold),
+                ),
+                if (sv.propertyCode != null || sv.propertyTitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Property: ${sv.propertyCode ?? ""} - ${sv.propertyTitle ?? ""}',
+                    style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
+                  ),
+                ],
+                if (sv.remarks != null && sv.remarks!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    sv.remarks!,
+                    style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context), fontStyle: FontStyle.italic),
+                  ),
+                ],
+                const SizedBox(height: 6),
+                Text(
+                  'Scheduled: $formattedDate at $formattedTime',
+                  style: CRMTypography.caption.copyWith(color: CRMColors.primary, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          if (sv.status == 'Pending') ...[
+            IconButton(
+              icon: Icon(Icons.check_circle_outline_rounded, color: CRMColors.success, size: 20),
+              onPressed: () async {
+                try {
+                  await DioClient.dio.patch('/site-visits/${sv.id}/status', data: {'status': 'Completed'});
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Site visit marked as completed.')),
+                    );
+                    context.read<DashboardBloc>().add(RefreshDashboard());
+                  }
+                } catch (_) {}
+              },
+              tooltip: 'Mark Completed',
+            ),
+          ],
+        ],
       ),
     );
   }

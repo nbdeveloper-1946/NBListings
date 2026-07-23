@@ -479,6 +479,14 @@ extension DashboardDataExtensions on DashboardData {
         'property': f.propertyCode != null ? {'property_code': f.propertyCode, 'title': f.propertyTitle} : null,
         'requirement': f.requirementCustomerName != null ? {'customer_name': f.requirementCustomerName} : null,
       }).toList())
+      ..siteVisitsJson = jsonEncode(siteVisits.map((sv) => {
+        'id': sv.id,
+        'visit_date': sv.visitDate,
+        'remarks': sv.remarks,
+        'status': sv.status,
+        'property': sv.propertyCode != null ? {'property_code': sv.propertyCode, 'title': sv.propertyTitle} : null,
+        'requirement': sv.requirementCustomerName != null ? {'customer_name': sv.requirementCustomerName} : null,
+      }).toList())
       ..updatedAt = DateTime.now();
   }
 }
@@ -489,7 +497,8 @@ extension DashboardLocalExtensions on DashboardLocal {
     final List<dynamic> propList = jsonDecode(recentPropertiesJson);
     final List<dynamic> checkList = jsonDecode(checklistJson);
     final List<dynamic> follList = jsonDecode(followupsJson);
-
+    final List<dynamic> svList = siteVisitsJson != null ? jsonDecode(siteVisitsJson!) : [];
+ 
     return DashboardData(
       summary: DashboardSummary(
         totalProperties: summary.totalProperties ?? 0,
@@ -518,6 +527,7 @@ extension DashboardLocalExtensions on DashboardLocal {
       recentProperties: propList.map((item) => RecentProperty.fromJson(item)).toList(),
       checklist: checkList.map((item) => ChecklistItem.fromJson(item)).toList(),
       followups: follList.map((item) => DashboardFollowup.fromJson(item)).toList(),
+      siteVisits: svList.map((item) => DashboardSiteVisit.fromJson(item)).toList(),
     );
   }
 }

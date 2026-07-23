@@ -27747,14 +27747,19 @@ const DashboardLocalSchema = CollectionSchema(
       name: r'recentPropertiesJson',
       type: IsarType.string,
     ),
-    r'summary': PropertySchema(
+    r'siteVisitsJson': PropertySchema(
       id: 5,
+      name: r'siteVisitsJson',
+      type: IsarType.string,
+    ),
+    r'summary': PropertySchema(
+      id: 6,
       name: r'summary',
       type: IsarType.object,
       target: r'DashboardSummaryLocal',
     ),
     r'updatedAt': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -27798,6 +27803,12 @@ int _dashboardLocalEstimateSize(
   bytesCount += 3 + object.followupsJson.length * 3;
   bytesCount += 3 + object.id.length * 3;
   bytesCount += 3 + object.recentPropertiesJson.length * 3;
+  {
+    final value = object.siteVisitsJson;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 +
       DashboardSummaryLocalSchema.estimateSize(
           object.summary, allOffsets[DashboardSummaryLocal]!, allOffsets);
@@ -27815,13 +27826,14 @@ void _dashboardLocalSerialize(
   writer.writeString(offsets[2], object.followupsJson);
   writer.writeString(offsets[3], object.id);
   writer.writeString(offsets[4], object.recentPropertiesJson);
+  writer.writeString(offsets[5], object.siteVisitsJson);
   writer.writeObject<DashboardSummaryLocal>(
-    offsets[5],
+    offsets[6],
     allOffsets,
     DashboardSummaryLocalSchema.serialize,
     object.summary,
   );
-  writer.writeDateTime(offsets[6], object.updatedAt);
+  writer.writeDateTime(offsets[7], object.updatedAt);
 }
 
 DashboardLocal _dashboardLocalDeserialize(
@@ -27837,13 +27849,14 @@ DashboardLocal _dashboardLocalDeserialize(
   object.id = reader.readString(offsets[3]);
   object.isarId = id;
   object.recentPropertiesJson = reader.readString(offsets[4]);
+  object.siteVisitsJson = reader.readStringOrNull(offsets[5]);
   object.summary = reader.readObjectOrNull<DashboardSummaryLocal>(
-        offsets[5],
+        offsets[6],
         DashboardSummaryLocalSchema.deserialize,
         allOffsets,
       ) ??
       DashboardSummaryLocal();
-  object.updatedAt = reader.readDateTime(offsets[6]);
+  object.updatedAt = reader.readDateTime(offsets[7]);
   return object;
 }
 
@@ -27865,13 +27878,15 @@ P _dashboardLocalDeserializeProp<P>(
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readStringOrNull(offset)) as P;
+    case 6:
       return (reader.readObjectOrNull<DashboardSummaryLocal>(
             offset,
             DashboardSummaryLocalSchema.deserialize,
             allOffsets,
           ) ??
           DashboardSummaryLocal()) as P;
-    case 6:
+    case 7:
       return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -28826,6 +28841,160 @@ extension DashboardLocalQueryFilter
   }
 
   QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'siteVisitsJson',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'siteVisitsJson',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'siteVisitsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'siteVisitsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'siteVisitsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'siteVisitsJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'siteVisitsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'siteVisitsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'siteVisitsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'siteVisitsJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'siteVisitsJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
+      siteVisitsJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'siteVisitsJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterFilterCondition>
       updatedAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -28965,6 +29134,20 @@ extension DashboardLocalQuerySortBy
     });
   }
 
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterSortBy>
+      sortBySiteVisitsJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'siteVisitsJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterSortBy>
+      sortBySiteVisitsJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'siteVisitsJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<DashboardLocal, DashboardLocal, QAfterSortBy> sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -29062,6 +29245,20 @@ extension DashboardLocalQuerySortThenBy
     });
   }
 
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterSortBy>
+      thenBySiteVisitsJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'siteVisitsJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QAfterSortBy>
+      thenBySiteVisitsJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'siteVisitsJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<DashboardLocal, DashboardLocal, QAfterSortBy> thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -29117,6 +29314,14 @@ extension DashboardLocalQueryWhereDistinct
   }
 
   QueryBuilder<DashboardLocal, DashboardLocal, QDistinct>
+      distinctBySiteVisitsJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'siteVisitsJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<DashboardLocal, DashboardLocal, QDistinct>
       distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
@@ -29163,6 +29368,13 @@ extension DashboardLocalQueryProperty
       recentPropertiesJsonProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'recentPropertiesJson');
+    });
+  }
+
+  QueryBuilder<DashboardLocal, String?, QQueryOperations>
+      siteVisitsJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'siteVisitsJson');
     });
   }
 

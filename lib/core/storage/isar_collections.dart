@@ -243,5 +243,6 @@ class DashboardLocal {
   late String recentPropertiesJson;
   late String checklistJson;
   late String followupsJson;
+  String? siteVisitsJson;
   late DateTime updatedAt;
 }
