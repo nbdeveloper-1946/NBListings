@@ -454,12 +454,14 @@ extension DashboardDataExtensions on DashboardData {
         'user': a.user,
       }).toList())
       ..recentPropertiesJson = jsonEncode(recentProperties.map((p) => {
+        'id': p.id,
         'code': p.code,
         'title': p.title,
         'area': p.area,
         'price': p.price,
         'status': p.status,
         'areaName': p.areaName,
+        'listingType': p.listingType,
         'createdBy': p.createdBy,
         'createdAt': p.createdAt,
       }).toList())
