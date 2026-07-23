@@ -149,17 +149,26 @@ class AppRouter {
 
       if (authState is Authenticated) {
         if (loggingIn) {
+          final from = state.uri.queryParameters['from'];
+          if (from != null && from.isNotEmpty) {
+            return Uri.decodeComponent(from);
+          }
           return '/dashboard';
         }
         if (onSplash) {
           if (!SyncManager().isSyncCompleted) {
             return null; // Stay on splash screen until sync completes
           }
+          final from = state.uri.queryParameters['from'];
+          if (from != null && from.isNotEmpty) {
+            return Uri.decodeComponent(from);
+          }
           return '/dashboard';
         }
       } else if (authState is Unauthenticated) {
         if (!loggingIn && !onSplash && !isPublicShare) {
-          return '/splash';
+          final target = state.uri.toString();
+          return '/splash?from=${Uri.encodeComponent(target)}';
         }
       }
       return null;

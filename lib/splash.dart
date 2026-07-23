@@ -32,7 +32,12 @@ class _SplashScreenState extends State<SplashScreen> {
           SyncManager().performStartupSync().catchError((e) {
             print("Background sync error: $e");
           });
-          context.go('/dashboard');
+          final from = GoRouterState.of(context).uri.queryParameters['from'];
+          if (from != null && from.isNotEmpty) {
+            context.go(Uri.decodeComponent(from));
+          } else {
+            context.go('/dashboard');
+          }
         } else {
           // First install: run blocking sync
           _runSync();
@@ -50,7 +55,12 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       await SyncManager().performStartupSync();
       if (mounted) {
-        context.go('/dashboard');
+        final from = GoRouterState.of(context).uri.queryParameters['from'];
+        if (from != null && from.isNotEmpty) {
+          context.go(Uri.decodeComponent(from));
+        } else {
+          context.go('/dashboard');
+        }
       }
     } catch (e) {
       try {
@@ -58,7 +68,12 @@ class _SplashScreenState extends State<SplashScreen> {
         if (lookupsCount > 0) {
           print("⚠️ [SPLASH SYNC] Sync failed, but found cached lookup data. Bypassing sync block.");
           if (mounted) {
-            context.go('/dashboard');
+            final from = GoRouterState.of(context).uri.queryParameters['from'];
+            if (from != null && from.isNotEmpty) {
+              context.go(Uri.decodeComponent(from));
+            } else {
+              context.go('/dashboard');
+            }
           }
           return;
         }
@@ -79,7 +94,12 @@ class _SplashScreenState extends State<SplashScreen> {
       listener: (context, state) {
         if (state is Authenticated) {
           if (SyncManager().isSyncCompleted) {
-            context.go('/dashboard');
+            final from = GoRouterState.of(context).uri.queryParameters['from'];
+            if (from != null && from.isNotEmpty) {
+              context.go(Uri.decodeComponent(from));
+            } else {
+              context.go('/dashboard');
+            }
           } else {
             _runSync();
           }
@@ -270,7 +290,14 @@ class _SplashScreenState extends State<SplashScreen> {
                     PremiumButton(
                       label: 'Get Started',
                       width: 220,
-                      onPressed: () => context.go('/login'),
+                      onPressed: () {
+                        final from = GoRouterState.of(context).uri.queryParameters['from'];
+                        if (from != null && from.isNotEmpty) {
+                          context.go('/login?from=${Uri.encodeComponent(from)}');
+                        } else {
+                          context.go('/login');
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -373,7 +400,14 @@ class _SplashScreenState extends State<SplashScreen> {
                     const SizedBox(height: AppSpacing.xl),
                     PremiumButton(
                       label: 'Get Started',
-                      onPressed: () => context.go('/login'),
+                      onPressed: () {
+                        final from = GoRouterState.of(context).uri.queryParameters['from'];
+                        if (from != null && from.isNotEmpty) {
+                          context.go('/login?from=${Uri.encodeComponent(from)}');
+                        } else {
+                          context.go('/login');
+                        }
+                      },
                     ),
                     const SizedBox(height: AppSpacing.s),
                   ],
