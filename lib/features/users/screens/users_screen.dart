@@ -826,6 +826,8 @@ class _UsersScreenState extends State<UsersScreen> {
           isLoading: isLoading,
           emptyTitle: 'No Employees Found',
           emptyDescription: 'Try adjusting your filters or add a new employee profile.',
+          dataRowMinHeight: 52.0,
+          dataRowMaxHeight: 60.0,
           columns: const [
             DataColumn(label: Text('Full Name')),
             DataColumn(label: Text('Role')),

@@ -68,6 +68,7 @@ class CRMDataTable extends StatelessWidget {
           if (colCount > 1 && availableWidth > baseContentWidth) {
             spacing = (availableWidth - baseContentWidth) / (colCount - 1);
             if (spacing < CRMSpacing.s) spacing = CRMSpacing.s;
+            if (spacing > 40.0) spacing = 40.0;
           }
 
           return SingleChildScrollView(
@@ -78,8 +79,8 @@ class CRMDataTable extends StatelessWidget {
                 headingRowColor: WidgetStateProperty.all(CRMColors.sidebarBg),
                 headingTextStyle: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
                 dataTextStyle: CRMTypography.body.copyWith(color: CRMColors.text),
-                dataRowMinHeight: dataRowMinHeight ?? 64.0,
-                dataRowMaxHeight: dataRowMaxHeight ?? 128.0,
+                dataRowMinHeight: dataRowMinHeight ?? 52.0,
+                dataRowMaxHeight: dataRowMaxHeight ?? 64.0,
                 dividerThickness: 1.0,
                 horizontalMargin: CRMSpacing.m,
                 columnSpacing: spacing,

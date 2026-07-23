@@ -43,6 +43,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _followupPage = 1;
   static const int _followupsPerPage = 5;
   DateTime _selectedFollowupDate = DateTime.now();
+  String _activeFollowupSection = 'Follow-ups'; // 'Follow-ups' or 'Schedule'
 
   @override
   void initState() {
@@ -1287,13 +1288,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : <DashboardFollowup>[];
 
     final dateStr = DateFormat('dd/MM/yyyy').format(_selectedFollowupDate);
+    final isScheduleTab = _activeFollowupSection == 'Schedule';
 
     return CRMCard(
-      title: "Upcoming Follow-ups",
-      subtitle: 'Schedule of communications and client appointments',
+      title: isScheduleTab ? "Schedule" : "Upcoming Follow-ups",
+      subtitle: isScheduleTab
+          ? 'Create & view scheduled appointments and client tasks'
+          : 'Schedule of communications and client appointments',
       headerAction: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Container(
+            height: 32,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: CRMColors.backgroundOf(context),
+              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              border: Border.all(color: CRMColors.borderOf(context)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () => setState(() => _activeFollowupSection = 'Follow-ups'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _activeFollowupSection == 'Follow-ups' ? CRMColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                    ),
+                    child: Text(
+                      'Follow-ups',
+                      style: TextStyle(
+                        color: _activeFollowupSection == 'Follow-ups' ? Colors.white : CRMColors.textSecondaryOf(context),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                GestureDetector(
+                  onTap: () => setState(() => _activeFollowupSection = 'Schedule'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _activeFollowupSection == 'Schedule' ? CRMColors.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                    ),
+                    child: Text(
+                      'Schedule',
+                      style: TextStyle(
+                        color: _activeFollowupSection == 'Schedule' ? Colors.white : CRMColors.textSecondaryOf(context),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
           Text(
             dateStr,
             style: CRMTypography.captionBold.copyWith(color: CRMColors.primary),
@@ -1320,55 +1376,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.only(top: CRMSpacing.m),
-        child: filteredFollowups.isEmpty
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Text(
-                    'No follow-ups for $dateStr.',
-                    style: TextStyle(color: CRMColors.textSecondaryOf(context)),
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (isScheduleTab) ...[
+              SizedBox(
+                width: double.infinity,
+                child: CRMButton(
+                  label: "Create Schedule",
+                  prefixIcon: Icons.add_circle_outline_rounded,
+                  onPressed: _showCreateFollowupDialog,
                 ),
-              )
-            : Column(
-                children: [
-                  ...pageItems.map((f) => _buildFollowupTile(f)),
-                  if (totalPages > 1) ...[
-                    const SizedBox(height: CRMSpacing.m),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Page $currentPage of $totalPages ($totalCount total)',
-                          style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
-                        ),
+              ),
+              const SizedBox(height: CRMSpacing.m),
+            ],
+            filteredFollowups.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Text(
+                        isScheduleTab ? 'No scheduled items for $dateStr.' : 'No follow-ups for $dateStr.',
+                        style: TextStyle(color: CRMColors.textSecondaryOf(context)),
+                      ),
+                    ),
+                  )
+                : Column(
+                    children: [
+                      ...pageItems.map((f) => _buildFollowupTile(f)),
+                      if (totalPages > 1) ...[
+                        const SizedBox(height: CRMSpacing.m),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.chevron_left_rounded, size: 20),
-                              onPressed: currentPage > 1
-                                  ? () => setState(() => _followupPage--)
-                                  : null,
-                              tooltip: 'Previous Page',
-                            ),
                             Text(
-                              '$currentPage / $totalPages',
-                              style: CRMTypography.captionBold.copyWith(color: CRMColors.textOf(context)),
+                              'Page $currentPage of $totalPages ($totalCount total)',
+                              style: CRMTypography.caption.copyWith(color: CRMColors.textSecondaryOf(context)),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right_rounded, size: 20),
-                              onPressed: currentPage < totalPages
-                                  ? () => setState(() => _followupPage++)
-                                  : null,
-                              tooltip: 'Next Page',
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                                  onPressed: currentPage > 1
+                                      ? () => setState(() => _followupPage--)
+                                      : null,
+                                  tooltip: 'Previous Page',
+                                ),
+                                Text(
+                                  '$currentPage / $totalPages',
+                                  style: CRMTypography.captionBold.copyWith(color: CRMColors.textOf(context)),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                                  onPressed: currentPage < totalPages
+                                      ? () => setState(() => _followupPage++)
+                                      : null,
+                                  tooltip: 'Next Page',
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ],
-                    ),
-                  ],
-                ],
-              ),
+                    ],
+                  ),
+          ],
+        ),
       ),
     );
   }

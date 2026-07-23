@@ -19,6 +19,7 @@ import '../bloc/properties_bloc.dart';
 import '../models/property_model.dart';
 import '../repository/properties_repository.dart';
 import 'add_edit_property_screen.dart';
+import '../../../core/utils/currency.dart';
 
 class PropertiesScreen extends StatefulWidget {
   final String? openPropertyId;
@@ -257,7 +258,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                             color: CRMColors.textSecondaryOf(context)),
                         const SizedBox(width: 4),
                         Text(
-                          '₹${p.price.toStringAsFixed(0)}',
+                          CRMCurrencyFormatter.formatShort(p.price),
                           style: CRMTypography.captionBold.copyWith(
                             color: CRMColors.textOf(context),
                             fontWeight: FontWeight.bold,
@@ -563,6 +564,8 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                     emptyDescription:
                         'No records match your active search terms.',
                     showCheckboxColumn: false,
+                    dataRowMinHeight: 56.0,
+                    dataRowMaxHeight: 64.0,
                     columns: [
                       const DataColumn(label: Text('Code')),
                       const DataColumn(label: Text('Property Name')),
@@ -615,7 +618,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                           ),
                           DataCell(Text(p.areaName)),
                           DataCell(Text(_getPropertyBhkOrAreaValue(p))),
-                          DataCell(Text('₹${p.price.toStringAsFixed(0)}',
+                          DataCell(Text(CRMCurrencyFormatter.formatShort(p.price),
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600))),
                           DataCell(Text(

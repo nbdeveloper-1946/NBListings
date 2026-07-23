@@ -35,6 +35,24 @@ class CRMCurrencyFormatter {
     return '₹${amount.toStringAsFixed(0)}';
   }
 
+  static String formatShort(double amount) {
+    if (amount <= 0) return '₹ 0';
+    if (amount >= 10000000) {
+      final double cr = amount / 10000000;
+      final String crStr = cr.toStringAsFixed(cr == cr.toInt() ? 0 : 2);
+      return '₹ $crStr cr';
+    } else if (amount >= 100000) {
+      final double lakh = amount / 100000;
+      final String lakhStr = lakh.toStringAsFixed(lakh == lakh.toInt() ? 0 : 2);
+      return '₹ $lakhStr lakh';
+    } else if (amount >= 1000) {
+      final double k = amount / 1000;
+      final String kStr = k.toStringAsFixed(k == k.toInt() ? 0 : 2);
+      return '₹ $kStr k';
+    }
+    return '₹ ${amount.toStringAsFixed(0)}';
+  }
+
   static String previewInputText(String rawText) {
     if (rawText.trim().isEmpty) return '';
     final val = double.tryParse(rawText.replaceAll(RegExp(r'[^\d.]'), ''));

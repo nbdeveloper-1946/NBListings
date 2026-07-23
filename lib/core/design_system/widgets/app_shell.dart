@@ -913,8 +913,6 @@ class _CRMAppShellState extends State<CRMAppShell> {
                 _buildSidebarItem(Icons.assignment_rounded, 'Requirements', '/requirements', currentPath, isMobile, isExpanded),
                 if (userRole == 'Admin' || userRole == 'Super Admin')
                   _buildSidebarItem(Icons.people_outline_rounded, 'Employees', '/users', currentPath, isMobile, isExpanded),
-                _buildSidebarItem(Icons.library_books_rounded, 'Library', '/library', currentPath, isMobile, isExpanded),
-                _buildSidebarItem(Icons.analytics_rounded, 'Reports', '/reports', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.settings_rounded, 'Settings', '/settings', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.delete_sweep_rounded, 'Recycle Bin', '/bin', currentPath, isMobile, isExpanded),
               ],

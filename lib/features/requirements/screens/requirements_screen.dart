@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/design_system/widgets/drawers.dart';
 import '../bloc/requirements_bloc.dart';
 import '../models/requirement_model.dart';
+import '../repository/requirements_repository.dart';
 import 'add_edit_requirement_screen.dart';
 import '../../properties/repository/properties_repository.dart';
 import '../../properties/models/property_model.dart';
@@ -382,6 +383,84 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   }
 
   Widget _buildSearchAndFiltersCard() {
+    String configDropdownLabel = 'Configuration';
+    String allOptionsLabel = 'All Configurations';
+    List<DropdownMenuItem<String?>> specDropdownItems = [];
+
+    final selectedCat = _metadata?.categories.firstWhere(
+      (c) => c.id == _selectedCategoryId,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final catName = selectedCat?.name.toLowerCase() ?? '';
+
+    if (catName.contains('commercial')) {
+      configDropdownLabel = 'Property Type';
+      allOptionsLabel = 'All Property Types';
+      
+      var filtered = _metadata?.types.where((t) => t.categoryId == _selectedCategoryId).toList() ?? [];
+      if (filtered.isEmpty && _metadata != null) {
+        filtered = _metadata!.types.where((t) {
+          final n = t.name.toLowerCase();
+          return n.contains('office') || n.contains('shop') || n.contains('showroom') || n.contains('commercial');
+        }).toList();
+      }
+      if (filtered.isEmpty && _metadata != null) {
+        filtered = _metadata!.types;
+      }
+      specDropdownItems = [
+        DropdownMenuItem(value: null, child: Text(allOptionsLabel)),
+        ...filtered.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))),
+      ];
+    } else if (catName.contains('land') || catName.contains('plot')) {
+      configDropdownLabel = 'Property Type';
+      allOptionsLabel = 'All Property Types';
+      
+      var filtered = _metadata?.types.where((t) => t.categoryId == _selectedCategoryId).toList() ?? [];
+      if (filtered.isEmpty && _metadata != null) {
+        filtered = _metadata!.types.where((t) {
+          final n = t.name.toLowerCase();
+          return n.contains('plot') || n.contains('land');
+        }).toList();
+      }
+      if (filtered.isEmpty && _metadata != null) {
+        filtered = _metadata!.types;
+      }
+      specDropdownItems = [
+        DropdownMenuItem(value: null, child: Text(allOptionsLabel)),
+        ...filtered.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))),
+      ];
+    } else if (catName.contains('industrial')) {
+      configDropdownLabel = 'Property Type';
+      allOptionsLabel = 'All Property Types';
+      
+      var filtered = _metadata?.types.where((t) => t.categoryId == _selectedCategoryId).toList() ?? [];
+      if (filtered.isEmpty && _metadata != null) {
+        filtered = _metadata!.types.where((t) {
+          final n = t.name.toLowerCase();
+          return n.contains('warehouse') || n.contains('shed') || n.contains('industrial');
+        }).toList();
+      }
+      if (filtered.isEmpty && _metadata != null) {
+        filtered = _metadata!.types;
+      }
+      specDropdownItems = [
+        DropdownMenuItem(value: null, child: Text(allOptionsLabel)),
+        ...filtered.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))),
+      ];
+    } else {
+      configDropdownLabel = 'Configuration';
+      allOptionsLabel = 'All Configurations';
+      
+      var filtered = _metadata?.configurations.where((c) => _selectedCategoryId == null || c.categoryId == _selectedCategoryId).toList() ?? [];
+      if (filtered.isEmpty && _metadata != null) {
+        filtered = _metadata!.configurations;
+      }
+      specDropdownItems = [
+        DropdownMenuItem(value: null, child: Text(allOptionsLabel)),
+        ...filtered.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+      ];
+    }
+
     return CRMCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -439,12 +518,9 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                 ),
               ),
               _buildDropdownFilter<String?>(
-                label: 'Configuration',
+                label: configDropdownLabel,
                 value: _selectedConfigId,
-                items: [
-                  const DropdownMenuItem(value: null, child: Text("All Configurations")),
-                  ...?_metadata?.configurations.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                ],
+                items: specDropdownItems,
                 onChanged: (val) {
                   setState(() => _selectedConfigId = val);
                   _triggerFetch();
@@ -458,7 +534,10 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                   ...?_metadata?.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
                 ],
                 onChanged: (val) {
-                  setState(() => _selectedCategoryId = val);
+                  setState(() {
+                    _selectedCategoryId = val;
+                    _selectedConfigId = null;
+                  });
                   _triggerFetch();
                 },
               ),
@@ -595,6 +674,9 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
           requirements = state.requirements.where((r) {
             final matchesListingType = getListingTypeLabel(r) == _activeListingTab;
             final matchesCategory = _selectedCategoryId == null || r.categoryId == _selectedCategoryId;
+            final matchesSpec = _selectedConfigId == null ||
+                r.configurationId == _selectedConfigId ||
+                r.propertyTypeId == _selectedConfigId;
             
             // Map legacy status strings to new pipeline statuses for backward compatibility
             String mappedStatus = r.status;
@@ -608,7 +690,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
 
             final matchesReadiness = _selectedReadiness == "All" || r.matchingReadiness == _selectedReadiness;
 
-            return matchesListingType && matchesCategory && matchesStatus && matchesReadiness;
+            return matchesListingType && matchesCategory && matchesSpec && matchesStatus && matchesReadiness;
           }).toList();
           
           // Sort by recently updated/created (descending)
@@ -641,6 +723,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                   isLoading: isLoading,
                   emptyTitle: 'No Requirements Found',
                   emptyDescription: 'Try adjusting filters or create a new requirement pipeline.',
+                  dataRowMinHeight: 56.0,
+                  dataRowMaxHeight: 64.0,
                   columns: const [
                     DataColumn(label: Text('Client')),
                     DataColumn(label: Text('Specs / Config')),
@@ -705,18 +789,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                     ),
                                   ],
                                 ),
-                              ] else ...[
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.alarm_off_rounded, size: 12, color: CRMColors.textMuted),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'No Followup',
-                                      style: CRMTypography.caption.copyWith(color: CRMColors.textMuted, fontSize: 11),
-                                    ),
-                                  ],
-                                ),
                               ],
                             ],
                           ),
@@ -774,9 +846,23 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                             onSelected: (String newStatus) {
                               if (newStatus != req.status) {
                                 if (_isValidStatusTransition(req.status, newStatus)) {
-                                  context.read<RequirementsBloc>().add(
-                                    UpdateRequirementEvent(req.copyWith(status: newStatus)),
-                                  );
+                                  if (newStatus == 'Follow-up') {
+                                    showDialog(
+                                      context: context,
+                                      builder: (dialogContext) => RequirementStepperDialog(
+                                        requirement: req,
+                                        initialStep: 1,
+                                        updateStatusOnSave: true,
+                                        onSaved: () {
+                                          _triggerFetch();
+                                        },
+                                      ),
+                                    );
+                                  } else {
+                                    context.read<RequirementsBloc>().add(
+                                      UpdateRequirementEvent(req.copyWith(status: newStatus)),
+                                    );
+                                  }
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -1154,9 +1240,23 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                         onSelected: (String newStatus) {
                           if (newStatus != req.status) {
                             if (_isValidStatusTransition(req.status, newStatus)) {
-                              context.read<RequirementsBloc>().add(
-                                UpdateRequirementEvent(req.copyWith(status: newStatus)),
-                              );
+                              if (newStatus == 'Follow-up') {
+                                showDialog(
+                                  context: context,
+                                  builder: (dialogContext) => RequirementStepperDialog(
+                                    requirement: req,
+                                    initialStep: 1,
+                                    updateStatusOnSave: true,
+                                    onSaved: () {
+                                      _triggerFetch();
+                                    },
+                                  ),
+                                );
+                              } else {
+                                context.read<RequirementsBloc>().add(
+                                  UpdateRequirementEvent(req.copyWith(status: newStatus)),
+                                );
+                              }
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -1730,12 +1830,14 @@ class RequirementStepperDialog extends StatefulWidget {
   final RequirementModel requirement;
   final int initialStep;
   final VoidCallback onSaved;
+  final bool updateStatusOnSave;
 
   const RequirementStepperDialog({
     super.key,
     required this.requirement,
     this.initialStep = 1,
     required this.onSaved,
+    this.updateStatusOnSave = false,
   });
 
   @override
@@ -1787,6 +1889,13 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
         'followup_date': scheduledDateTime.toUtc().toIso8601String(),
         'requirement_id': widget.requirement.id,
       });
+
+      if (widget.updateStatusOnSave) {
+        final RequirementsRepository requirementsRepository = RequirementsRepository();
+        await requirementsRepository.updateRequirement(
+          widget.requirement.copyWith(status: 'Follow-up'),
+        );
+      }
 
       if (mounted) {
         widget.onSaved();
@@ -1852,6 +1961,7 @@ class _RequirementStepperDialogState extends State<RequirementStepperDialog> {
                       height: 500,
                       child: AddEditRequirementScreen(
                         requirement: widget.requirement,
+                        isInline: true,
                         onSaved: () {
                           widget.onSaved();
                           setState(() => _currentStep = 1);

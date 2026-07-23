@@ -13,13 +13,11 @@ import '../../features/requirements/screens/requirements_screen.dart';
 import '../../features/clients/screens/clients_screen.dart';
 import '../../features/owners/screens/owners_screen.dart';
 import '../../features/builders/screens/builders_screen.dart';
-import '../../features/library/screens/library_screen.dart';
 import '../../splash.dart';
 import '../design_system/widgets/app_shell.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/audit_logs_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
-import '../../features/reports/screens/reports_screen.dart';
 import '../../features/properties/screens/recycle_bin_screen.dart';
 import '../network/sync_manager.dart';
 import '../../features/requirements/screens/share_properties_page.dart';
@@ -96,14 +94,6 @@ class AppRouter {
           GoRoute(
             path: '/builders',
             builder: (context, state) => const BuildersScreen(),
-          ),
-          GoRoute(
-            path: '/library',
-            builder: (context, state) => const LibraryScreen(),
-          ),
-          GoRoute(
-            path: '/reports',
-            builder: (context, state) => const ReportsScreen(),
           ),
           GoRoute(
             path: '/settings',
