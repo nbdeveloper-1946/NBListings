@@ -518,74 +518,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
-                  // Edit Pencil Button (Bottom Right)
+                  // Edit Pencil Button (Bottom Right) with Popup Menu
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: Tooltip(
-                      message: "Change profile picture",
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: _isUploadingPhoto ? null : () => _pickAndUploadPhoto(user),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: CRMColors.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: PopupMenuButton<String>(
+                        tooltip: "Edit profile picture",
+                        onSelected: (value) {
+                          if (value == 'change') {
+                            if (!_isUploadingPhoto) _pickAndUploadPhoto(user);
+                          } else if (value == 'delete') {
+                            _deletePhoto(user);
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                          PopupMenuItem<String>(
+                            value: 'change',
+                            child: Row(
+                              children: [
+                                Icon(Icons.photo_library_rounded, size: 18, color: CRMColors.textOf(context)),
+                                const SizedBox(width: 8),
+                                Text('Change profile picture', style: CRMTypography.body.copyWith(color: CRMColors.textOf(context))),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.edit_rounded,
-                              size: 16,
-                              color: Colors.white,
+                          ),
+                          if (hasPhoto)
+                            PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_rounded, size: 18, color: CRMColors.danger),
+                                  const SizedBox(width: 8),
+                                  Text('Delete profile picture', style: CRMTypography.body.copyWith(color: CRMColors.danger)),
+                                ],
+                              ),
                             ),
+                        ],
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: CRMColors.primary,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.edit_rounded,
+                            size: 16,
+                            color: Colors.white,
                           ),
                         ),
                       ),
                     ),
                   ),
-
-                  // Delete Trash Button (Bottom Left, shown only if photo exists)
-                  if (hasPhoto && !_isUploadingPhoto)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      child: Tooltip(
-                        message: "Delete profile picture",
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () => _deletePhoto(user),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: CRMColors.danger,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.delete_outline_rounded,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),

@@ -94,10 +94,29 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       } catch (_) {}
     }
 
+    final selectedCat = _metadata?.categories.firstWhere(
+      (c) => c.id == _selectedCategoryId,
+      orElse: () => LookupItem(id: '', name: ''),
+    );
+    final catName = selectedCat?.name.toLowerCase() ?? '';
+    final isPropertyTypeFilter = catName.contains('commercial') ||
+        catName.contains('land') ||
+        catName.contains('plot') ||
+        catName.contains('industrial');
+
+    String? configId;
+    String? propTypeId;
+    if (isPropertyTypeFilter) {
+      propTypeId = _selectedConfigId;
+    } else {
+      configId = _selectedConfigId;
+    }
+
     context.read<RequirementsBloc>().add(
       FetchRequirementsEvent(
         search: _searchController.text.trim(),
-        configurationId: _selectedConfigId,
+        configurationId: configId,
+        propertyTypeId: propTypeId,
         status: _selectedStatus,
         listingTypeId: listingTypeId,
       ),
@@ -201,7 +220,7 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     
     if (currentIndex == -1 || newIndex == -1) return true;
     
-    if (newIndex <= currentIndex + 1) {
+    if (newIndex <= currentIndex + 1 || (mappedCurrent == 'Interested' && newStatus == 'Site Visit')) {
       return true;
     }
     return false;
@@ -1864,10 +1883,9 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
   }
 
   void _showRequirementDetailDrawer(RequirementModel req) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+      barrierDismissible: true,
       builder: (context) {
         return _CRMRequirementDetailDrawer(requirement: req);
       },
@@ -2748,41 +2766,51 @@ class _CRMRequirementDetailDrawerState extends State<_CRMRequirementDetailDrawer
     final req = widget.requirement;
     final budget = '₹${BudgetFormatter.format(req.minBudget)} - ₹${BudgetFormatter.format(req.maxBudget)}';
     final width = MediaQuery.of(context).size.width;
-    final isDesktop = width >= 900;
+    final height = MediaQuery.of(context).size.height;
+    final isMobile = width < 768;
+    final isDesktop = width >= 950;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: CRMColors.cardBgOf(context),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.l)),
-      ),
-      padding: const EdgeInsets.all(CRMSpacing.l),
-      child: FractionallySizedBox(
-        heightFactor: 0.85,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 50,
-                height: 4,
-                decoration: BoxDecoration(color: CRMColors.borderOf(context), borderRadius: BorderRadius.circular(2)),
+    final double dialogWidth = isMobile ? width * 0.95 : width * 0.85;
+    final double dialogHeight = isMobile ? height * 0.95 : height * 0.85;
+
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          width: dialogWidth.clamp(320.0, 1100.0),
+          height: dialogHeight.clamp(480.0, 800.0),
+          decoration: BoxDecoration(
+            color: CRMColors.cardBgOf(context),
+            borderRadius: BorderRadius.circular(CRMBorderRadius.l),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
               ),
-            ),
-            const SizedBox(height: CRMSpacing.m),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Requirement Details & Share History",
-                  style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(context)),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: CRMSpacing.m),
+            ],
+          ),
+          padding: const EdgeInsets.all(CRMSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Requirement Details & Share History",
+                    style: CRMTypography.sectionTitle.copyWith(
+                      color: CRMColors.textOf(context),
+                      fontSize: isMobile ? 16 : 20,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: CRMSpacing.m),
 
             Expanded(
               child: isDesktop
@@ -2803,26 +2831,28 @@ class _CRMRequirementDetailDrawerState extends State<_CRMRequirementDetailDrawer
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "Client: ${req.clientName} (${req.clientMobile})",
-                                          style: CRMTypography.bodyMedium.copyWith(
+                                          req.clientName,
+                                          style: CRMTypography.sectionTitle.copyWith(
                                             fontWeight: FontWeight.bold,
                                             color: CRMColors.textOf(context),
+                                            fontSize: 18,
                                           ),
                                         ),
-                                        const SizedBox(height: CRMSpacing.s),
-                                        _buildInfoLabel("Code", req.requirementCode),
                                         const SizedBox(height: CRMSpacing.xs),
-                                        _buildInfoLabel("Listing Type", getListingTypeLabel(req)),
-                                        const SizedBox(height: CRMSpacing.xs),
-                                        _buildInfoLabel("Specs", '${req.propertyTypeName} (${req.configurationName ?? "-"})'),
-                                        const SizedBox(height: CRMSpacing.xs),
-                                        _buildInfoLabel("Budget", budget),
-                                        const SizedBox(height: CRMSpacing.xs),
-                                        _buildInfoLabel("Target Areas", req.areaNames.join(', ')),
-                                        const SizedBox(height: CRMSpacing.xs),
-                                        _buildInfoLabel("Quality", req.requirementQuality),
-                                        const SizedBox(height: CRMSpacing.xs),
-                                        _buildInfoLabel("Readiness", req.matchingReadiness),
+                                        Text(
+                                          req.clientMobile,
+                                          style: CRMTypography.body.copyWith(
+                                            color: CRMColors.textSecondaryOf(context),
+                                          ),
+                                        ),
+                                        const Divider(height: 24),
+                                        _buildDetailRow("Code", req.requirementCode, Icons.qr_code_rounded),
+                                        _buildDetailRow("Listing Type", getListingTypeLabel(req), Icons.sell_outlined),
+                                        _buildDetailRow("Specs", '${req.propertyTypeName} (${req.configurationName ?? "-"})', Icons.business_rounded),
+                                        _buildDetailRow("Budget", budget, Icons.account_balance_wallet_rounded),
+                                        _buildDetailRow("Target Areas", req.areaNames.join(', '), Icons.location_on_rounded),
+                                        _buildDetailRow("Quality", req.requirementQuality, Icons.star_rounded),
+                                        _buildDetailRow("Readiness", req.matchingReadiness, Icons.speed_rounded),
                                       ],
                                     ),
                                   ),
@@ -2860,46 +2890,68 @@ class _CRMRequirementDetailDrawerState extends State<_CRMRequirementDetailDrawer
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        CRMCard(
-                          child: Padding(
-                            padding: const EdgeInsets.all(CRMSpacing.m),
+                        Expanded(
+                          child: SingleChildScrollView(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Text("Client: ${req.clientName} (${req.clientMobile})", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context))),
-                                const SizedBox(height: CRMSpacing.s),
-                                Wrap(
-                                  spacing: CRMSpacing.m,
-                                  runSpacing: CRMSpacing.s,
-                                  children: [
-                                    _buildInfoLabel("Code", req.requirementCode),
-                                    _buildInfoLabel("Listing Type", getListingTypeLabel(req)),
-                                    _buildInfoLabel("Specs", '${req.propertyTypeName} (${req.configurationName ?? "-"})'),
-                                    _buildInfoLabel("Budget", budget),
-                                    _buildInfoLabel("Target Areas", req.areaNames.join(', ')),
-                                    _buildInfoLabel("Quality", req.requirementQuality),
-                                    _buildInfoLabel("Readiness", req.matchingReadiness),
-                                  ],
+                                CRMCard(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(CRMSpacing.m),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          req.clientName,
+                                          style: CRMTypography.sectionTitle.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: CRMColors.textOf(context),
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                        const SizedBox(height: CRMSpacing.xs),
+                                        Text(
+                                          req.clientMobile,
+                                          style: CRMTypography.body.copyWith(
+                                            color: CRMColors.textSecondaryOf(context),
+                                          ),
+                                        ),
+                                        const Divider(height: 24),
+                                        _buildDetailRow("Code", req.requirementCode, Icons.qr_code_rounded),
+                                        _buildDetailRow("Listing Type", getListingTypeLabel(req), Icons.sell_outlined),
+                                        _buildDetailRow("Specs", '${req.propertyTypeName} (${req.configurationName ?? "-"})', Icons.business_rounded),
+                                        _buildDetailRow("Budget", budget, Icons.account_balance_wallet_rounded),
+                                        _buildDetailRow("Target Areas", req.areaNames.join(', '), Icons.location_on_rounded),
+                                        _buildDetailRow("Quality", req.requirementQuality, Icons.star_rounded),
+                                        _buildDetailRow("Readiness", req.matchingReadiness, Icons.speed_rounded),
+                                      ],
+                                    ),
+                                  ),
                                 ),
+                                const SizedBox(height: CRMSpacing.l),
+                                if (!_isLoading && _error == null) ...[
+                                  Row(
+                                    children: [
+                                      _buildSummaryMetric("Share Sessions", "$_totalSessions"),
+                                      const SizedBox(width: CRMSpacing.m),
+                                      _buildSummaryMetric("Properties Shared", "$_totalPropertiesShared"),
+                                    ],
+                                  ),
+                                  const SizedBox(height: CRMSpacing.m),
+                                  Row(
+                                    children: [
+                                      _buildSummaryMetric("Total Views", "$_totalViews"),
+                                      const SizedBox(width: CRMSpacing.m),
+                                      _buildSummaryMetric("Last Viewed", _lastViewed),
+                                    ],
+                                  ),
+                                  const SizedBox(height: CRMSpacing.l),
+                                ],
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: CRMSpacing.l),
-                        if (!_isLoading && _error == null) ...[
-                          Row(
-                            children: [
-                              _buildSummaryMetric("Share Sessions", "$_totalSessions"),
-                              const SizedBox(width: CRMSpacing.m),
-                              _buildSummaryMetric("Properties Shared", "$_totalPropertiesShared"),
-                              const SizedBox(width: CRMSpacing.m),
-                              _buildSummaryMetric("Total Views", "$_totalViews"),
-                              const SizedBox(width: CRMSpacing.m),
-                              _buildSummaryMetric("Last Viewed", _lastViewed),
-                            ],
-                          ),
-                          const SizedBox(height: CRMSpacing.l),
-                        ],
+                        const SizedBox(height: CRMSpacing.m),
                         Expanded(
                           child: _buildShareHistoryTable(),
                         ),
@@ -2908,6 +2960,34 @@ class _CRMRequirementDetailDrawerState extends State<_CRMRequirementDetailDrawer
             ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildDetailRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: CRMColors.textSecondaryOf(context)),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 110,
+            child: Text(label, style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondaryOf(context))),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: CRMTypography.bodyMedium.copyWith(
+                color: CRMColors.textOf(context),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

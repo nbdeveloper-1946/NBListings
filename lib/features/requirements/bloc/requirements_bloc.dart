@@ -10,9 +10,10 @@ abstract class RequirementsEvent {}
 class FetchRequirementsEvent extends RequirementsEvent {
   final String? search;
   final String? configurationId;
+  final String? propertyTypeId;
   final String? status;
   final String? listingTypeId;
-  FetchRequirementsEvent({this.search, this.configurationId, this.status, this.listingTypeId});
+  FetchRequirementsEvent({this.search, this.configurationId, this.propertyTypeId, this.status, this.listingTypeId});
 }
 
 class CreateRequirementEvent extends RequirementsEvent {
@@ -88,6 +89,7 @@ class RequirementsBloc extends Bloc<RequirementsEvent, RequirementsState> {
       final list = await requirementsRepository.getRequirements(
         search: event.search,
         configurationId: event.configurationId,
+        propertyTypeId: event.propertyTypeId,
         status: event.status,
         listingTypeId: event.listingTypeId,
       );

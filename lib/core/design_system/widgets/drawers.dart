@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../tokens/app_colors.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
 import '../../../../features/properties/models/property_model.dart';
+import '../../utils/budget_formatter.dart';
 import 'cards.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'crm_embedded_video_player.dart';
@@ -50,6 +52,124 @@ class BuildPropertyDetailWidget extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
     final isMobile = screenWidth < 768;
+
+    final List<PropertyDetailItem> basicItems = [];
+    if (_isValidValue(property.listingTypeName)) {
+      basicItems.add(PropertyDetailItem('Listing Type', property.listingTypeName, Icons.sell_outlined));
+    }
+    if (_isValidValue(property.categoryName)) {
+      basicItems.add(PropertyDetailItem('Category', property.categoryName, Icons.category_outlined));
+    }
+    if (_isValidValue(property.propertyTypeName)) {
+      basicItems.add(PropertyDetailItem('Property Type', property.propertyTypeName, Icons.home_work_outlined));
+    }
+    if (_isValidValue(property.configurationName)) {
+      basicItems.add(PropertyDetailItem('Configuration', property.configurationName!, Icons.grid_view_rounded));
+    }
+    if (_isValidValue(property.statusDisplayName)) {
+      basicItems.add(PropertyDetailItem('Status', property.statusDisplayName, Icons.info_outline_rounded));
+    }
+    basicItems.add(PropertyDetailItem('Price', '₹${BudgetFormatter.format(property.price)}', Icons.payments_outlined));
+    if (property.deposit > 0) {
+      basicItems.add(PropertyDetailItem('Deposit', '₹${BudgetFormatter.format(property.deposit)}', Icons.account_balance_wallet_outlined));
+    }
+    if (property.maintenance > 0) {
+      basicItems.add(PropertyDetailItem('Maintenance', '₹${BudgetFormatter.format(property.maintenance)}/mo', Icons.build_circle_outlined));
+    }
+    basicItems.add(PropertyDetailItem('Verification', property.isVerified ? 'Verified' : 'Pending Verification', Icons.verified_outlined));
+    if (_isValidValue(property.createdByName)) {
+      basicItems.add(PropertyDetailItem('Created By', property.createdByName, Icons.person_outline_rounded));
+    }
+    basicItems.add(PropertyDetailItem('Created At', DateFormat('dd-MM-yyyy').format(property.createdAt), Icons.calendar_today_outlined));
+
+    final List<PropertyDetailItem> specsItems = [];
+    if (property.bedrooms > 0) {
+      specsItems.add(PropertyDetailItem('Bedrooms', '${property.bedrooms} BHK', Icons.king_bed_outlined));
+    }
+    if (property.bathrooms > 0) {
+      specsItems.add(PropertyDetailItem('Bathrooms', '${property.bathrooms}', Icons.bathtub_outlined));
+    }
+    if (property.balconies > 0) {
+      specsItems.add(PropertyDetailItem('Balconies', '${property.balconies}', Icons.balcony_outlined));
+    }
+    if (property.floorNo != null || property.totalFloor != null) {
+      String floorStr = '';
+      if (property.floorNo != null && property.totalFloor != null) {
+        floorStr = '${property.floorNo} / ${property.totalFloor}';
+      } else if (property.floorNo != null) {
+        floorStr = '${property.floorNo}';
+      } else {
+        floorStr = 'Total Floors: ${property.totalFloor}';
+      }
+      specsItems.add(PropertyDetailItem('Floor', floorStr, Icons.layers_outlined));
+    }
+    if (property.ageOfProperty != null && property.ageOfProperty! > 0) {
+      specsItems.add(PropertyDetailItem('Property Age', '${property.ageOfProperty} years', Icons.hourglass_empty_rounded));
+    }
+    if (property.superBuiltupArea != null && property.superBuiltupArea! > 0) {
+      specsItems.add(PropertyDetailItem('Super Built-up Area', '${property.superBuiltupArea!.toStringAsFixed(0)} Sq. Ft.', Icons.square_foot_outlined));
+    }
+    if (property.carpetArea != null && property.carpetArea! > 0) {
+      specsItems.add(PropertyDetailItem('Carpet Area', '${property.carpetArea!.toStringAsFixed(0)} Sq. Ft.', Icons.aspect_ratio_rounded));
+    }
+    if (property.plotArea != null && property.plotArea! > 0) {
+      specsItems.add(PropertyDetailItem('Plot Area', '${property.plotArea!.toStringAsFixed(0)} Sq. Yds.', Icons.terrain_outlined));
+    }
+    if (_isValidValue(property.furnishingTypeName)) {
+      specsItems.add(PropertyDetailItem('Furnishing', property.furnishingTypeName!, Icons.chair_outlined));
+    }
+    if (_isValidValue(property.facingTypeName)) {
+      specsItems.add(PropertyDetailItem('Facing', property.facingTypeName!, Icons.compass_calibration_outlined));
+    }
+    if (property.possessionDate != null) {
+      specsItems.add(PropertyDetailItem('Possession Date', DateFormat('dd-MM-yyyy').format(property.possessionDate!), Icons.event_available_rounded));
+    }
+    if (property.parking > 0) {
+      specsItems.add(PropertyDetailItem('Parking', _getParkingDisplay(property.parking), Icons.local_parking_rounded));
+    }
+
+    final List<PropertyDetailItem> locationItems = [];
+    if (_isValidValue(property.cityName)) {
+      locationItems.add(PropertyDetailItem('City', property.cityName, Icons.location_city_outlined));
+    }
+    if (_isValidValue(property.areaName)) {
+      locationItems.add(PropertyDetailItem('Area', property.areaName, Icons.map_outlined));
+    }
+    if (_isValidValue(property.pincode)) {
+      locationItems.add(PropertyDetailItem('Pincode', property.pincode, Icons.pin_drop_outlined));
+    }
+    if (_isValidValue(property.landmark)) {
+      locationItems.add(PropertyDetailItem('Landmark', property.landmark!, Icons.landscape_outlined));
+    }
+    if (_isValidValue(property.blockWing)) {
+      locationItems.add(PropertyDetailItem('Block/Wing', property.blockWing!, Icons.domain_outlined));
+    }
+    if (_isValidValue(property.flatNo)) {
+      locationItems.add(PropertyDetailItem('Flat/Plot No.', property.flatNo!, Icons.tag_rounded));
+    }
+    if (_isValidValue(property.address)) {
+      locationItems.add(PropertyDetailItem('Address', property.address, Icons.home_outlined));
+    }
+    if (property.latitude != null && property.longitude != null) {
+      locationItems.add(PropertyDetailItem('Coordinates', '${property.latitude!.toStringAsFixed(5)}, ${property.longitude!.toStringAsFixed(5)}', Icons.my_location_outlined));
+    }
+
+    final List<PropertyDetailItem> contactsItems = [];
+    if (_isValidValue(property.ownershipTypeName)) {
+      contactsItems.add(PropertyDetailItem('Ownership', property.ownershipTypeName!, Icons.badge_outlined));
+    }
+    if (_isValidValue(property.ownerName)) {
+      contactsItems.add(PropertyDetailItem('Owner Name', property.ownerName, Icons.assignment_ind_outlined));
+    }
+    if (_isValidValue(property.ownerMobile)) {
+      contactsItems.add(PropertyDetailItem('Owner Mobile', property.ownerMobile, Icons.phone_outlined));
+    }
+    if (_isValidValue(property.brokerName)) {
+      contactsItems.add(PropertyDetailItem('Refer / Key Collect', property.brokerName!, Icons.vpn_key_outlined));
+    }
+    if (_isValidValue(property.brokerageTypeName)) {
+      contactsItems.add(PropertyDetailItem('Brokerage Type', property.brokerageTypeName!, Icons.percent_rounded));
+    }
 
     return Container(
       width: screenWidth,
@@ -130,48 +250,15 @@ class BuildPropertyDetailWidget extends StatelessWidget {
                       ],
                       const SizedBox(height: CRMSpacing.l),
                       
-                      // Two-column layout for details
+                      // Responsive Dynamic details Cards
                       if (isMobile) ...[
-                        _buildDetailCard(context, 'Basic Details', [
-                          _buildDetailRow('Listing Type', property.listingTypeName),
-                          _buildDetailRow('Category', property.categoryName),
-                          _buildDetailRow('Property Type', property.propertyTypeName),
-                          _buildDetailRow('Configuration', property.configurationName ?? 'N/A'),
-                          _buildDetailRow('Price', '₹${property.price.toStringAsFixed(0)}'),
-                          _buildDetailRow('Deposit', '₹${property.deposit.toStringAsFixed(0)}'),
-                          _buildDetailRow('Maintenance', '₹${property.maintenance.toStringAsFixed(0)}'),
-                          _buildDetailRow('Status', property.statusDisplayName),
-                          _buildDetailRow('Verification', property.isVerified ? 'Verified' : 'Pending Verification'),
-                        ]),
+                        _buildResponsiveDetailCard(context, 'Basic Details', basicItems),
                         const SizedBox(height: CRMSpacing.m),
-                        _buildDetailCard(context, 'Specifications & Floor Details', [
-                          _buildDetailRow('Bedrooms', '${property.bedrooms} BHK'),
-                          _buildDetailRow('Bathrooms', '${property.bathrooms}'),
-                          _buildDetailRow('Balconies', '${property.balconies}'),
-                          _buildDetailRow('Floor', '${property.floorNo ?? "N/A"} / ${property.totalFloor ?? "N/A"}'),
-                          _buildDetailRow('Property Age', '${property.ageOfProperty ?? "N/A"} years'),
-                          _buildDetailRow('Furnishing', property.furnishingTypeName ?? 'None'),
-                          _buildDetailRow('Facing', property.facingTypeName ?? 'N/A'),
-                          _buildDetailRow('Parking', _getParkingDisplay(property.parking)),
-                        ]),
+                        _buildResponsiveDetailCard(context, 'Specifications & Floor Details', specsItems),
                         const SizedBox(height: CRMSpacing.m),
-                        _buildDetailCard(context, 'Location & Address', [
-                          _buildDetailRow('City', property.cityName),
-                          _buildDetailRow('Area', property.areaName),
-                          _buildDetailRow('Address', property.address),
-                          _buildDetailRow('Landmark', property.landmark ?? 'N/A'),
-                          _buildDetailRow('Coordinates', property.latitude != null && property.longitude != null 
-                              ? '${property.latitude!.toStringAsFixed(5)}, ${property.longitude!.toStringAsFixed(5)}'
-                              : 'N/A'),
-                        ]),
+                        _buildResponsiveDetailCard(context, 'Location & Address', locationItems),
                         const SizedBox(height: CRMSpacing.m),
-                        _buildDetailCard(context, 'Contacts & Key Management', [
-                          _buildDetailRow('Ownership', property.ownershipTypeName ?? 'N/A'),
-                          _buildDetailRow('Owner Name', property.ownerName),
-                          _buildDetailRow('Owner Mobile', property.ownerMobile),
-                          _buildDetailRow('Reffer / Key Collect', property.brokerName ?? 'N/A'),
-                          _buildDetailRow('Brokerage Type', property.brokerageTypeName ?? 'N/A'),
-                        ]),
+                        _buildResponsiveDetailCard(context, 'Contacts & Key Management', contactsItems),
                       ] else ...[
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,39 +266,9 @@ class BuildPropertyDetailWidget extends StatelessWidget {
                             Expanded(
                               child: Column(
                                 children: [
-                                  _buildDetailCard(context, 'Basic Details', [
-                                    _buildDetailRow('Listing Type', property.listingTypeName),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Category', property.categoryName),
-                                      _buildDetailRow('Property Type', property.propertyTypeName),
-                                    ]),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Configuration', property.configurationName ?? 'N/A'),
-                                      _buildDetailRow('Status', property.statusDisplayName),
-                                    ]),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Price', '₹${property.price.toStringAsFixed(0)}'),
-                                      _buildDetailRow('Deposit', '₹${property.deposit.toStringAsFixed(0)}'),
-                                    ]),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Maintenance', '₹${property.maintenance.toStringAsFixed(0)}'),
-                                      _buildDetailRow('Verification', property.isVerified ? 'Verified' : 'Pending Verification'),
-                                    ]),
-                                  ]),
+                                  _buildResponsiveDetailCard(context, 'Basic Details', basicItems),
                                   const SizedBox(height: CRMSpacing.m),
-                                  _buildDetailCard(context, 'Location & Address', [
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('City', property.cityName),
-                                      _buildDetailRow('Area', property.areaName),
-                                    ]),
-                                    _buildDetailRow('Address', property.address),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Landmark', property.landmark ?? 'N/A'),
-                                      _buildDetailRow('Coordinates', property.latitude != null && property.longitude != null 
-                                          ? '${property.latitude!.toStringAsFixed(5)}, ${property.longitude!.toStringAsFixed(5)}'
-                                          : 'N/A'),
-                                    ]),
-                                  ]),
+                                  _buildResponsiveDetailCard(context, 'Location & Address', locationItems),
                                 ],
                               ),
                             ),
@@ -219,36 +276,9 @@ class BuildPropertyDetailWidget extends StatelessWidget {
                             Expanded(
                               child: Column(
                                 children: [
-                                  _buildDetailCard(context, 'Specifications & Floor Details', [
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Bedrooms', '${property.bedrooms} BHK'),
-                                      _buildDetailRow('Bathrooms', '${property.bathrooms}'),
-                                    ]),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Balconies', '${property.balconies}'),
-                                      _buildDetailRow('Floor', '${property.floorNo ?? "N/A"} / ${property.totalFloor ?? "N/A"}'),
-                                    ]),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Property Age', '${property.ageOfProperty ?? "N/A"} years'),
-                                      _buildDetailRow('Furnishing', property.furnishingTypeName ?? 'None'),
-                                    ]),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Facing', property.facingTypeName ?? 'N/A'),
-                                      _buildDetailRow('Parking', _getParkingDisplay(property.parking)),
-                                    ]),
-                                  ]),
+                                  _buildResponsiveDetailCard(context, 'Specifications & Floor Details', specsItems),
                                   const SizedBox(height: CRMSpacing.m),
-                                  _buildDetailCard(context, 'Contacts & Key Management', [
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Ownership', property.ownershipTypeName ?? 'N/A'),
-                                      _buildDetailRow('Owner Name', property.ownerName),
-                                    ]),
-                                    _buildDetailCardRowHelper([
-                                      _buildDetailRow('Owner Mobile', property.ownerMobile),
-                                      _buildDetailRow('Reffer / Key Collect', property.brokerName ?? 'N/A'),
-                                    ]),
-                                    _buildDetailRow('Brokerage Type', property.brokerageTypeName ?? 'N/A'),
-                                  ]),
+                                  _buildResponsiveDetailCard(context, 'Contacts & Key Management', contactsItems),
                                 ],
                               ),
                             ),
@@ -257,14 +287,8 @@ class BuildPropertyDetailWidget extends StatelessWidget {
                       ],
                       const SizedBox(height: CRMSpacing.m),
                       
-                      // Description & Internal Remarks
-                      _buildDetailCard(context, 'Description & Internal Remarks', [
-                        _buildTextSection('Description', property.description ?? 'No description provided.'),
-                        const SizedBox(height: CRMSpacing.m),
-                        _buildTextSection('Operational CRM Remarks', property.remarks ?? 'No internal remarks.'),
-                        const SizedBox(height: CRMSpacing.m),
-                        _buildAmenitiesSection('Amenities', property.amenities),
-                      ]),
+                      // Description, CRM Remarks & Amenities (only rendered if filled)
+                      _buildDescriptionCard(context, property),
                     ],
                   ),
                 ),
@@ -634,60 +658,78 @@ class _CRMImageZoomViewerState extends State<CRMImageZoomViewer> {
   }
 }
 
-Widget _buildDetailCard(BuildContext context, String title, List<Widget> children) {
-  return CRMCard(
-    padding: const EdgeInsets.all(CRMSpacing.m),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: CRMSpacing.s),
-        Divider(color: CRMColors.border),
-        const SizedBox(height: CRMSpacing.s),
-        ...children,
-      ],
-    ),
-  );
+class PropertyDetailItem {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  PropertyDetailItem(this.label, this.value, this.icon);
 }
 
-Widget _buildDetailCardRowHelper(List<Widget> children) {
-  return IntrinsicHeight(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (int i = 0; i < children.length; i++) ...[
-          Expanded(child: children[i]),
-          if (i < children.length - 1) ...[
-            const SizedBox(width: CRMSpacing.m),
-            VerticalDivider(color: CRMColors.border, width: 1, thickness: 1),
-            const SizedBox(width: CRMSpacing.m),
+bool _isValidValue(String? value) {
+  if (value == null) return false;
+  final val = value.trim();
+  if (val.isEmpty || val.toLowerCase() == 'n/a' || val.toLowerCase() == 'none' || val.toLowerCase() == 'null' || val.toLowerCase() == 'pending verification') {
+    return false;
+  }
+  return true;
+}
+
+Widget _buildResponsiveDetailCard(BuildContext context, String title, List<PropertyDetailItem> items) {
+  if (items.isEmpty) return const SizedBox.shrink();
+
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final int cols = constraints.maxWidth > 500 ? 2 : 1;
+      final double itemWidth = cols == 2 ? (constraints.maxWidth - CRMSpacing.m) / 2 : constraints.maxWidth;
+
+      return CRMCard(
+        padding: const EdgeInsets.all(CRMSpacing.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: CRMSpacing.s),
+            Divider(color: CRMColors.border),
+            const SizedBox(height: CRMSpacing.s),
+            Wrap(
+              spacing: CRMSpacing.m,
+              runSpacing: CRMSpacing.s,
+              children: items.map((item) {
+                return SizedBox(
+                  width: itemWidth,
+                  child: _buildDetailRow(context, item.label, item.value, item.icon),
+                );
+              }).toList(),
+            ),
           ],
-        ],
-      ],
-    ),
+        ),
+      );
+    },
   );
 }
 
-Widget _buildDetailRow(String label, String value) {
+Widget _buildDetailRow(BuildContext context, String label, String value, IconData icon) {
   return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6.0),
+    padding: const EdgeInsets.symmetric(vertical: 4.0),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Icon(icon, size: 16, color: CRMColors.textSecondaryOf(context)),
+        const SizedBox(width: 8),
         Text(
           label,
-          style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary),
+          style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondaryOf(context)),
         ),
-        const SizedBox(width: CRMSpacing.m),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             value,
             textAlign: TextAlign.end,
-            style: CRMTypography.body.copyWith(color: CRMColors.text, fontWeight: FontWeight.w600),
+            style: CRMTypography.body.copyWith(color: CRMColors.textOf(context), fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -695,53 +737,82 @@ Widget _buildDetailRow(String label, String value) {
   );
 }
 
-Widget _buildTextSection(String label, String content) {
+Widget _buildDescriptionCard(BuildContext context, PropertyModel p) {
+  final hasDesc = _isValidValue(p.description);
+  final hasRemarks = _isValidValue(p.remarks);
+  final hasAmenities = p.amenities.isNotEmpty;
+
+  if (!hasDesc && !hasRemarks && !hasAmenities) return const SizedBox.shrink();
+
+  return CRMCard(
+    padding: const EdgeInsets.all(CRMSpacing.m),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Description & Remarks',
+          style: CRMTypography.bodyMedium.copyWith(color: CRMColors.primary, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: CRMSpacing.s),
+        Divider(color: CRMColors.border),
+        const SizedBox(height: CRMSpacing.s),
+        if (hasDesc) ...[
+          _buildTextSection(context, 'Description', p.description!),
+          const SizedBox(height: CRMSpacing.m),
+        ],
+        if (hasRemarks) ...[
+          _buildTextSection(context, 'Operational CRM Remarks', p.remarks!),
+          const SizedBox(height: CRMSpacing.m),
+        ],
+        if (hasAmenities) ...[
+          _buildAmenitiesSection(context, 'Amenities', p.amenities),
+        ],
+      ],
+    ),
+  );
+}
+
+Widget _buildTextSection(BuildContext context, String label, String content) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
         label,
-        style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
+        style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondaryOf(context)),
       ),
       const SizedBox(height: CRMSpacing.xs),
       Text(
         content,
-        style: CRMTypography.body.copyWith(color: CRMColors.text),
+        style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)),
       ),
     ],
   );
 }
 
-Widget _buildAmenitiesSection(String label, List<String> amenities) {
+Widget _buildAmenitiesSection(BuildContext context, String label, List<String> amenities) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
         label,
-        style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
+        style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondaryOf(context)),
       ),
       const SizedBox(height: CRMSpacing.xs),
-      if (amenities.isEmpty)
-        Text(
-          'No amenities selected.',
-          style: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-        )
-      else
-        Wrap(
-          spacing: CRMSpacing.s,
-          runSpacing: CRMSpacing.xs,
-          children: amenities.map((am) {
-            return Chip(
-              label: Text(
-                am,
-                style: CRMTypography.bodyMedium.copyWith(color: CRMColors.text),
-              ),
-              backgroundColor: CRMColors.primary.withOpacity(0.08),
-              side: BorderSide(color: CRMColors.primary.withOpacity(0.2)),
-              padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: 0),
-            );
-          }).toList(),
-        ),
+      Wrap(
+        spacing: CRMSpacing.s,
+        runSpacing: CRMSpacing.xs,
+        children: amenities.map((am) {
+          return Chip(
+            label: Text(
+              am,
+              style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context)),
+            ),
+            backgroundColor: CRMColors.primary.withOpacity(0.08),
+            side: BorderSide(color: CRMColors.primary.withOpacity(0.2)),
+            padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.s, vertical: 0),
+          );
+        }).toList(),
+      ),
     ],
   );
 }

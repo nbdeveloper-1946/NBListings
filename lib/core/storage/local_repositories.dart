@@ -248,6 +248,7 @@ class RequirementLocalRepository {
   Future<List<RequirementLocal>> getRequirements({
     String? search,
     String? configurationId,
+    String? propertyTypeId,
     String? status,
   }) async {
     if (kIsWeb) {
@@ -261,6 +262,7 @@ class RequirementLocalRepository {
         ).toList();
       }
       if (configurationId != null) list = list.where((r) => r.configurationId == configurationId).toList();
+      if (propertyTypeId != null) list = list.where((r) => r.propertyTypeId == propertyTypeId).toList();
       if (status != null && status != 'All') list = list.where((r) => r.status == status).toList();
       return list;
     }
@@ -278,6 +280,7 @@ class RequirementLocalRepository {
       );
     }
     if (configurationId != null) filtered = filtered.and().configurationIdEqualTo(configurationId);
+    if (propertyTypeId != null) filtered = filtered.and().propertyTypeIdEqualTo(propertyTypeId);
     if (status != null && status != 'All') filtered = filtered.and().statusEqualTo(status);
 
     return await filtered.sortByCreatedAtDesc().findAll();

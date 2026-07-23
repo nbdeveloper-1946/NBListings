@@ -42,10 +42,29 @@ class CRMPhoneField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMutedOf(context)),
-            prefixText: '+91 ',
-            prefixStyle: CRMTypography.body.copyWith(
-              color: CRMColors.textOf(context),
-              fontWeight: FontWeight.bold,
+            prefixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(width: CRMSpacing.m),
+                Text(
+                  '+91',
+                  style: CRMTypography.body.copyWith(
+                    color: CRMColors.textOf(context),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: CRMSpacing.s),
+                Container(
+                  width: 1,
+                  height: 16,
+                  color: CRMColors.borderOf(context).withOpacity(0.5),
+                ),
+                const SizedBox(width: CRMSpacing.s),
+              ],
+            ),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 0,
+              minHeight: 0,
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: CRMSpacing.m,

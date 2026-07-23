@@ -42,6 +42,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   String? _selectedCategoryId;
   String? _selectedTypeId;
   String? _selectedConfigId;
+  final List<String> _selectedConfigIds = [];
   String? _selectedListingTypeId;
   String _selectedStatus = "Not Started";
   final List<String> _selectedAreaIds = [];
@@ -111,6 +112,10 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
           _selectedCategoryId = req.categoryId;
           _selectedTypeId = req.propertyTypeId;
           _selectedConfigId = req.configurationId;
+          _selectedConfigIds.addAll(req.configurationIds);
+          if (_selectedConfigIds.isEmpty && req.configurationId != null) {
+            _selectedConfigIds.add(req.configurationId!);
+          }
           _selectedListingTypeId = req.listingTypeId;
           
           String statusVal = req.status;
@@ -140,6 +145,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       'category_id': _selectedCategoryId,
       'property_type_id': _selectedTypeId,
       'configuration_id': _selectedConfigId,
+      'configuration_ids': _selectedConfigIds,
       'listing_type_id': _selectedListingTypeId,
       'budget': _budgetController.text,
       'minArea': _minAreaController.text,
@@ -178,6 +184,9 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
                   _selectedCategoryId = draft['category_id'];
                   _selectedTypeId = draft['property_type_id'];
                   _selectedConfigId = draft['configuration_id'];
+                  final List<String> configs = List<String>.from(draft['configuration_ids'] ?? []);
+                  _selectedConfigIds.clear();
+                  _selectedConfigIds.addAll(configs);
                   _selectedListingTypeId = draft['listing_type_id'];
                   _budgetController.text = draft['budget'] ?? '';
                   _minAreaController.text = draft['minArea'] ?? '';
@@ -274,13 +283,17 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
     
     if (newStatus == 'Not Interested' || newStatus == 'Bin') return true;
     
+    // Map legacy status strings to new pipeline statuses for backward compatibility
+    String mappedCurrent = currentStatus;
+    if (mappedCurrent == 'Active' || mappedCurrent == 'Live') mappedCurrent = 'Interested';
+    
     final steps = ['Not Started', 'Interested', 'Follow-up', 'Site Visit', 'Negotiation', 'Won'];
-    final currentIndex = steps.indexOf(currentStatus);
+    final currentIndex = steps.indexOf(mappedCurrent);
     final newIndex = steps.indexOf(newStatus);
     
     if (currentIndex == -1 || newIndex == -1) return true;
     
-    if (newIndex <= currentIndex + 1) {
+    if (newIndex <= currentIndex + 1 || (mappedCurrent == 'Interested' && newStatus == 'Site Visit')) {
       return true;
     }
     
@@ -342,10 +355,10 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       (t) => t.id == _selectedTypeId,
       orElse: () => LookupItem(id: '', name: 'N/A'),
     );
-    final config = _configurations.firstWhere(
-      (c) => c.id == _selectedConfigId,
-      orElse: () => LookupItem(id: '', name: 'N/A'),
-    );
+    final configNames = _selectedConfigIds.map((id) {
+      final match = _configurations.firstWhere((c) => c.id == id, orElse: () => LookupItem(id: id, name: id));
+      return match.name;
+    }).toList();
     final listingType = _listingTypes.firstWhere(
       (lt) => lt.id == _selectedListingTypeId,
       orElse: () => LookupItem(id: '', name: 'N/A'),
@@ -369,7 +382,8 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       propertyTypeId: _selectedTypeId ?? '',
       propertyTypeName: type.name,
       configurationId: _selectedConfigId,
-      configurationName: config.id.isNotEmpty ? config.name : null,
+      configurationIds: _selectedConfigIds,
+      configurationName: configNames.isNotEmpty ? configNames.join(', ') : null,
       listingTypeId: _selectedListingTypeId,
       listingTypeName: listingType.id.isNotEmpty ? listingType.name : null,
       minBudget: minBudget,
@@ -461,6 +475,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
       _selectedTypeId = filteredTypes.isNotEmpty ? filteredTypes.first.id : null;
     }
     final filteredConfigs = _getFilteredConfigs();
+    _selectedConfigIds.retainWhere((id) => filteredConfigs.any((c) => c.id == id));
     if (_selectedConfigId != null && !filteredConfigs.any((c) => c.id == _selectedConfigId)) {
       _selectedConfigId = null;
     }
@@ -809,9 +824,10 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
             value: _selectedCategoryId,
             items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
             onChanged: (val) => setState(() {
-              _selectedCategoryId = val;
+               _selectedCategoryId = val;
               _selectedTypeId = null;
               _selectedConfigId = null;
+              _selectedConfigIds.clear();
             }),
           ),
           const SizedBox(height: CRMSpacing.m),
@@ -823,14 +839,35 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
           ),
           const SizedBox(height: CRMSpacing.m),
           if (filteredConfigs.isNotEmpty) ...[
-            _buildDropdown(
-              label: 'Configuration',
-              value: _selectedConfigId,
-              items: [
-                const DropdownMenuItem(value: null, child: Text("None")),
-                ...filteredConfigs.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-              ],
-              onChanged: (val) => setState(() => _selectedConfigId = val),
+            const SizedBox(height: CRMSpacing.m),
+            Text("Configuration", style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondaryOf(context))),
+            const SizedBox(height: CRMSpacing.xs),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: filteredConfigs.map((c) {
+                final isSelected = _selectedConfigIds.contains(c.id);
+                return FilterChip(
+                  label: Text(c.name),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        _selectedConfigIds.add(c.id);
+                      } else {
+                        _selectedConfigIds.remove(c.id);
+                      }
+                      _selectedConfigId = _selectedConfigIds.firstOrNull;
+                    });
+                  },
+                  selectedColor: CRMColors.primaryOf(context).withOpacity(0.18),
+                  checkmarkColor: CRMColors.primaryOf(context),
+                  labelStyle: TextStyle(
+                    color: isSelected ? CRMColors.primaryOf(context) : CRMColors.textOf(context),
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                );
+              }).toList(),
             ),
           ],
         ],
@@ -970,7 +1007,11 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
   Widget _buildStep7Review() {
     final cat = _categories.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => LookupItem(id: '', name: 'None'));
     final type = _types.firstWhere((t) => t.id == _selectedTypeId, orElse: () => LookupItem(id: '', name: 'None'));
-    final config = _configurations.firstWhere((c) => c.id == _selectedConfigId, orElse: () => LookupItem(id: '', name: 'None'));
+    final configNames = _selectedConfigIds.map((id) {
+      final match = _configurations.firstWhere((c) => c.id == id, orElse: () => LookupItem(id: id, name: id));
+      return match.name;
+    }).toList();
+    final configDisplayStr = configNames.isNotEmpty ? configNames.join(', ') : 'None';
     
     // Completeness score mock check for review
     double comp = 0.0;
@@ -978,16 +1019,16 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
     if (_mobileController.text.isNotEmpty) comp += 0.15;
     if (_selectedCategoryId != null) comp += 0.15;
     if (_selectedTypeId != null) comp += 0.10;
-    if (_selectedConfigId != null) comp += 0.10;
+    if (_selectedConfigIds.isNotEmpty) comp += 0.10;
     if (_selectedAreaIds.isNotEmpty) comp += 0.15;
     if (_budgetController.text.isNotEmpty) comp += 0.20;
 
     final readiness = (_selectedCategoryId != null && _budgetController.text.isNotEmpty && _selectedAreaIds.isNotEmpty)
-        ? (_selectedConfigId != null ? 'Ready' : 'Needs Information')
+        ? (_selectedConfigIds.isNotEmpty ? 'Ready' : 'Needs Information')
         : 'Cannot Match';
 
     final List<String> warnings = [];
-    if (_selectedConfigId == null) warnings.add("Missing Configuration");
+    if (_selectedConfigIds.isEmpty) warnings.add("Missing Configuration");
     if (_budgetController.text.isEmpty) warnings.add("Missing Budget");
     if (_selectedAreaIds.isEmpty) warnings.add("Missing Target Area");
 
@@ -1061,7 +1102,7 @@ class _AddEditRequirementScreenState extends State<AddEditRequirementScreen> {
           _buildSummaryRow("Mobile", _mobileController.text),
           _buildSummaryRow("Category", cat.name),
           _buildSummaryRow("Property Type", type.name),
-          _buildSummaryRow("Configuration", config.name),
+          _buildSummaryRow("Configuration", configDisplayStr),
           _buildSummaryRow("Target Areas", "${_selectedAreaIds.length} Selected"),
           _buildSummaryRow("Budget", _budgetController.text),
           _buildSummaryRow("Pipeline Status", _selectedStatus),

@@ -18,6 +18,7 @@ class RequirementsRepository {
   Future<List<RequirementModel>> getRequirements({
     String? search,
     String? configurationId,
+    String? propertyTypeId,
     String? status,
     String? listingTypeId,
   }) async {
@@ -26,6 +27,7 @@ class RequirementsRepository {
     final localList = await _coordinator.requirementLocal.getRequirements(
       search: search,
       configurationId: configurationId,
+      propertyTypeId: propertyTypeId,
       status: status,
     );
     final isarReadMs = DateTime.now().difference(start).inMilliseconds;
@@ -48,6 +50,7 @@ class RequirementsRepository {
     _triggerBackgroundRequirementsRefresh(
       search: search,
       configurationId: configurationId,
+      propertyTypeId: propertyTypeId,
       status: status,
       listingTypeId: listingTypeId,
     );
@@ -58,6 +61,7 @@ class RequirementsRepository {
   void _triggerBackgroundRequirementsRefresh({
     String? search,
     String? configurationId,
+    String? propertyTypeId,
     String? status,
     String? listingTypeId,
   }) {
@@ -65,6 +69,7 @@ class RequirementsRepository {
     _requirementsService.getRequirements(
       search: search,
       configurationId: configurationId,
+      propertyTypeId: propertyTypeId,
       status: status,
       listingTypeId: listingTypeId,
     ).then((response) async {

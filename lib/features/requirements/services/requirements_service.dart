@@ -8,6 +8,7 @@ class RequirementsService {
   Future<Map<String, dynamic>> getRequirements({
     String? search,
     String? configurationId,
+    String? propertyTypeId,
     String? status,
     String? listingTypeId,
   }) async {
@@ -18,6 +19,11 @@ class RequirementsService {
       }
       if (configurationId != null && configurationId.isNotEmpty) {
         queryParameters['configurationId'] = configurationId;
+        queryParameters['configuration_id'] = configurationId;
+      }
+      if (propertyTypeId != null && propertyTypeId.isNotEmpty) {
+        queryParameters['propertyTypeId'] = propertyTypeId;
+        queryParameters['property_type_id'] = propertyTypeId;
       }
       if (status != null && status != 'All') {
         queryParameters['status'] = status;

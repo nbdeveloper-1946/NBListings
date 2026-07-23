@@ -35,15 +35,95 @@ class DashboardRepository {
     // Trigger async background refresh
     _triggerBackgroundDashboardRefresh();
 
+    // Get the dynamic counts of requirements to ensure they are always correct and in sync
+    final localReqs = await _coordinator.requirementLocal.getRequirements();
+    int rentalReqs = 0;
+    int resaleReqs = 0;
+    for (final item in localReqs) {
+      if (item.status == 'Bin') continue;
+
+      final name = item.listingTypeName ?? '';
+      final id = item.listingTypeId ?? '';
+      final combined = '$name $id'.toLowerCase();
+      if (combined.contains('rent')) {
+        rentalReqs++;
+      } else if (combined.contains('sale') || combined.contains('resale')) {
+        resaleReqs++;
+      }
+    }
+
     if (cachedData != null) {
-      return cachedData;
+      final updatedSummary = DashboardSummary(
+        totalProperties: cachedData.summary.totalProperties,
+        available: cachedData.summary.available,
+        sold: cachedData.summary.sold,
+        rented: cachedData.summary.rented,
+        requirements: rentalReqs + resaleReqs,
+        users: cachedData.summary.users,
+        rentalAvailable: cachedData.summary.rentalAvailable,
+        resaleAvailable: cachedData.summary.resaleAvailable,
+        rentalRented: cachedData.summary.rentalRented,
+        resaleSold: cachedData.summary.resaleSold,
+        rentalRequirements: rentalReqs,
+        resaleRequirements: resaleReqs,
+        totalPropertiesTrend: cachedData.summary.totalPropertiesTrend,
+        availableTrend: cachedData.summary.availableTrend,
+        soldTrend: cachedData.summary.soldTrend,
+        rentedTrend: cachedData.summary.rentedTrend,
+        requirementsTrend: cachedData.summary.requirementsTrend,
+        topBroker: cachedData.summary.topBroker,
+        topArea: cachedData.summary.topArea,
+        topProperty: cachedData.summary.topProperty,
+        monthlyGrowth: cachedData.summary.monthlyGrowth,
+      );
+
+      return DashboardData(
+        summary: updatedSummary,
+        activity: cachedData.activity,
+        recentProperties: cachedData.recentProperties,
+        checklist: cachedData.checklist,
+        followups: cachedData.followups,
+        siteVisits: cachedData.siteVisits,
+      );
     }
 
     // Fallback if cache is completely empty on first launch
     final data = await _dashboardService.getDashboardData();
     final model = DashboardData.fromJson(data);
     await _coordinator.dashboardLocal.saveDashboard(model.toLocal());
-    return model;
+
+    final updatedSummary = DashboardSummary(
+      totalProperties: model.summary.totalProperties,
+      available: model.summary.available,
+      sold: model.summary.sold,
+      rented: model.summary.rented,
+      requirements: rentalReqs + resaleReqs,
+      users: model.summary.users,
+      rentalAvailable: model.summary.rentalAvailable,
+      resaleAvailable: model.summary.resaleAvailable,
+      rentalRented: model.summary.rentalRented,
+      resaleSold: model.summary.resaleSold,
+      rentalRequirements: rentalReqs,
+      resaleRequirements: resaleReqs,
+      totalPropertiesTrend: model.summary.totalPropertiesTrend,
+      availableTrend: model.summary.availableTrend,
+      soldTrend: model.summary.soldTrend,
+      rentedTrend: model.summary.rentedTrend,
+      requirementsTrend: model.summary.requirementsTrend,
+      topBroker: model.summary.topBroker,
+      topArea: model.summary.topArea,
+      topProperty: model.summary.topProperty,
+      monthlyGrowth: model.summary.monthlyGrowth,
+    );
+
+    return DashboardData(
+      summary: updatedSummary,
+      activity: model.activity,
+      recentProperties: model.recentProperties,
+      checklist: model.checklist,
+      followups: model.followups,
+      siteVisits: model.siteVisits,
+    );
   }
 
   void _triggerBackgroundDashboardRefresh() {

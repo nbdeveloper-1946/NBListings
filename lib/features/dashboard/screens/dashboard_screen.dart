@@ -1202,113 +1202,116 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : [];
 
     final dateStr = DateFormat('dd/MM/yyyy').format(_selectedFollowupDate);
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 600;
+
+    final Widget actionButtons = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Container(
+          height: 32,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: CRMColors.backgroundOf(context),
+            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+            border: Border.all(color: CRMColors.borderOf(context)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () => setState(() {
+                  _activeFollowupSection = 'Follow-ups';
+                  _followupPage = 1;
+                }),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _activeFollowupSection == 'Follow-ups' ? CRMColors.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                  ),
+                  child: Text(
+                    'Follow-ups',
+                    style: TextStyle(
+                      color: _activeFollowupSection == 'Follow-ups' ? Colors.white : CRMColors.textSecondaryOf(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              GestureDetector(
+                onTap: () => setState(() {
+                  _activeFollowupSection = 'Site Visits';
+                  _followupPage = 1;
+                }),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _activeFollowupSection == 'Site Visits' ? CRMColors.primary : Colors.transparent,
+                    borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
+                  ),
+                  child: Text(
+                    'Site Visits',
+                    style: TextStyle(
+                      color: _activeFollowupSection == 'Site Visits' ? Colors.white : CRMColors.textSecondaryOf(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              dateStr,
+              style: CRMTypography.captionBold.copyWith(color: CRMColors.primary),
+            ),
+            IconButton(
+              icon: Icon(Icons.calendar_today_rounded, color: CRMColors.primary, size: 18),
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedFollowupDate,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2030),
+                );
+                if (picked != null) {
+                  setState(() {
+                    _selectedFollowupDate = picked;
+                    _followupPage = 1;
+                  });
+                }
+              },
+              tooltip: 'Filter by Date',
+            ),
+          ],
+        ),
+      ],
+    );
 
     return CRMCard(
       title: isSiteVisitsTab ? "Site Visits" : "Upcoming Follow-ups",
       subtitle: isSiteVisitsTab
           ? 'Scheduled property site visits and client meetings'
           : 'Schedule of communications and client appointments',
-      headerAction: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 32,
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: CRMColors.backgroundOf(context),
-              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              border: Border.all(color: CRMColors.borderOf(context)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: () => setState(() {
-                    _activeFollowupSection = 'Follow-ups';
-                    _followupPage = 1;
-                  }),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _activeFollowupSection == 'Follow-ups' ? CRMColors.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                    ),
-                    child: Text(
-                      'Follow-ups',
-                      style: TextStyle(
-                        color: _activeFollowupSection == 'Follow-ups' ? Colors.white : CRMColors.textSecondaryOf(context),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 2),
-                GestureDetector(
-                  onTap: () => setState(() {
-                    _activeFollowupSection = 'Site Visits';
-                    _followupPage = 1;
-                  }),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _activeFollowupSection == 'Site Visits' ? CRMColors.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
-                    ),
-                    child: Text(
-                      'Site Visits',
-                      style: TextStyle(
-                        color: _activeFollowupSection == 'Site Visits' ? Colors.white : CRMColors.textSecondaryOf(context),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            dateStr,
-            style: CRMTypography.captionBold.copyWith(color: CRMColors.primary),
-          ),
-          IconButton(
-            icon: Icon(Icons.calendar_today_rounded, color: CRMColors.primary, size: 18),
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _selectedFollowupDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2030),
-              );
-              if (picked != null) {
-                setState(() {
-                  _selectedFollowupDate = picked;
-                  _followupPage = 1;
-                });
-              }
-            },
-            tooltip: 'Filter by Date',
-          ),
-        ],
-      ),
+      headerAction: isMobile ? null : actionButtons,
       child: Padding(
         padding: const EdgeInsets.only(top: CRMSpacing.m),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (!isSiteVisitsTab) ...[
-              SizedBox(
-                width: double.infinity,
-                child: CRMButton(
-                  label: "Create Follow-up",
-                  prefixIcon: Icons.add_circle_outline_rounded,
-                  onPressed: _showCreateFollowupDialog,
-                ),
-              ),
+            if (isMobile) ...[
+              actionButtons,
               const SizedBox(height: CRMSpacing.m),
             ],
+
             pageItems.isEmpty
                 ? Center(
                     child: Padding(
