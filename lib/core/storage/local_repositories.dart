@@ -671,3 +671,65 @@ class DashboardLocalRepository {
     });
   }
 }
+
+class ClientLocalRepository {
+  Isar get _isar => IsarService().isar;
+
+  static final Map<String, ClientLocal> inMemory = {};
+
+  Future<List<ClientLocal>> getClients({String? search, String? stage, String? source}) async {
+    if (kIsWeb) {
+      var list = inMemory.values.toList();
+      if (search != null && search.isNotEmpty) {
+        final query = search.toLowerCase();
+        list = list.where((c) => c.name.toLowerCase().contains(query) || c.mobile.contains(query) || c.email.toLowerCase().contains(query)).toList();
+      }
+      if (stage != null && stage != 'All') {
+        list = list.where((c) => c.stage == stage).toList();
+      }
+      if (source != null && source != 'All') {
+        list = list.where((c) => c.source == source).toList();
+      }
+      return list;
+    }
+
+    final all = await _isar.clientLocals.where().findAll();
+    var list = all;
+    if (search != null && search.isNotEmpty) {
+      final query = search.toLowerCase();
+      list = list.where((c) => c.name.toLowerCase().contains(query) || c.mobile.contains(query) || c.email.toLowerCase().contains(query)).toList();
+    }
+    if (stage != null && stage != 'All') {
+      list = list.where((c) => c.stage == stage).toList();
+    }
+    if (source != null && source != 'All') {
+      list = list.where((c) => c.source == source).toList();
+    }
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
+  Future<void> saveClients(List<ClientLocal> clients) async {
+    if (kIsWeb) {
+      for (final c in clients) {
+        inMemory[c.id] = c;
+      }
+      return;
+    }
+
+    await _isar.writeTxn(() async {
+      await _isar.clientLocals.putAll(clients);
+    });
+  }
+
+  Future<void> deleteClient(String id) async {
+    if (kIsWeb) {
+      inMemory.remove(id);
+      return;
+    }
+
+    await _isar.writeTxn(() async {
+      await _isar.clientLocals.filter().idEqualTo(id).deleteAll();
+    });
+  }
+}

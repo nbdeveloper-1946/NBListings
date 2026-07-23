@@ -6,6 +6,13 @@ class DashboardSummary {
   final int requirements;
   final int users;
 
+  final int rentalAvailable;
+  final int resaleAvailable;
+  final int rentalRented;
+  final int resaleSold;
+  final int rentalRequirements;
+  final int resaleRequirements;
+
   final double totalPropertiesTrend;
   final double availableTrend;
   final double soldTrend;
@@ -24,6 +31,12 @@ class DashboardSummary {
     required this.rented,
     required this.requirements,
     required this.users,
+    this.rentalAvailable = 0,
+    this.resaleAvailable = 0,
+    this.rentalRented = 0,
+    this.resaleSold = 0,
+    this.rentalRequirements = 0,
+    this.resaleRequirements = 0,
     this.totalPropertiesTrend = 0.0,
     this.availableTrend = 0.0,
     this.soldTrend = 0.0,
@@ -46,6 +59,12 @@ class DashboardSummary {
       rented: json['rented'] ?? 0,
       requirements: json['requirements'] ?? 0,
       users: json['users'] ?? 0,
+      rentalAvailable: json['rentalAvailable'] ?? 0,
+      resaleAvailable: json['resaleAvailable'] ?? 0,
+      rentalRented: json['rentalRented'] ?? 0,
+      resaleSold: json['resaleSold'] ?? 0,
+      rentalRequirements: json['rentalRequirements'] ?? 0,
+      resaleRequirements: json['resaleRequirements'] ?? 0,
       totalPropertiesTrend: (trends['totalProperties'] ?? 0.0).toDouble(),
       availableTrend: (trends['available'] ?? 0.0).toDouble(),
       soldTrend: (trends['sold'] ?? 0.0).toDouble(),
@@ -96,6 +115,7 @@ class RecentProperty {
   final double price;
   final String status;
   final String areaName;
+  final String listingType;
   final String createdBy;
   final String createdAt;
 
@@ -107,6 +127,7 @@ class RecentProperty {
     required this.price,
     required this.status,
     required this.areaName,
+    required this.listingType,
     required this.createdBy,
     required this.createdAt,
   });
@@ -120,6 +141,7 @@ class RecentProperty {
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       status: json['status'] ?? 'N/A',
       areaName: json['areaName'] ?? 'N/A',
+      listingType: json['listingType'] ?? 'Sale',
       createdBy: json['createdBy'] ?? 'System',
       createdAt: json['createdAt'] ?? '',
     );

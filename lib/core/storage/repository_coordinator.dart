@@ -11,6 +11,7 @@ class RepositoryCoordinator {
   final FollowupLocalRepository followupLocal = FollowupLocalRepository();
   final BuilderLocalRepository builderLocal = BuilderLocalRepository();
   final OwnerLocalRepository ownerLocal = OwnerLocalRepository();
+  final ClientLocalRepository clientLocal = ClientLocalRepository();
   final LookupLocalRepository lookupLocal = LookupLocalRepository();
   final OutboxLocalRepository outboxLocal = OutboxLocalRepository();
   final DashboardLocalRepository dashboardLocal = DashboardLocalRepository();
@@ -21,6 +22,7 @@ class RepositoryCoordinator {
   final _dashboardController = StreamController<void>.broadcast();
   final _buildersController = StreamController<void>.broadcast();
   final _ownersController = StreamController<void>.broadcast();
+  final _clientsController = StreamController<void>.broadcast();
   final _lookupsController = StreamController<void>.broadcast();
 
   // Exposed Selectable Streams
@@ -29,6 +31,7 @@ class RepositoryCoordinator {
   Stream<void> get dashboardStream => _dashboardController.stream;
   Stream<void> get buildersStream => _buildersController.stream;
   Stream<void> get ownersStream => _ownersController.stream;
+  Stream<void> get clientsStream => _clientsController.stream;
   Stream<void> get lookupsStream => _lookupsController.stream;
 
   // Debouncing Timers
@@ -37,6 +40,7 @@ class RepositoryCoordinator {
   Timer? _dashboardTimer;
   Timer? _buildersTimer;
   Timer? _ownersTimer;
+  Timer? _clientsTimer;
   Timer? _lookupsTimer;
 
   // Typed Debounced Broadcasters
@@ -72,6 +76,13 @@ class RepositoryCoordinator {
     _ownersTimer?.cancel();
     _ownersTimer = Timer(const Duration(milliseconds: 300), () {
       _ownersController.add(null);
+    });
+  }
+
+  void refreshClients() {
+    _clientsTimer?.cancel();
+    _clientsTimer = Timer(const Duration(milliseconds: 300), () {
+      _clientsController.add(null);
     });
   }
 

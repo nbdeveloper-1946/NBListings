@@ -79,7 +79,6 @@ class _UsersScreenState extends State<UsersScreen> {
             status: _selectedStatus,
           ),
         );
-    _fetchPasswordResets();
   }
 
   void _showAddEditUserDialog([UserModel? user]) {

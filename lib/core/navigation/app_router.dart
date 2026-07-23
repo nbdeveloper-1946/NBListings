@@ -11,6 +11,7 @@ import '../../features/properties/bloc/properties_bloc.dart';
 import '../../features/users/screens/users_screen.dart';
 import '../../features/requirements/screens/requirements_screen.dart';
 import '../../features/clients/screens/clients_screen.dart';
+import '../../features/clients/screens/pipeline_screen.dart';
 import '../../features/owners/screens/owners_screen.dart';
 import '../../features/builders/screens/builders_screen.dart';
 import '../../splash.dart';
@@ -86,6 +87,10 @@ class AppRouter {
           GoRoute(
             path: '/clients',
             builder: (context, state) => const ClientsScreen(),
+          ),
+          GoRoute(
+            path: '/pipeline',
+            builder: (context, state) => const PipelineScreen(),
           ),
           GoRoute(
             path: '/owners',

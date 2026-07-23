@@ -1708,8 +1708,17 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                     OutlinedButton.icon(
                       icon: const Icon(Icons.share_rounded, size: 16),
                       label: const Text("Share"),
-                      onPressed: () {
-                        Share.share(generatedLink!);
+                      onPressed: () async {
+                        try {
+                          await Share.share(generatedLink!);
+                        } catch (e) {
+                          await Clipboard.setData(ClipboardData(text: generatedLink!));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Link copied to clipboard!")),
+                            );
+                          }
+                        }
                       },
                     ),
                   ],
@@ -2544,9 +2553,135 @@ class _CRMRequirementDetailDrawerState extends State<_CRMRequirementDetailDrawer
   }
 
   @override
+  Widget _buildShareHistoryTable() {
+    final req = widget.requirement;
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _error != null
+            ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+            : _sessions.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.share_rounded, size: 48, color: CRMColors.textMuted),
+                        const SizedBox(height: CRMSpacing.s),
+                        Text("No share sessions generated yet.", style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(context))),
+                      ],
+                    ),
+                  )
+                : SingleChildScrollView(
+                    child: CRMDataTable(
+                      columns: const [
+                        DataColumn(label: Text("Session")),
+                        DataColumn(label: Text("Date")),
+                        DataColumn(label: Text("Shared By")),
+                        DataColumn(label: Text("Properties")),
+                        DataColumn(label: Text("Views")),
+                        DataColumn(label: Text("Status")),
+                        DataColumn(label: Text("Actions")),
+                      ],
+                      rows: _sessions.asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final s = entry.value;
+                        final dateStr = s['created_at'] != null 
+                            ? DateFormat('dd-MM-yyyy').format(DateTime.parse(s['created_at'].toString()))
+                            : '-';
+                        final agentName = s['agent']?['full_name'] ?? '-';
+                        final status = s['status'] ?? 'Active';
+                        final link = "${AppConfig.publicShareBaseUrl}/${s['id']}";
+                        final agentMobile = s['agent']?['mobile'] ?? '';
+
+                        return DataRow(
+                          cells: [
+                            DataCell(Text("Share #${_sessions.length - idx}", style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context)))),
+                            DataCell(Text(dateStr, style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)))),
+                            DataCell(Text(agentName, style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)))),
+                            DataCell(Text("${s['total_properties'] ?? 0}", style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)))),
+                            DataCell(Text("${s['view_count'] ?? 0}", style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)))),
+                            DataCell(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: status == 'Active'
+                                      ? Colors.green.withValues(alpha: 0.1)
+                                      : status == 'Expired'
+                                          ? Colors.orange.withValues(alpha: 0.1)
+                                          : Colors.red.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  status,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: status == 'Active'
+                                        ? Colors.green
+                                        : status == 'Expired'
+                                            ? Colors.orange
+                                            : Colors.red,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.copy_rounded, size: 16),
+                                    tooltip: "Copy Link",
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(text: link));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Link copied to clipboard!")),
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                                    tooltip: "Open Link",
+                                    onPressed: () async {
+                                      final uri = Uri.parse(link);
+                                      if (await canLaunchUrl(uri)) {
+                                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                      }
+                                    },
+                                  ),
+                                  if (agentMobile.isNotEmpty)
+                                    IconButton(
+                                      icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Colors.green),
+                                      tooltip: "Re-share via WhatsApp",
+                                      onPressed: () async {
+                                        final text = Uri.encodeComponent("Hello, here is your shortlisted property collection: $link");
+                                        final url = "https://wa.me/?text=$text";
+                                        final uri = Uri.parse(url);
+                                        if (await canLaunchUrl(uri)) {
+                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        }
+                                      },
+                                    ),
+                                  if (status == 'Active')
+                                    IconButton(
+                                      icon: const Icon(Icons.block_rounded, size: 16, color: Colors.red),
+                                      tooltip: "Revoke Link",
+                                      onPressed: () => _revokeSession(s['id']),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  );
+  }
+
   Widget build(BuildContext context) {
     final req = widget.requirement;
     final budget = '₹${BudgetFormatter.format(req.minBudget)} - ₹${BudgetFormatter.format(req.maxBudget)}';
+    final width = MediaQuery.of(context).size.width;
+    final isDesktop = width >= 900;
 
     return Container(
       decoration: BoxDecoration(
@@ -2582,172 +2717,127 @@ class _CRMRequirementDetailDrawerState extends State<_CRMRequirementDetailDrawer
             ),
             const SizedBox(height: CRMSpacing.m),
 
-            // Requirements Details Box
-            CRMCard(
-              child: Padding(
-                padding: const EdgeInsets.all(CRMSpacing.m),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Client: ${req.clientName} (${req.clientMobile})", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context))),
-                    const SizedBox(height: CRMSpacing.s),
-                    Wrap(
-                      spacing: CRMSpacing.m,
-                      runSpacing: CRMSpacing.s,
+            Expanded(
+              child: isDesktop
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildInfoLabel("Code", req.requirementCode),
-                        _buildInfoLabel("Listing Type", getListingTypeLabel(req)),
-                        _buildInfoLabel("Specs", '${req.propertyTypeName} (${req.configurationName ?? "-"})'),
-                        _buildInfoLabel("Budget", budget),
-                        _buildInfoLabel("Target Areas", req.areaNames.join(', ')),
-                        _buildInfoLabel("Quality", req.requirementQuality),
-                        _buildInfoLabel("Readiness", req.matchingReadiness),
+                        // Left column: Info card & summary metrics
+                        Expanded(
+                          flex: 2,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                CRMCard(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(CRMSpacing.m),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Client: ${req.clientName} (${req.clientMobile})",
+                                          style: CRMTypography.bodyMedium.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: CRMColors.textOf(context),
+                                          ),
+                                        ),
+                                        const SizedBox(height: CRMSpacing.s),
+                                        _buildInfoLabel("Code", req.requirementCode),
+                                        const SizedBox(height: CRMSpacing.xs),
+                                        _buildInfoLabel("Listing Type", getListingTypeLabel(req)),
+                                        const SizedBox(height: CRMSpacing.xs),
+                                        _buildInfoLabel("Specs", '${req.propertyTypeName} (${req.configurationName ?? "-"})'),
+                                        const SizedBox(height: CRMSpacing.xs),
+                                        _buildInfoLabel("Budget", budget),
+                                        const SizedBox(height: CRMSpacing.xs),
+                                        _buildInfoLabel("Target Areas", req.areaNames.join(', ')),
+                                        const SizedBox(height: CRMSpacing.xs),
+                                        _buildInfoLabel("Quality", req.requirementQuality),
+                                        const SizedBox(height: CRMSpacing.xs),
+                                        _buildInfoLabel("Readiness", req.matchingReadiness),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: CRMSpacing.l),
+                                if (!_isLoading && _error == null) ...[
+                                  Row(
+                                    children: [
+                                      _buildSummaryMetric("Share Sessions", "$_totalSessions"),
+                                      const SizedBox(width: CRMSpacing.m),
+                                      _buildSummaryMetric("Properties Shared", "$_totalPropertiesShared"),
+                                    ],
+                                  ),
+                                  const SizedBox(height: CRMSpacing.m),
+                                  Row(
+                                    children: [
+                                      _buildSummaryMetric("Total Views", "$_totalViews"),
+                                      const SizedBox(width: CRMSpacing.m),
+                                      _buildSummaryMetric("Last Viewed", _lastViewed),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: CRMSpacing.l),
+                        // Right column: Share History Table
+                        Expanded(
+                          flex: 3,
+                          child: _buildShareHistoryTable(),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        CRMCard(
+                          child: Padding(
+                            padding: const EdgeInsets.all(CRMSpacing.m),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Client: ${req.clientName} (${req.clientMobile})", style: CRMTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold, color: CRMColors.textOf(context))),
+                                const SizedBox(height: CRMSpacing.s),
+                                Wrap(
+                                  spacing: CRMSpacing.m,
+                                  runSpacing: CRMSpacing.s,
+                                  children: [
+                                    _buildInfoLabel("Code", req.requirementCode),
+                                    _buildInfoLabel("Listing Type", getListingTypeLabel(req)),
+                                    _buildInfoLabel("Specs", '${req.propertyTypeName} (${req.configurationName ?? "-"})'),
+                                    _buildInfoLabel("Budget", budget),
+                                    _buildInfoLabel("Target Areas", req.areaNames.join(', ')),
+                                    _buildInfoLabel("Quality", req.requirementQuality),
+                                    _buildInfoLabel("Readiness", req.matchingReadiness),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: CRMSpacing.l),
+                        if (!_isLoading && _error == null) ...[
+                          Row(
+                            children: [
+                              _buildSummaryMetric("Share Sessions", "$_totalSessions"),
+                              const SizedBox(width: CRMSpacing.m),
+                              _buildSummaryMetric("Properties Shared", "$_totalPropertiesShared"),
+                              const SizedBox(width: CRMSpacing.m),
+                              _buildSummaryMetric("Total Views", "$_totalViews"),
+                              const SizedBox(width: CRMSpacing.m),
+                              _buildSummaryMetric("Last Viewed", _lastViewed),
+                            ],
+                          ),
+                          const SizedBox(height: CRMSpacing.l),
+                        ],
+                        Expanded(
+                          child: _buildShareHistoryTable(),
+                        ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: CRMSpacing.l),
-
-            // Summary metrics
-            if (!_isLoading && _error == null) ...[
-              Row(
-                children: [
-                  _buildSummaryMetric("Share Sessions", "$_totalSessions"),
-                  const SizedBox(width: CRMSpacing.m),
-                  _buildSummaryMetric("Properties Shared", "$_totalPropertiesShared"),
-                  const SizedBox(width: CRMSpacing.m),
-                  _buildSummaryMetric("Total Views", "$_totalViews"),
-                  const SizedBox(width: CRMSpacing.m),
-                  _buildSummaryMetric("Last Viewed", _lastViewed),
-                ],
-              ),
-              const SizedBox(height: CRMSpacing.l),
-            ],
-
-            // Share History Table
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                      ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-                      : _sessions.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.share_rounded, size: 48, color: CRMColors.textMuted),
-                                  const SizedBox(height: CRMSpacing.s),
-                                  Text("No share sessions generated yet.", style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(context))),
-                                ],
-                              ),
-                            )
-                          : SingleChildScrollView(
-                              child: CRMDataTable(
-                                columns: const [
-                                  DataColumn(label: Text("Session")),
-                                  DataColumn(label: Text("Date")),
-                                  DataColumn(label: Text("Shared By")),
-                                  DataColumn(label: Text("Properties")),
-                                  DataColumn(label: Text("Views")),
-                                  DataColumn(label: Text("Status")),
-                                  DataColumn(label: Text("Actions")),
-                                ],
-                                rows: _sessions.asMap().entries.map((entry) {
-                                  final idx = entry.key;
-                                  final s = entry.value;
-                                  final dateStr = s['created_at'] != null 
-                                      ? DateFormat('dd-MM-yyyy').format(DateTime.parse(s['created_at'].toString()))
-                                      : '-';
-                                  final agentName = s['agent']?['full_name'] ?? '-';
-                                  final status = s['status'] ?? 'Active';
-                                  final link = "${AppConfig.publicShareBaseUrl}/${s['id']}";
-                                  final agentMobile = s['agent']?['mobile'] ?? '';
-
-                                  return DataRow(
-                                    cells: [
-                                      DataCell(Text("Share #${_sessions.length - idx}", style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textOf(context)))),
-                                      DataCell(Text(dateStr, style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)))),
-                                      DataCell(Text(agentName, style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)))),
-                                      DataCell(Text("${s['total_properties'] ?? 0}", style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)))),
-                                      DataCell(Text("${s['view_count'] ?? 0}", style: CRMTypography.body.copyWith(color: CRMColors.textOf(context)))),
-                                      DataCell(
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: status == 'Active'
-                                                ? Colors.green.withValues(alpha: 0.1)
-                                                : status == 'Expired'
-                                                    ? Colors.orange.withValues(alpha: 0.1)
-                                                    : Colors.red.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            status,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: status == 'Active'
-                                                  ? Colors.green
-                                                  : status == 'Expired'
-                                                      ? Colors.orange
-                                                      : Colors.red,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.copy_rounded, size: 16),
-                                              tooltip: "Copy Link",
-                                              onPressed: () {
-                                                Clipboard.setData(ClipboardData(text: link));
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(content: Text("Link copied to clipboard!")),
-                                                );
-                                              },
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                                              tooltip: "Open Link",
-                                              onPressed: () async {
-                                                final uri = Uri.parse(link);
-                                                if (await canLaunchUrl(uri)) {
-                                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                                }
-                                              },
-                                            ),
-                                            if (agentMobile.isNotEmpty)
-                                              IconButton(
-                                                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Colors.green),
-                                                tooltip: "Re-share via WhatsApp",
-                                                onPressed: () async {
-                                                  final text = Uri.encodeComponent("Hello, here is your shortlisted property collection: $link");
-                                                  final url = "https://wa.me/?text=$text";
-                                                  final uri = Uri.parse(url);
-                                                  if (await canLaunchUrl(uri)) {
-                                                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                                  }
-                                                },
-                                              ),
-                                            if (status == 'Active')
-                                              IconButton(
-                                                icon: const Icon(Icons.block_rounded, size: 16, color: Colors.red),
-                                                tooltip: "Revoke Link",
-                                                onPressed: () => _revokeSession(s['id']),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                }).toList(),
-                              ),
-                            ),
             ),
           ],
         ),

@@ -850,18 +850,23 @@ class _CRMAppShellState extends State<CRMAppShell> {
   }
 
   Widget _buildSidebarContent(String currentPath, {bool isMobile = false, double? sidebarWidth}) {
-    final userState = context.read<AuthBloc>().state;
+    final userState = context.watch<AuthBloc>().state;
     String userEmail = 'broker@nbrealty.com';
     String userRole = 'Agent';
+    String userFullName = 'Broker';
+    String? userProfilePhoto;
     
     if (userState is Authenticated) {
       userEmail = userState.user.email;
       userRole = userState.user.role;
+      userFullName = userState.user.fullName;
+      userProfilePhoto = userState.user.profilePhoto;
     }
 
     final isExpanded = isMobile || (sidebarWidth == null ? _isSidebarExpanded : sidebarWidth > 200.0);
     final displayEmail = isExpanded ? userEmail : '';
     final displayRole = isExpanded ? userRole : '';
+    final displayFullName = isExpanded ? userFullName : '';
 
     return SafeArea(
       child: Column(
@@ -911,6 +916,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                 _buildSidebarItem(Icons.dashboard_rounded, 'Dashboard', '/dashboard', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.home_work_rounded, 'Properties', '/properties', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.assignment_rounded, 'Requirements', '/requirements', currentPath, isMobile, isExpanded),
+                _buildSidebarItem(Icons.view_kanban_rounded, 'Client Pipeline', '/pipeline', currentPath, isMobile, isExpanded),
                 if (userRole == 'Admin' || userRole == 'Super Admin')
                   _buildSidebarItem(Icons.people_outline_rounded, 'Employees', '/users', currentPath, isMobile, isExpanded),
                 _buildSidebarItem(Icons.settings_rounded, 'Settings', '/settings', currentPath, isMobile, isExpanded),
@@ -938,7 +944,12 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   },
                   child: CircleAvatar(
                     backgroundColor: CRMColors.primary.withValues(alpha: 0.1),
-                    child: Icon(Icons.person_outline_rounded, color: CRMColors.primary),
+                    backgroundImage: (userProfilePhoto != null && userProfilePhoto!.isNotEmpty)
+                        ? NetworkImage(userProfilePhoto!)
+                        : null,
+                    child: (userProfilePhoto != null && userProfilePhoto!.isNotEmpty)
+                        ? null
+                        : Icon(Icons.person_outline_rounded, color: CRMColors.primary),
                   ),
                 ),
                 if (isExpanded) ...[
@@ -958,13 +969,16 @@ class _CRMAppShellState extends State<CRMAppShell> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            displayEmail,
+                            displayFullName,
                             style: CRMTypography.captionBold.copyWith(color: CRMColors.text),
                             overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                           Text(
-                            displayRole,
-                            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                            '$displayRole • $displayEmail',
+                            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary, fontSize: 10),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ],
                       ),

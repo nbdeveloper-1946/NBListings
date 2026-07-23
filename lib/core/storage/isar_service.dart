@@ -41,6 +41,7 @@ class IsarService {
         FollowupLocalSchema,
         BuilderLocalSchema,
         OwnerLocalSchema,
+        ClientLocalSchema,
         OutboxLocalSchema,
         DashboardLocalSchema,
       ],

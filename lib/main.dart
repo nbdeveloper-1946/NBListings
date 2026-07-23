@@ -24,7 +24,11 @@ import 'core/storage/performance_logger.dart';
 import 'core/network/sync_manager.dart';
 import 'core/storage/repository_coordinator.dart';
 
+// ignore: depend_on_referenced_packages
+import 'package:flutter_web_plugins/url_strategy.dart';
+
 void main() async {
+  usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
   
   try {

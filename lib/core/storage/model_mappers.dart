@@ -5,6 +5,7 @@ import '../../features/requirements/models/requirement_model.dart';
 import '../../features/dashboard/models/dashboard_summary.dart';
 import '../../features/builders/models/builder_model.dart';
 import '../../features/owners/models/owner_model.dart';
+import '../../features/clients/models/client_model.dart';
 
 extension PropertyLocalExtensions on PropertyLocal {
   PropertyModel toModel() {
@@ -210,6 +211,8 @@ extension RequirementLocalExtensions on RequirementLocal {
       maxArea: maxArea,
       areaIds: safeAreaIds,
       areaNames: safeAreaNames,
+      configurationIds: configurationIds ?? [],
+      propertyTypeIds: propertyTypeIds ?? [],
       remarks: decodedRemarks,
       status: status,
       createdAt: createdAt,
@@ -233,6 +236,8 @@ extension RequirementModelExtensions on RequirementModel {
       ..propertyTypeName = propertyTypeName
       ..configurationId = configurationId
       ..configurationName = configurationName
+      ..configurationIds = configurationIds
+      ..propertyTypeIds = propertyTypeIds
       ..minBudget = minBudget
       ..maxBudget = maxBudget
       ..minArea = minArea ?? 0.0
@@ -343,6 +348,37 @@ extension OwnerModelExtensions on OwnerModel {
   }
 }
 
+extension ClientLocalExtensions on ClientLocal {
+  ClientModel toModel() {
+    return ClientModel(
+      id: id,
+      name: name,
+      email: email,
+      mobile: mobile,
+      stage: stage,
+      source: source,
+      assignedAgent: assignedAgent,
+      remarks: remarks,
+      createdAt: createdAt,
+    );
+  }
+}
+
+extension ClientModelExtensions on ClientModel {
+  ClientLocal toLocal() {
+    return ClientLocal()
+      ..id = id
+      ..name = name
+      ..email = email
+      ..mobile = mobile
+      ..stage = stage
+      ..source = source
+      ..assignedAgent = assignedAgent
+      ..remarks = remarks
+      ..createdAt = createdAt;
+  }
+}
+
 extension LookupLocalExtensions on LookupItemLocal {
   LookupItem toModel() {
     return LookupItem(
@@ -394,6 +430,12 @@ extension DashboardDataExtensions on DashboardData {
         ..rented = summary.rented
         ..requirements = summary.requirements
         ..users = summary.users
+        ..rentalAvailable = summary.rentalAvailable
+        ..resaleAvailable = summary.resaleAvailable
+        ..rentalRented = summary.rentalRented
+        ..resaleSold = summary.resaleSold
+        ..rentalRequirements = summary.rentalRequirements
+        ..resaleRequirements = summary.resaleRequirements
         ..totalPropertiesTrend = summary.totalPropertiesTrend
         ..availableTrend = summary.availableTrend
         ..soldTrend = summary.soldTrend
@@ -456,6 +498,12 @@ extension DashboardLocalExtensions on DashboardLocal {
         rented: summary.rented ?? 0,
         requirements: summary.requirements ?? 0,
         users: summary.users ?? 0,
+        rentalAvailable: summary.rentalAvailable ?? 0,
+        resaleAvailable: summary.resaleAvailable ?? 0,
+        rentalRented: summary.rentalRented ?? 0,
+        resaleSold: summary.resaleSold ?? 0,
+        rentalRequirements: summary.rentalRequirements ?? 0,
+        resaleRequirements: summary.resaleRequirements ?? 0,
         totalPropertiesTrend: summary.totalPropertiesTrend ?? 0.0,
         availableTrend: summary.availableTrend ?? 0.0,
         soldTrend: summary.soldTrend ?? 0.0,

@@ -26,11 +26,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final PropertiesRepository _propertiesRepository = PropertiesRepository();
-  final RequirementsRepository _requirementsRepository = RequirementsRepository();
-  List<PropertyModel> _fullProperties = [];
-  List<RequirementModel> _fullRequirements = [];
-
   // Table filter and tab states
   String _activeTab = 'Rental'; // 'Rental' or 'Only Re-Sale'
   Set<String> _selectedAreaFilters = {};
@@ -49,30 +44,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     context.read<DashboardBloc>().add(LoadDashboard());
-    _fetchFullProperties();
-    _fetchFullRequirements();
-  }
-
-  Future<void> _fetchFullProperties() async {
-    try {
-      final properties = await _propertiesRepository.getProperties();
-      if (mounted) {
-        setState(() {
-          _fullProperties = properties;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _fetchFullRequirements() async {
-    try {
-      final requirements = await _requirementsRepository.getRequirements();
-      if (mounted) {
-        setState(() {
-          _fullRequirements = requirements;
-        });
-      }
-    } catch (_) {}
   }
 
   String _getGreeting() {
@@ -120,8 +91,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               context.read<DashboardBloc>().add(RefreshDashboard());
-              await _fetchFullProperties();
-              await _fetchFullRequirements();
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -269,46 +238,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildKPIGrids(DashboardSummary summary) {
     final double screenWidth = MediaQuery.of(context).size.width;
 
-    int availableVal = summary.available;
-    int soldVal = summary.sold;
-    int rentedVal = summary.rented;
-
-    if (_fullProperties.isNotEmpty) {
-      final categoryProperties = _fullProperties.where((p) {
-        final ltName = p.listingTypeName.toLowerCase();
-        if (_activeTab == 'Rental') {
-          return ltName.contains('rent');
-        } else {
-          return ltName.contains('sale') || ltName.contains('resale') || !ltName.contains('rent');
-        }
-      }).toList();
-
-      availableVal = categoryProperties.where((p) {
-        final status = p.propertyStatusName.toLowerCase();
-        return status == 'available' || status.contains('to be available');
-      }).length;
-      soldVal = categoryProperties.where((p) {
-        final status = p.propertyStatusName.toLowerCase();
-        return status == 'sold out' || status == 'sold';
-      }).length;
-      rentedVal = categoryProperties.where((p) {
-        final status = p.propertyStatusName.toLowerCase();
-        return status == 'rented out' || status == 'rented';
-      }).length;
-    }
-
-    int requirementsVal = summary.requirements;
-    if (_fullRequirements.isNotEmpty) {
-      final categoryRequirements = _fullRequirements.where((r) {
-        final label = _getRequirementListingTypeLabel(r);
-        if (_activeTab == 'Rental') {
-          return label == 'Rent';
-        } else {
-          return label == 'Re-Sale';
-        }
-      }).toList();
-      requirementsVal = categoryRequirements.length;
-    }
+    final int availableVal = _activeTab == 'Rental' ? summary.rentalAvailable : summary.resaleAvailable;
+    final int soldVal = summary.resaleSold;
+    final int rentedVal = summary.rentalRented;
+    final int requirementsVal = _activeTab == 'Rental' ? summary.rentalRequirements : summary.resaleRequirements;
 
     final List<Widget> cards = [
       CRMKPICard(
@@ -429,32 +362,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatusPieChart(DashboardSummary summary) {
-    // Filter properties for current active tab ('Rental' vs 'Sale/Re-Sale')
-    int wonCount = 0;
-    int liveCount = 0;
-
-    final categoryProperties = _fullProperties.where((p) {
-      final ltName = p.listingTypeName.toLowerCase();
-      if (_activeTab == 'Rental') {
-        return ltName.contains('rent');
-      } else {
-        return ltName.contains('sale') || ltName.contains('resale') || !ltName.contains('rent');
-      }
-    }).toList();
-
-    if (categoryProperties.isNotEmpty) {
-      for (final p in categoryProperties) {
-        final statusLower = p.propertyStatusName.toLowerCase();
-        if (statusLower == 'sold out' || statusLower == 'sold' || statusLower == 'rented out' || statusLower == 'rented') {
-          wonCount++;
-        } else if (statusLower == 'available' || statusLower.contains('to be available')) {
-          liveCount++;
-        }
-      }
-    } else {
-      wonCount = summary.sold + summary.rented;
-      liveCount = summary.available;
-    }
+    final int wonCount = _activeTab == 'Rental' ? summary.rentalRented : summary.resaleSold;
+    final int liveCount = _activeTab == 'Rental' ? summary.rentalAvailable : summary.resaleAvailable;
 
     final totalCount = wonCount + liveCount;
     final wonPct = totalCount > 0 ? (wonCount / totalCount * 100).toStringAsFixed(1) : '0.0';
@@ -622,36 +531,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 600;
 
-    // Collect display items from full properties if loaded, otherwise map recentProperties
-    List<_DisplayProperty> displayItems = [];
-
-    if (_fullProperties.isNotEmpty) {
-      displayItems = _fullProperties.map((p) {
-        return _DisplayProperty(
-          id: p.id,
-          title: p.title,
-          areaName: p.areaName,
-          price: p.price,
-          listingType: p.listingTypeName,
-          createdAt: p.createdAt,
-        );
-      }).toList();
-    } else {
-      displayItems = dashboardRecentProperties.map((p) {
-        DateTime parsedDate = DateTime.now();
-        if (p.createdAt.isNotEmpty) {
-          parsedDate = DateTime.tryParse(p.createdAt) ?? DateTime.now();
-        }
-        return _DisplayProperty(
-          id: p.id,
-          title: p.title,
-          areaName: p.areaName,
-          price: p.price,
-          listingType: 'Sale', // Default fallback
-          createdAt: parsedDate,
-        );
-      }).toList();
-    }
+    // Collect display items from dashboardRecentProperties directly
+    final List<_DisplayProperty> displayItems = dashboardRecentProperties.map((p) {
+      DateTime parsedDate = DateTime.now();
+      if (p.createdAt.isNotEmpty) {
+        parsedDate = DateTime.tryParse(p.createdAt) ?? DateTime.now();
+      }
+      return _DisplayProperty(
+        id: p.id,
+        title: p.title,
+        areaName: p.areaName,
+        price: p.price,
+        listingType: p.listingType,
+        createdAt: parsedDate,
+      );
+    }).toList();
 
     // 1. Tab Filtering (Rental vs Sale/Re-Sale)
     List<_DisplayProperty> tabFiltered = displayItems.where((p) {

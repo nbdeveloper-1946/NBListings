@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'core/network/sync_manager.dart';
+import 'core/storage/repository_coordinator.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -52,6 +53,19 @@ class _SplashScreenState extends State<SplashScreen> {
         context.go('/dashboard');
       }
     } catch (e) {
+      try {
+        final lookupsCount = await RepositoryCoordinator().lookupLocal.getLookupsCount();
+        if (lookupsCount > 0) {
+          print("⚠️ [SPLASH SYNC] Sync failed, but found cached lookup data. Bypassing sync block.");
+          if (mounted) {
+            context.go('/dashboard');
+          }
+          return;
+        }
+      } catch (checkErr) {
+        print("Error checking local lookups count: $checkErr");
+      }
+
       setState(() {
         _isSyncing = false;
         _syncError = "Failed to synchronize setup data. Please check your internet connection and try again.";

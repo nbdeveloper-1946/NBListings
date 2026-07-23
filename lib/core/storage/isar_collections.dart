@@ -101,6 +101,8 @@ class RequirementLocal {
   String? propertyTypeName;
   String? configurationId;
   String? configurationName;
+  List<String>? configurationIds;
+  List<String>? propertyTypeIds;
   late double minBudget;
   late double maxBudget;
   double? minArea;
@@ -171,6 +173,23 @@ class OwnerLocal {
 }
 
 @collection
+class ClientLocal {
+  Id? isarId;
+
+  @Index(unique: true, replace: true)
+  late String id;
+
+  late String name;
+  late String email;
+  late String mobile;
+  late String stage;
+  late String source;
+  String? assignedAgent;
+  String? remarks;
+  late DateTime createdAt;
+}
+
+@collection
 class OutboxLocal {
   Id? isarId;
 
@@ -192,6 +211,13 @@ class DashboardSummaryLocal {
   int? rented;
   int? requirements;
   int? users;
+
+  int? rentalAvailable;
+  int? resaleAvailable;
+  int? rentalRented;
+  int? resaleSold;
+  int? rentalRequirements;
+  int? resaleRequirements;
 
   double? totalPropertiesTrend;
   double? availableTrend;
