@@ -1769,7 +1769,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openPropertyDetails(String propertyId) {
-    final String url = '${Uri.base.origin}/#/properties/$propertyId';
+    final String url = '${Uri.base.origin}/properties/$propertyId';
     launchUrl(Uri.parse(url), webOnlyWindowName: '_blank');
   }
 
