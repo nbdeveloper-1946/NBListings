@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/auth_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nblistings/core/design_system/crm_design_system.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/api/dio_client.dart';
 import 'package:dio/dio.dart';
@@ -29,49 +30,61 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showErrorDialog(String title, String message) {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (BuildContext context) {
+      barrierColor: CRMColors.overlay,
+      transitionDuration: CRMMotion.medium,
+      pageBuilder: (context, animation, secondaryAnimation) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppBorderRadius.card),
+            borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
           ),
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: CRMColors.surfaceElevated,
           title: Row(
             children: [
-              const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 28),
-              const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+              Icon(Icons.error_outline_rounded, color: CRMColors.danger, size: 28),
+              const SizedBox(width: CRMSpacing.s),
+              Expanded(
+                child: Text(
+                  title,
+                  style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
                 ),
               ),
             ],
           ),
           content: Text(
             message,
-            style: const TextStyle(
-              color: Color(0xFFCBD5E1),
-              fontSize: 15,
-            ),
+            style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
           ),
-          actionsPadding: const EdgeInsets.only(bottom: 16, right: 16),
+          actionsPadding: const EdgeInsets.only(
+            bottom: CRMSpacing.m,
+            right: CRMSpacing.m,
+          ),
           actions: [
             TextButton(
               style: TextButton.styleFrom(
-                foregroundColor: Colors.indigoAccent.shade200,
+                foregroundColor: CRMColors.primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.m),
                 ),
               ),
-              child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.bold)),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Dismiss',
+                style: CRMTypography.button.copyWith(color: CRMColors.primary),
+              ),
             ),
           ],
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(parent: animation, curve: CRMMotion.easeOut);
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1.0).animate(curved),
+            child: child,
+          ),
         );
       },
     );
@@ -84,20 +97,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
     showDialog(
       context: context,
+      barrierColor: CRMColors.overlay,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppBorderRadius.card),
+                borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
               ),
-              backgroundColor: const Color(0xFF1E293B),
-              title: const Text(
+              backgroundColor: CRMColors.surfaceElevated,
+              title: Text(
                 'Forgot Password',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
               ),
               content: Form(
                 key: formKey,
@@ -105,14 +116,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
+                    Text(
                       'Enter your email address below, and we will send a password reset request to your administrator.',
-                      style: TextStyle(
-                        color: Color(0xFFCBD5E1),
-                        fontSize: 14,
-                      ),
+                      style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: CRMSpacing.md),
                     PremiumTextField(
                       controller: emailController,
                       labelText: 'Email Address',
@@ -131,24 +139,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
               ),
-              actionsPadding: const EdgeInsets.only(bottom: 16, right: 16, left: 16),
+              actionsPadding: const EdgeInsets.only(
+                bottom: CRMSpacing.m,
+                right: CRMSpacing.m,
+                left: CRMSpacing.m,
+              ),
               actions: [
                 TextButton(
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey.shade400,
+                    foregroundColor: CRMColors.textSecondary,
                   ),
                   onPressed: isSubmitting ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brandGreen,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                  child: Text(
+                    'Cancel',
+                    style: CRMTypography.button.copyWith(color: CRMColors.textSecondary),
                   ),
+                ),
+                const SizedBox(width: CRMSpacing.xs),
+                CRMButton(
+                  label: 'Submit',
+                  isLoading: isSubmitting,
+                  width: 120,
                   onPressed: isSubmitting
                       ? null
                       : () async {
@@ -163,29 +174,47 @@ class _LoginScreenState extends State<LoginScreen> {
                                 data: {'email': email},
                               );
                               Navigator.pop(dialogContext);
-                              
+
                               showDialog(
                                 context: context,
+                                barrierColor: CRMColors.overlay,
                                 builder: (context) => AlertDialog(
-                                  backgroundColor: const Color(0xFF1E293B),
+                                  backgroundColor: CRMColors.surfaceElevated,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppBorderRadius.card),
+                                    borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
                                   ),
-                                  title: const Row(
+                                  title: Row(
                                     children: [
-                                      Icon(Icons.check_circle_outline_rounded, color: AppColors.brandGreen, size: 28),
-                                      SizedBox(width: 10),
-                                      Text('Request Sent', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                      Icon(
+                                        Icons.check_circle_outline_rounded,
+                                        color: CRMColors.primary,
+                                        size: 28,
+                                      ),
+                                      const SizedBox(width: CRMSpacing.s),
+                                      Text(
+                                        'Request Sent',
+                                        style: CRMTypography.sectionTitle.copyWith(
+                                          color: CRMColors.text,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                   content: Text(
-                                    response.data['message'] ?? 'Password reset request has been created successfully.',
-                                    style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 15),
+                                    response.data['message'] ??
+                                        'Password reset request has been created successfully.',
+                                    style: CRMTypography.body.copyWith(
+                                      color: CRMColors.textSecondary,
+                                    ),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(context),
-                                      child: const Text('Dismiss', style: TextStyle(color: AppColors.brandGreen, fontWeight: FontWeight.bold)),
+                                      child: Text(
+                                        'Dismiss',
+                                        style: CRMTypography.button.copyWith(
+                                          color: CRMColors.primary,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -201,19 +230,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(errorMsg),
-                                  backgroundColor: AppColors.error,
+                                  backgroundColor: CRMColors.danger,
                                 ),
                               );
                             }
                           }
                         },
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Submit', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -234,10 +256,22 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  BoxDecoration _panelDecoration({double radius = CRMBorderRadius.r24}) {
+    return BoxDecoration(
+      color: CRMColors.surfaceElevated,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(
+        color: CRMColors.border.withOpacity(0.5),
+        width: 0.5,
+      ),
+      boxShadow: CRMShadows.medium,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6), // Light gray background
+      backgroundColor: CRMColors.background,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthError) {
@@ -254,27 +288,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 return Center(
                   child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.l),
+                      padding: const EdgeInsets.all(CRMSpacing.l),
                       child: SizedBox(
                         width: 1000,
                         height: 600,
                         child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(AppBorderRadius.card),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
-                                blurRadius: 24,
-                                offset: const Offset(0, 8),
-                              ),
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
+                          decoration: _panelDecoration(),
                           clipBehavior: Clip.antiAlias,
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -299,25 +318,13 @@ class _LoginScreenState extends State<LoginScreen> {
               // Mobile Layout
               return Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CRMSpacing.m,
+                    vertical: CRMSpacing.l,
+                  ),
                   child: Container(
                     constraints: const BoxConstraints(maxWidth: 450),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(AppBorderRadius.card),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
+                    decoration: _panelDecoration(radius: CRMBorderRadius.r20),
                     clipBehavior: Clip.antiAlias,
                     child: _buildFormContent(isDesktop: false),
                   ),
@@ -343,48 +350,43 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(CRMSpacing.xs),
                   decoration: BoxDecoration(
-                    color: AppColors.brandGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: CRMColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(CRMBorderRadius.m),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.cloud_queue_rounded,
-                    color: AppColors.brandGreen,
+                    color: CRMColors.primary,
                     size: 28,
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                const SizedBox(width: CRMSpacing.s),
+                Text(
                   'NB Listings',
-                  style: TextStyle(
+                  style: CRMTypography.pageTitle.copyWith(
+                    color: CRMColors.primary,
                     fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.brandGreen,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: CRMSpacing.xl),
 
             // Header Texts - Retain exact string "Go ahead to your account" for test assertion
-            const Text(
+            Text(
               'Go ahead to your account',
-              style: TextStyle(
+              style: CRMTypography.sectionTitle.copyWith(
+                color: CRMColors.text,
                 fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            const SizedBox(height: CRMSpacing.xs),
+            Text(
               'Enter your credentials to access your account.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF64748B),
-              ),
+              style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: CRMSpacing.xl),
 
             // Email input
             PremiumTextField(
@@ -402,7 +404,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: CRMSpacing.md),
 
             // Password input
             PremiumTextField(
@@ -411,11 +413,11 @@ class _LoginScreenState extends State<LoginScreen> {
               prefixIcon: Icons.lock_outline_rounded,
               obscureText: _obscurePassword,
               suffixIcon: Padding(
-                padding: const EdgeInsets.only(right: 8.0),
+                padding: const EdgeInsets.only(right: CRMSpacing.xs),
                 child: IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: AppColors.brandGreen.withOpacity(0.7),
+                    color: CRMColors.primary.withOpacity(0.7),
                     size: 22,
                   ),
                   onPressed: () {
@@ -435,13 +437,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: CRMSpacing.s),
 
             // Remember Me & Forgot Password Row
             Wrap(
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 16,
+              spacing: CRMSpacing.m,
               runSpacing: 10,
               children: [
                 Row(
@@ -452,11 +454,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: 22,
                       child: Checkbox(
                         value: _rememberMe,
-                        activeColor: AppColors.brandGreen,
-                        checkColor: Colors.white,
-                        side: const BorderSide(color: AppColors.inputBorder, width: 1.5),
+                        activeColor: CRMColors.primary,
+                        checkColor: CRMColors.surfaceElevated,
+                        side: BorderSide(color: CRMColors.border, width: 1.5),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(CRMBorderRadius.xs + 2),
                         ),
                         onChanged: (value) {
                           setState(() {
@@ -472,12 +474,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           _rememberMe = !_rememberMe;
                         });
                       },
-                      child: const Text(
+                      child: Text(
                         'Remember me',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                        style: CRMTypography.bodyMedium.copyWith(
+                          color: CRMColors.textMuted,
                         ),
                       ),
                     ),
@@ -487,11 +487,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
                     onTap: _showForgotPasswordDialog,
-                    child: const Text(
+                    child: Text(
                       'Forgot Password?',
-                      style: TextStyle(
-                        color: AppColors.brandGreen,
-                        fontSize: 14,
+                      style: CRMTypography.bodyMedium.copyWith(
+                        color: CRMColors.primary,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.2,
                       ),
@@ -500,7 +499,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: CRMSpacing.l),
 
             // Sign In Button
             BlocBuilder<AuthBloc, AuthState>(
@@ -525,33 +524,32 @@ class _HeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CustomPaint(
-      painter: _WavePainter(),
+    return CustomPaint(
+      painter: const _WavePainter(),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Spacer(),
+            const Spacer(),
             Text(
               'Treasure Of Listed Properties in Your Area',
-              style: TextStyle(
-                fontSize: 38,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
+              style: CRMTypography.largeTitle.copyWith(
+                color: CRMColors.isDark ? CRMColors.text : const Color(0xFFF5F5F7),
                 height: 1.25,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: CRMSpacing.m),
             Text(
               'Manage pipeline boards, supply sheets, and builder agreements seamlessly.',
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.white70,
+              style: CRMTypography.body.copyWith(
+                color: CRMColors.isDark
+                    ? CRMColors.textSecondary
+                    : const Color(0xFFAEAEB2),
                 height: 1.5,
               ),
             ),
-            Spacer(),
+            const Spacer(),
           ],
         ),
       ),
@@ -566,18 +564,19 @@ class _WavePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
 
-    // Gradient Background (Brand colors)
     final bgPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [AppColors.darkBg, AppColors.brandGreen],
+      ..shader = LinearGradient(
+        colors: [
+          CRMColors.background,
+          CRMColors.primary.withOpacity(0.85),
+        ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(rect);
     canvas.drawRect(rect, bgPaint);
 
-    // Wave 1
     final wavePaint1 = Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = CRMColors.primary.withOpacity(0.12)
       ..style = PaintingStyle.fill;
 
     final path1 = Path();
@@ -595,9 +594,8 @@ class _WavePainter extends CustomPainter {
     path1.close();
     canvas.drawPath(path1, wavePaint1);
 
-    // Wave 2
     final wavePaint2 = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = CRMColors.primary.withOpacity(0.06)
       ..style = PaintingStyle.fill;
 
     final path2 = Path();

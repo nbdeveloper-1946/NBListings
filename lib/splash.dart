@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:nblistings/core/design_system/crm_design_system.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'core/network/sync_manager.dart';
@@ -106,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.darkBg,
+        backgroundColor: CRMColors.background,
         body: Stack(
           children: [
             LayoutBuilder(
@@ -120,29 +121,33 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             if (_isSyncing)
               Container(
-                color: Colors.black.withOpacity(0.6),
+                color: CRMColors.overlay,
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.all(CRMSpacing.xl),
+                    margin: const EdgeInsets.symmetric(horizontal: CRMSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.darkBg.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(AppBorderRadius.input),
-                      border: Border.all(color: AppColors.brandGreen.withOpacity(0.3)),
+                      color: CRMColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
+                      border: Border.all(
+                        color: CRMColors.primary.withOpacity(0.3),
+                        width: 0.5,
+                      ),
+                      boxShadow: CRMShadows.medium,
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const CircularProgressIndicator(color: AppColors.brandGreen),
-                        const SizedBox(height: AppSpacing.l),
-                        const Text(
+                        CircularProgressIndicator(color: CRMColors.primary),
+                        const SizedBox(height: CRMSpacing.l),
+                        Text(
                           'Wait a sec...',
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
                         ),
-                        const SizedBox(height: AppSpacing.s),
-                        const Text(
+                        const SizedBox(height: CRMSpacing.xs),
+                        Text(
                           'Syncing latest data...',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                          style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
                         ),
                       ],
                     ),
@@ -151,41 +156,41 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             if (_syncError != null)
               Container(
-                color: Colors.black.withOpacity(0.65),
+                color: CRMColors.overlay,
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.all(CRMSpacing.xl),
+                    margin: const EdgeInsets.symmetric(horizontal: CRMSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.darkBg.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(AppBorderRadius.input),
-                      border: Border.all(color: Colors.red.withOpacity(0.4)),
+                      color: CRMColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
+                      border: Border.all(
+                        color: CRMColors.danger.withOpacity(0.4),
+                        width: 0.5,
+                      ),
+                      boxShadow: CRMShadows.medium,
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.wifi_off_rounded, color: Colors.red, size: 48),
-                        const SizedBox(height: AppSpacing.l),
-                        const Text(
+                        Icon(Icons.wifi_off_rounded, color: CRMColors.danger, size: 48),
+                        const SizedBox(height: CRMSpacing.l),
+                        Text(
                           'Sync Failed',
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
                         ),
-                        const SizedBox(height: AppSpacing.s),
+                        const SizedBox(height: CRMSpacing.xs),
                         Text(
                           _syncError!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                          style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
                         ),
-                        const SizedBox(height: AppSpacing.xl),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.brandGreen,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          ),
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text("Retry Sync"),
+                        const SizedBox(height: CRMSpacing.xl),
+                        CRMButton(
+                          label: 'Retry Sync',
+                          prefixIcon: Icons.refresh_rounded,
                           onPressed: _runSync,
+                          width: 200,
                         ),
                       ],
                     ),
@@ -200,6 +205,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   // Beautiful Laptop/Desktop Split-Visual Layout
   Widget _buildLaptopLayout(BuildContext context, BoxConstraints constraints) {
+    final bg = CRMColors.background;
     return Stack(
       children: [
         Positioned.fill(
@@ -209,12 +215,12 @@ class _SplashScreenState extends State<SplashScreen> {
             alignment: const Alignment(0.4, 0.0),
             errorBuilder: (context, error, stackTrace) {
               return Container(
-                color: AppColors.darkSlate,
-                child: const Center(
+                color: CRMColors.surface,
+                child: Center(
                   child: Icon(
                     Icons.apartment_rounded,
                     size: 150,
-                    color: Colors.grey,
+                    color: CRMColors.textMuted,
                   ),
                 ),
               );
@@ -222,18 +228,18 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         ),
         Positioned.fill(
-          child: Container(
-            decoration: const BoxDecoration(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.darkBg,
-                  Color(0xF2090D16),
-                  Color(0xBF090D16),
-                  Color(0x00090D16),
+                  bg,
+                  bg.withOpacity(0.95),
+                  bg.withOpacity(0.75),
+                  bg.withOpacity(0.0),
                 ],
-                stops: [0.0, 0.4, 0.65, 1.0],
+                stops: const [0.0, 0.4, 0.65, 1.0],
               ),
             ),
           ),
@@ -242,7 +248,7 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Padding(
             padding: EdgeInsets.symmetric(
               horizontal: constraints.maxWidth * 0.08,
-              vertical: AppSpacing.xxl,
+              vertical: CRMSpacing.xxl,
             ),
             child: Align(
               alignment: Alignment.centerLeft,
@@ -255,38 +261,40 @@ class _SplashScreenState extends State<SplashScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: AppColors.brandGreen.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(AppBorderRadius.tag),
+                        color: CRMColors.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
                         border: Border.all(
-                          color: AppColors.brandGreen.withOpacity(0.5),
-                          width: 1,
+                          color: CRMColors.primary.withOpacity(0.5),
+                          width: 0.5,
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'PREMIUM REAL ESTATE',
-                        style: TextStyle(
-                          color: Color(0xff8BB39B),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                        style: CRMTypography.captionBold.copyWith(
+                          color: CRMColors.primary,
                           letterSpacing: 1.5,
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    const SizedBox(height: CRMSpacing.xl),
                     Text(
                       'Treasure of listed\nproperties in your area',
-                      style: AppTextStyles.display.copyWith(color: Colors.white),
+                      style: CRMTypography.display.copyWith(
+                        color: CRMColors.isDark ? CRMColors.text : const Color(0xFFF5F5F7),
+                      ),
                     ),
-                    const SizedBox(height: AppSpacing.l),
-                    const Text(
+                    const SizedBox(height: CRMSpacing.l),
+                    Text(
                       'Find your dream home effortlessly. The ultimate real estate platform designed to streamline your property search and connect you with top listings.',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
+                      style: CRMTypography.body.copyWith(
+                        color: CRMColors.isDark
+                            ? CRMColors.textSecondary
+                            : const Color(0xFFAEAEB2),
                         fontSize: 17,
                         height: 1.6,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xxxl),
+                    const SizedBox(height: CRMSpacing.xxxl),
                     PremiumButton(
                       label: 'Get Started',
                       width: 220,
@@ -311,6 +319,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   // Premium Mobile Bottom-Faded Stack Layout
   Widget _buildMobileLayout(BuildContext context, BoxConstraints constraints) {
+    final bg = CRMColors.background;
     return Stack(
       children: [
         Positioned.fill(
@@ -320,12 +329,12 @@ class _SplashScreenState extends State<SplashScreen> {
             alignment: Alignment.center,
             errorBuilder: (context, error, stackTrace) {
               return Container(
-                color: AppColors.darkSlate,
-                child: const Center(
+                color: CRMColors.surface,
+                child: Center(
                   child: Icon(
                     Icons.apartment_rounded,
                     size: 150,
-                    color: Colors.grey,
+                    color: CRMColors.textMuted,
                   ),
                 ),
               );
@@ -333,17 +342,17 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         ),
         Positioned.fill(
-          child: Container(
-            decoration: const BoxDecoration(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0x33090D16),
-                  Color(0xCC090D16),
-                  AppColors.darkBg,
+                  bg.withOpacity(0.2),
+                  bg.withOpacity(0.8),
+                  bg,
                 ],
-                stops: [0.0, 0.5, 0.85],
+                stops: const [0.0, 0.5, 0.85],
               ),
             ),
           ),
@@ -353,7 +362,10 @@ class _SplashScreenState extends State<SplashScreen> {
             alignment: Alignment.bottomCenter,
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.xl),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: CRMSpacing.l,
+                  vertical: CRMSpacing.xl,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -361,43 +373,40 @@ class _SplashScreenState extends State<SplashScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.brandGreen.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(AppBorderRadius.tag),
+                        color: CRMColors.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
                         border: Border.all(
-                          color: AppColors.brandGreen.withOpacity(0.5),
-                          width: 1,
+                          color: CRMColors.primary.withOpacity(0.5),
+                          width: 0.5,
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'PREMIUM REAL ESTATE',
-                        style: TextStyle(
-                          color: Color(0xff8BB39B),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
+                        style: CRMTypography.captionBold.copyWith(
+                          color: CRMColors.primary,
                           letterSpacing: 1.2,
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.m),
-                    const Text(
+                    const SizedBox(height: CRMSpacing.m),
+                    Text(
                       'Treasure of listed\nproperties in your area',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                      style: CRMTypography.display.copyWith(
+                        color: CRMColors.isDark ? CRMColors.text : const Color(0xFFF5F5F7),
                         height: 1.25,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.m),
-                    const Text(
+                    const SizedBox(height: CRMSpacing.m),
+                    Text(
                       'Find your dream home effortlessly. The ultimate real estate platform designed to streamline your property search.',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 15,
+                      style: CRMTypography.body.copyWith(
+                        color: CRMColors.isDark
+                            ? CRMColors.textSecondary
+                            : const Color(0xFFAEAEB2),
                         height: 1.5,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    const SizedBox(height: CRMSpacing.xl),
                     PremiumButton(
                       label: 'Get Started',
                       onPressed: () {
@@ -409,7 +418,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         }
                       },
                     ),
-                    const SizedBox(height: AppSpacing.s),
+                    const SizedBox(height: CRMSpacing.xs),
                   ],
                 ),
               ),
