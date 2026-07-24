@@ -15,7 +15,7 @@ void showCRMFilterDrawer({
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Filter Drawer barrier',
-    barrierColor: Colors.black.withOpacity(0.3),
+    barrierColor: CRMColors.overlay,
     transitionDuration: const Duration(milliseconds: 250),
     pageBuilder: (context, anim1, anim2) {
       return Align(

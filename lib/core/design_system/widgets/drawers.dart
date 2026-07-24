@@ -15,7 +15,7 @@ void showCRMPropertyDrawer(BuildContext context, PropertyModel property) {
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Property Details barrier',
-    barrierColor: Colors.black.withOpacity(0.5),
+    barrierColor: CRMColors.overlay,
     transitionDuration: const Duration(milliseconds: 250),
     pageBuilder: (context, anim1, anim2) {
       return Center(
@@ -472,8 +472,8 @@ class _CRMImageSliderState extends State<CRMImageSlider> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(12),
+                  color: CRMColors.overlay,
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.m),
                 ),
                 child: Text(
                   '${_currentIndex + 1}/${widget.images.length}',
@@ -622,8 +622,8 @@ class _CRMImageZoomViewerState extends State<CRMImageZoomViewer> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
+                  color: CRMColors.overlay,
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
                 ),
                 child: Text(
                   '${_currentIndex + 1} / ${widget.images.length}',

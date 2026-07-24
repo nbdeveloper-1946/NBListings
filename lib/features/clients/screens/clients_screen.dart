@@ -4,6 +4,7 @@ import '../bloc/clients_bloc.dart';
 import '../models/client_model.dart';
 import 'add_edit_client_screen.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
+import '../../../core/design_system/tokens/app_shadows.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/cards.dart';
@@ -326,9 +327,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
         decoration: BoxDecoration(
           color: isSelected ? CRMColors.cardBg : Colors.transparent,
           borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-          boxShadow: isSelected
-              ? [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))]
-              : null,
+          boxShadow: isSelected ? CRMShadows.soft : null,
         ),
         child: Icon(icon, color: isSelected ? CRMColors.primary : CRMColors.textSecondary, size: 20),
       ),
@@ -415,7 +414,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                             Text(stage.toUpperCase(), style: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary)),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.xs, vertical: 2),
-                              decoration: BoxDecoration(color: CRMColors.border, borderRadius: BorderRadius.circular(10)),
+                              decoration: BoxDecoration(color: CRMColors.border, borderRadius: BorderRadius.circular(CRMBorderRadius.s)),
                               child: Text('${stageClients.length}', style: CRMTypography.captionBold),
                             ),
                           ],
@@ -430,13 +429,13 @@ class _ClientsScreenState extends State<ClientsScreen> {
                             itemCount: stageClients.length,
                             itemBuilder: (context, index) {
                               final c = stageClients[index];
-                              return Card(
-                                color: CRMColors.cardBg,
-                                elevation: 0,
+                              return Container(
                                 margin: const EdgeInsets.only(bottom: CRMSpacing.xs),
-                                shape: RoundedRectangleBorder(
+                                decoration: BoxDecoration(
+                                  color: CRMColors.surfaceElevated,
                                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                                  side: BorderSide(color: CRMColors.border),
+                                  border: Border.all(color: CRMColors.border.withValues(alpha: 0.55), width: 0.5),
+                                  boxShadow: CRMShadows.soft,
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(CRMSpacing.m),
@@ -471,7 +470,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
                                             padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.xs, vertical: 2),
                                             decoration: BoxDecoration(
                                               color: CRMColors.primary.withOpacity(0.08),
-                                              borderRadius: BorderRadius.circular(4),
+                                              borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
                                             ),
                                             child: Text(c.source, style: CRMTypography.captionBold.copyWith(fontSize: 10, color: CRMColors.primary)),
                                           ),

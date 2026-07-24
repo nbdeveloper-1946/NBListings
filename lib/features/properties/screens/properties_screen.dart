@@ -143,7 +143,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                              horizontal: CRMSpacing.xs, vertical: CRMSpacing.xxs),
                           decoration: BoxDecoration(
                             color: CRMColors.primary.withOpacity(0.1),
                             borderRadius:
@@ -161,7 +161,7 @@ class _PropertiesScreenState extends State<PropertiesScreen> {
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                              horizontal: CRMSpacing.xs, vertical: CRMSpacing.xxs),
                           decoration: BoxDecoration(
                             color: p.isStatusAvailable
                                 ? CRMColors.success.withOpacity(0.1)

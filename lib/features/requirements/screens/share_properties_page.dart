@@ -104,7 +104,7 @@ class _SharePropertiesPageState extends State<SharePropertiesPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.link_off_rounded, size: 64, color: Colors.red),
+                const Icon(Icons.link_off_rounded, size: 64, color: CRMColors.danger),
                 const SizedBox(height: CRMSpacing.m),
                 Text(
                   _errorMessage!,
@@ -197,7 +197,7 @@ class _SharePropertiesPageState extends State<SharePropertiesPage> {
                   Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: CRMColors.success,
                         foregroundColor: Colors.white,
                       ),
                       icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
@@ -249,13 +249,13 @@ class _SharePropertiesPageState extends State<SharePropertiesPage> {
                         imageUrls.first.toString(),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey.shade200,
-                          child: const Icon(Icons.image_not_supported_rounded, size: 48, color: Colors.grey),
+                          color: CRMColors.groupedBackground,
+                          child: Icon(Icons.image_not_supported_rounded, size: 48, color: CRMColors.textMuted),
                         ),
                       )
                     : Container(
-                        color: Colors.grey.shade200,
-                        child: const Icon(Icons.image_rounded, size: 48, color: Colors.grey),
+                        color: CRMColors.groupedBackground,
+                        child: Icon(Icons.image_rounded, size: 48, color: CRMColors.textMuted),
                       ),
               ),
               Padding(

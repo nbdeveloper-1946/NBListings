@@ -137,7 +137,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         content: const Text('Are you sure? This action cannot be undone and will erase this property forever.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete Permanently', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete Permanently', style: TextStyle(color: CRMColors.danger))),
         ],
       ),
     );
@@ -165,7 +165,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         content: const Text('Are you sure? This action cannot be undone and will erase this requirement forever.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete Permanently', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete Permanently', style: TextStyle(color: CRMColors.danger))),
         ],
       ),
     );
@@ -193,7 +193,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         content: const Text('Are you sure you want to permanently erase ALL deleted properties in the bin?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Empty Bin', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Empty Bin', style: TextStyle(color: CRMColors.danger))),
         ],
       ),
     );
@@ -221,7 +221,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         content: const Text('Are you sure you want to permanently erase ALL deleted requirements in the bin?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Empty Bin', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Empty Bin', style: TextStyle(color: CRMColors.danger))),
         ],
       ),
     );

@@ -125,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: const Text('Are you sure you want to delete this city configuration?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Delete', style: TextStyle(color: CRMColors.danger))),
         ],
       ),
     );
@@ -154,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: const Text('Are you sure you want to delete this area mapping configuration?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Delete', style: TextStyle(color: CRMColors.danger))),
         ],
       ),
     );

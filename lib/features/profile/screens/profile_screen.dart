@@ -9,6 +9,7 @@ import 'package:http_parser/http_parser.dart';
 
 import '../../../core/api/dio_client.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
+import '../../../core/design_system/tokens/app_shadows.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/buttons.dart';
@@ -488,13 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: CRMColors.backgroundOf(context),
                       shape: BoxShape.circle,
                       border: Border.all(color: roleColor.withOpacity(0.3), width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      boxShadow: CRMShadows.soft,
                     ),
                     child: ClipOval(
                       child: _isUploadingPhoto
@@ -561,18 +556,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             color: CRMColors.primary,
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            boxShadow: CRMShadows.medium,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.edit_rounded,
                             size: 16,
-                            color: Colors.white,
+                            color: CRMColors.surfaceElevated,
                           ),
                         ),
                       ),

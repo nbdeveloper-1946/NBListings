@@ -124,7 +124,7 @@ class _PublicPropertyDetailScreenState extends State<PublicPropertyDetailScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline_rounded, size: 64, color: Colors.red),
+                const Icon(Icons.error_outline_rounded, size: 64, color: CRMColors.danger),
                 const SizedBox(height: CRMSpacing.m),
                 Text(
                   _errorMessage!,
@@ -165,8 +165,8 @@ class _PublicPropertyDetailScreenState extends State<PublicPropertyDetailScreen>
                     images[index].toString(),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.image_not_supported_rounded, size: 64, color: Colors.grey),
+                      color: CRMColors.groupedBackground,
+                      child: Icon(Icons.image_not_supported_rounded, size: 64, color: CRMColors.textMuted),
                     ),
                   );
                 },
@@ -177,8 +177,8 @@ class _PublicPropertyDetailScreenState extends State<PublicPropertyDetailScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(12),
+                  color: CRMColors.overlay,
+                  borderRadius: BorderRadius.circular(CRMBorderRadius.m),
                 ),
                 child: Text(
                   "${_currentImageIndex + 1} / ${images.length}",
@@ -192,8 +192,8 @@ class _PublicPropertyDetailScreenState extends State<PublicPropertyDetailScreen>
         return Container(
           height: height,
           width: double.infinity,
-          color: Colors.grey.shade200,
-          child: const Icon(Icons.image_rounded, size: 64, color: Colors.grey),
+          color: CRMColors.groupedBackground,
+          child: Icon(Icons.image_rounded, size: 64, color: CRMColors.textMuted),
         );
       }
     }
@@ -341,7 +341,7 @@ class _PublicPropertyDetailScreenState extends State<PublicPropertyDetailScreen>
                   child: Container(
                     padding: const EdgeInsets.all(CRMSpacing.m),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.m),
                       child: buildImageSection(height: double.infinity),
                     ),
                   ),
@@ -390,7 +390,7 @@ class _PublicPropertyDetailScreenState extends State<PublicPropertyDetailScreen>
                     Expanded(
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: CRMColors.success,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),

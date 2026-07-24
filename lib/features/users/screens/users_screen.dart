@@ -7,6 +7,7 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
+import '../../../core/design_system/tokens/app_shadows.dart';
 import '../../../core/design_system/widgets/cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/data_table.dart';
@@ -1126,7 +1127,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                 decoration: BoxDecoration(
                                   color: CRMColors.warning.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(CRMBorderRadius.xs),
                                 ),
                                 child: Text(
                                   roleName,
@@ -1335,15 +1336,7 @@ class _UsersScreenState extends State<UsersScreen> {
           decoration: BoxDecoration(
             color: isSelected ? CRMColors.background : Colors.transparent,
             borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : null,
+            boxShadow: isSelected ? CRMShadows.soft : null,
           ),
           child: Row(
             children: [

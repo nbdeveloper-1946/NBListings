@@ -10,6 +10,7 @@ import 'add_edit_requirement_screen.dart';
 import '../../properties/repository/properties_repository.dart';
 import '../../properties/models/property_model.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
+import '../../../core/design_system/tokens/app_shadows.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/cards.dart';
@@ -1189,9 +1190,10 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
           return Container(
             margin: const EdgeInsets.only(bottom: CRMSpacing.m),
             decoration: BoxDecoration(
-              color: CRMColors.cardBgOf(context),
+              color: CRMColors.surfaceElevated,
               borderRadius: BorderRadius.circular(CRMBorderRadius.m),
-              border: Border.all(color: CRMColors.borderOf(context), width: 1),
+              border: Border.all(color: CRMColors.border.withValues(alpha: 0.55), width: 0.5),
+              boxShadow: CRMShadows.soft,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

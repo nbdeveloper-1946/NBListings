@@ -8,9 +8,11 @@ import '../../properties/models/property_model.dart';
 import '../../requirements/repository/requirements_repository.dart';
 import '../../requirements/models/requirement_model.dart';
 import '../../../core/design_system/tokens/app_colors.dart';
+import '../../../core/design_system/tokens/app_motion.dart';
 import '../../../core/design_system/tokens/app_spacing.dart';
 import '../../../core/design_system/tokens/app_typography.dart';
 import '../../../core/design_system/widgets/cards.dart';
+import '../../../core/design_system/widgets/crm_entity_cards.dart';
 import '../../../core/design_system/widgets/buttons.dart';
 import '../../../core/design_system/widgets/skeletons.dart';
 import '../../auth/bloc/auth_bloc.dart';
@@ -392,30 +394,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          CustomPaint(
-                            size: const Size(180, 180),
-                            painter: StatusPieChartPainter(
-                              won: wonCount.toDouble(),
-                              live: liveCount.toDouble(),
-                              dead: 0,
-                              wonColor: wonColor,
-                              liveColor: liveColor,
-                              deadColor: deadColor,
-                            ),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 1),
+                            duration: CRMMotion.slow,
+                            curve: CRMMotion.easeOut,
+                            builder: (context, progress, _) {
+                              return RepaintBoundary(
+                                child: CustomPaint(
+                                  size: const Size(180, 180),
+                                  painter: StatusPieChartPainter(
+                                    won: wonCount.toDouble(),
+                                    live: liveCount.toDouble(),
+                                    dead: 0,
+                                    wonColor: wonColor,
+                                    liveColor: liveColor,
+                                    deadColor: deadColor,
+                                    progress: progress,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 '$wonCount',
-                                style: CRMTypography.pageTitle.copyWith(
-                                  fontWeight: FontWeight.bold,
+                                style: CRMTypography.statistics.copyWith(
+                                  fontSize: 28,
                                   color: CRMColors.textOf(context),
                                 ),
                               ),
                               Text(
                                 'Deals Won',
-                                style: CRMTypography.caption.copyWith(
+                                style: CRMTypography.chartLabels.copyWith(
                                   color: CRMColors.textSecondaryOf(context),
                                 ),
                               ),
@@ -427,7 +439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: CRMSpacing.m),
                   _buildPieLegend(_activeTab == 'Rental' ? 'Won Deals (Rented)' : 'Won Deals (Sale/Resale)', wonCount, '$wonPct%', wonColor),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: CRMSpacing.xs),
                   _buildPieLegend('Live Listings', liveCount, '$livePct%', liveColor),
                 ],
               )
@@ -441,30 +453,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          CustomPaint(
-                            size: const Size(180, 180),
-                            painter: StatusPieChartPainter(
-                              won: wonCount.toDouble(),
-                              live: liveCount.toDouble(),
-                              dead: 0,
-                              wonColor: wonColor,
-                              liveColor: liveColor,
-                              deadColor: deadColor,
-                            ),
+                          TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: 1),
+                            duration: CRMMotion.slow,
+                            curve: CRMMotion.easeOut,
+                            builder: (context, progress, _) {
+                              return RepaintBoundary(
+                                child: CustomPaint(
+                                  size: const Size(180, 180),
+                                  painter: StatusPieChartPainter(
+                                    won: wonCount.toDouble(),
+                                    live: liveCount.toDouble(),
+                                    dead: 0,
+                                    wonColor: wonColor,
+                                    liveColor: liveColor,
+                                    deadColor: deadColor,
+                                    progress: progress,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 '$wonCount',
-                                style: CRMTypography.pageTitle.copyWith(
-                                  fontWeight: FontWeight.bold,
+                                style: CRMTypography.statistics.copyWith(
+                                  fontSize: 28,
                                   color: CRMColors.textOf(context),
                                 ),
                               ),
                               Text(
                                 'Deals Won',
-                                style: CRMTypography.caption.copyWith(
+                                style: CRMTypography.chartLabels.copyWith(
                                   color: CRMColors.textSecondaryOf(context),
                                 ),
                               ),
@@ -974,58 +996,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildMobilePropertyCard(_DisplayProperty p) {
-    return InkWell(
+    return CRMPropertyCard(
+      title: p.title,
+      locationText: p.areaName,
+      priceText: '₹${p.price.toStringAsFixed(0)}',
       onTap: () => _openPropertyDetails(p.id),
-      borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: CRMSpacing.s),
-        padding: const EdgeInsets.all(CRMSpacing.m),
-        decoration: BoxDecoration(
-          color: CRMColors.backgroundOf(context).withOpacity(0.4),
-          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-          border: Border.all(color: CRMColors.backgroundOf(context)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              p.title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: CRMColors.textOf(context),
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: CRMSpacing.xs),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.location_on_outlined, size: 14, color: CRMColors.textSecondaryOf(context)),
-                    const SizedBox(width: 4),
-                    Text(
-                      p.areaName,
-                      style: TextStyle(
-                        color: CRMColors.textSecondaryOf(context),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '₹${p.price.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    color: CRMColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+      margin: const EdgeInsets.only(bottom: CRMSpacing.s),
     );
   }
 
@@ -1833,6 +1809,7 @@ class StatusPieChartPainter extends CustomPainter {
   final Color wonColor;
   final Color liveColor;
   final Color deadColor;
+  final double progress;
 
   StatusPieChartPainter({
     required this.won,
@@ -1841,6 +1818,7 @@ class StatusPieChartPainter extends CustomPainter {
     required this.wonColor,
     required this.liveColor,
     required this.deadColor,
+    this.progress = 1.0,
   });
 
   @override
@@ -1848,28 +1826,35 @@ class StatusPieChartPainter extends CustomPainter {
     final double total = won + live + dead;
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
-    final strokeWidth = radius * 0.32;
+    final strokeWidth = radius * 0.28;
+
+    final trackPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..color = CRMColors.groupedBackground;
+
+    canvas.drawCircle(center, radius - strokeWidth / 2, trackPaint);
+
+    if (total == 0 || progress <= 0) return;
 
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-
-    if (total == 0) {
-      paint.color = Colors.grey.withOpacity(0.2);
-      canvas.drawCircle(center, radius - strokeWidth / 2, paint);
-      return;
-    }
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
 
     double startAngle = -3.141592653589793 / 2;
+    final gap = 0.06;
 
     void drawArcSegment(double count, Color color) {
       if (count <= 0) return;
-      final sweepAngle = (count / total) * 2 * 3.141592653589793;
+      final sweepAngle = (count / total) * 2 * 3.141592653589793 * progress;
       paint.color = color;
+      final drawSweep = sweepAngle > gap ? sweepAngle - gap : sweepAngle;
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
         startAngle,
-        sweepAngle > 0.05 ? sweepAngle - 0.04 : sweepAngle,
+        drawSweep,
         false,
         paint,
       );
@@ -1888,6 +1873,7 @@ class StatusPieChartPainter extends CustomPainter {
         oldDelegate.dead != dead ||
         oldDelegate.wonColor != wonColor ||
         oldDelegate.liveColor != liveColor ||
-        oldDelegate.deadColor != deadColor;
+        oldDelegate.deadColor != deadColor ||
+        oldDelegate.progress != progress;
   }
 }

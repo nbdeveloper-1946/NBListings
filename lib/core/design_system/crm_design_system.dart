@@ -7,6 +7,7 @@ export 'tokens/app_motion.dart';
 export 'tokens/app_gradients.dart';
 export 'widgets/buttons.dart';
 export 'widgets/cards.dart';
+export 'widgets/crm_entity_cards.dart';
 export 'widgets/inputs.dart';
 export 'widgets/dialogs.dart';
 export 'widgets/crm_status_chips.dart';
