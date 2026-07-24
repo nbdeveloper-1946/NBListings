@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
+import '../tokens/app_motion.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
 
 enum CRMButtonVariant { primary, secondary, outline, danger }
 
-class CRMButton extends StatelessWidget {
+class CRMButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final CRMButtonVariant variant;
@@ -28,24 +29,31 @@ class CRMButton extends StatelessWidget {
   });
 
   @override
+  State<CRMButton> createState() => _CRMButtonState();
+}
+
+class _CRMButtonState extends State<CRMButton> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     Color bgColor;
     Color fgColor;
     BorderSide borderSide = BorderSide.none;
 
-    switch (variant) {
+    switch (widget.variant) {
       case CRMButtonVariant.primary:
         bgColor = CRMColors.primary;
         fgColor = Colors.white;
         break;
       case CRMButtonVariant.secondary:
-        bgColor = CRMColors.border;
+        bgColor = CRMColors.groupedBackground;
         fgColor = CRMColors.text;
         break;
       case CRMButtonVariant.outline:
         bgColor = Colors.transparent;
         fgColor = CRMColors.textSecondary;
-        borderSide = BorderSide(color: CRMColors.border, width: 1.5);
+        borderSide = BorderSide(color: CRMColors.border, width: 1);
         break;
       case CRMButtonVariant.danger:
         bgColor = CRMColors.danger;
@@ -53,16 +61,19 @@ class CRMButton extends StatelessWidget {
         break;
     }
 
-    if (onPressed == null) {
-      bgColor = bgColor.withOpacity(0.5);
-      fgColor = fgColor.withOpacity(0.6);
+    final enabled = widget.onPressed != null && !widget.isLoading;
+    if (!enabled) {
+      bgColor = bgColor.withOpacity(0.45);
+      fgColor = fgColor.withOpacity(0.55);
     }
+
+    final height = widget.height ?? 44.0;
 
     Widget content = Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (isLoading) ...[
+        if (widget.isLoading) ...[
           SizedBox(
             height: 16,
             width: 16,
@@ -72,36 +83,63 @@ class CRMButton extends StatelessWidget {
             ),
           ),
           const SizedBox(width: CRMSpacing.xs),
-        ] else if (prefixIcon != null) ...[
-          Icon(prefixIcon, size: height != null && height! < 36 ? 14 : 18, color: fgColor),
+        ] else if (widget.prefixIcon != null) ...[
+          Icon(
+            widget.prefixIcon,
+            size: height < 36 ? 14 : 18,
+            color: fgColor,
+          ),
           const SizedBox(width: CRMSpacing.xs),
         ],
         Text(
-          label,
+          widget.label,
           style: CRMTypography.button.copyWith(
             color: fgColor,
-            fontSize: height != null && height! < 36 ? 12 : 14,
+            fontSize: height < 36 ? 12 : 15,
           ),
         ),
       ],
     );
 
-    return SizedBox(
-      width: width,
-      height: height ?? 44,
-      child: OutlinedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: OutlinedButton.styleFrom(
-          backgroundColor: bgColor,
-          foregroundColor: fgColor,
-          side: borderSide,
-          elevation: 0,
-          padding: padding ?? const EdgeInsets.symmetric(horizontal: CRMSpacing.m),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+    return AnimatedScale(
+      scale: _pressed && enabled ? 0.97 : 1.0,
+      duration: CRMMotion.fast,
+      curve: CRMMotion.easeOut,
+      child: SizedBox(
+        width: widget.width,
+        height: height,
+        child: Semantics(
+          button: true,
+          enabled: enabled,
+          label: widget.label,
+          child: OutlinedButton(
+            onPressed: enabled ? widget.onPressed : null,
+            onHover: (_) {},
+            style: OutlinedButton.styleFrom(
+              backgroundColor: bgColor,
+              foregroundColor: fgColor,
+              side: borderSide,
+              elevation: 0,
+              padding: widget.padding ??
+                  const EdgeInsets.symmetric(horizontal: CRMSpacing.m),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              ),
+            ),
+            child: Listener(
+              onPointerDown: enabled
+                  ? (_) => setState(() => _pressed = true)
+                  : null,
+              onPointerUp: enabled
+                  ? (_) => setState(() => _pressed = false)
+                  : null,
+              onPointerCancel: enabled
+                  ? (_) => setState(() => _pressed = false)
+                  : null,
+              child: content,
+            ),
           ),
         ),
-        child: content,
       ),
     );
   }

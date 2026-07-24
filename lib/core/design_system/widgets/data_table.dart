@@ -53,9 +53,9 @@ class CRMDataTable extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: CRMColors.cardBg,
+        color: CRMColors.surfaceElevated,
         borderRadius: BorderRadius.circular(CRMBorderRadius.m),
-        border: Border.all(color: CRMColors.border, width: 1),
+        border: Border.all(color: CRMColors.border.withOpacity(0.55), width: 0.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
@@ -76,12 +76,12 @@ class CRMDataTable extends StatelessWidget {
             child: ConstrainedBox(
               constraints: BoxConstraints(minWidth: availableWidth),
               child: DataTable(
-                headingRowColor: WidgetStateProperty.all(CRMColors.sidebarBg),
-                headingTextStyle: CRMTypography.captionBold.copyWith(color: CRMColors.textSecondary),
+                headingRowColor: WidgetStateProperty.all(CRMColors.groupedBackground),
+                headingTextStyle: CRMTypography.tableHeaders.copyWith(color: CRMColors.textSecondary),
                 dataTextStyle: CRMTypography.body.copyWith(color: CRMColors.text),
                 dataRowMinHeight: dataRowMinHeight ?? 52.0,
                 dataRowMaxHeight: dataRowMaxHeight ?? 64.0,
-                dividerThickness: 1.0,
+                dividerThickness: 0.5,
                 horizontalMargin: CRMSpacing.m,
                 columnSpacing: spacing,
                 columns: columns,

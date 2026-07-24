@@ -33,15 +33,10 @@ class CRMEmptyState extends StatelessWidget {
               height: 80,
               width: 80,
               decoration: BoxDecoration(
-                color: CRMColors.background,
+                color: CRMColors.groupedBackground,
                 shape: BoxShape.circle,
-                border: Border.all(color: CRMColors.border, width: 1.5),
               ),
-              child: Icon(
-                icon,
-                color: CRMColors.textMuted,
-                size: 36,
-              ),
+              child: Icon(icon, color: CRMColors.textMuted, size: 36),
             ),
             const SizedBox(height: CRMSpacing.l),
             Text(

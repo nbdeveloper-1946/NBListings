@@ -35,12 +35,13 @@ class CRMTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(CRMBorderRadius.s);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           labelText,
-          style: CRMTypography.bodyMedium.copyWith(color: CRMColors.textSecondary),
+          style: CRMTypography.label.copyWith(color: CRMColors.textSecondary),
         ),
         const SizedBox(height: CRMSpacing.xs),
         TextFormField(
@@ -53,11 +54,7 @@ class CRMTextField extends StatelessWidget {
             hintText: hintText,
             hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
             prefixIcon: prefixIcon != null
-                ? Icon(
-                    prefixIcon,
-                    color: CRMColors.textMuted,
-                    size: 20,
-                  )
+                ? Icon(prefixIcon, color: CRMColors.textMuted, size: 20)
                 : null,
             suffixIcon: suffixIcon,
             contentPadding: const EdgeInsets.symmetric(
@@ -65,25 +62,27 @@ class CRMTextField extends StatelessWidget {
               vertical: CRMSpacing.s,
             ),
             filled: true,
-            fillColor: CRMColors.cardBg,
+            fillColor: CRMColors.groupedBackground.withOpacity(
+              CRMColors.isDark ? 0.55 : 0.65,
+            ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: BorderSide(color: CRMColors.border, width: 1),
+              borderRadius: radius,
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: BorderSide(color: CRMColors.border, width: 1),
+              borderRadius: radius,
+              borderSide: BorderSide(color: CRMColors.border.withOpacity(0.4)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              borderRadius: radius,
               borderSide: BorderSide(color: CRMColors.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              borderSide: BorderSide(color: CRMColors.danger, width: 1),
+              borderRadius: radius,
+              borderSide: BorderSide(color: CRMColors.danger),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
+              borderRadius: radius,
               borderSide: BorderSide(color: CRMColors.danger, width: 1.5),
             ),
           ),

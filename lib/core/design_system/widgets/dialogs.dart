@@ -1,54 +1,81 @@
 import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
+import '../tokens/app_motion.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
 
 class CRMDialogs {
   static Future<bool?> showUnsavedChangesDialog(BuildContext context) async {
-    return showDialog<bool>(
+    return showGeneralDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: CRMColors.cardBgOf(ctx),
-        title: Text('Unsaved Changes', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(ctx))),
-        content: Text(
-          'You have unsaved form details. Are you sure you want to discard your changes and leave?',
-          style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(ctx)),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Stay / Keep Editing'),
-            onPressed: () => Navigator.of(ctx).pop(false),
+      barrierLabel: 'Unsaved Changes',
+      barrierColor: CRMColors.overlay,
+      transitionDuration: CRMMotion.medium,
+      pageBuilder: (ctx, anim, secondary) => const SizedBox.shrink(),
+      transitionBuilder: (ctx, anim, secondary, child) {
+        final curved = CurvedAnimation(parent: anim, curve: CRMMotion.easeOut);
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1.0).animate(curved),
+            child: AlertDialog(
+              backgroundColor: CRMColors.surfaceElevated,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
+              ),
+              title: Text(
+                'Unsaved Changes',
+                style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text),
+              ),
+              content: Text(
+                'You have unsaved form details. Are you sure you want to discard your changes and leave?',
+                style: CRMTypography.body.copyWith(color: CRMColors.textSecondary),
+              ),
+              actions: [
+                TextButton(
+                  child: const Text('Stay / Keep Editing'),
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: CRMColors.danger),
+                  child: const Text('Discard / Exit', style: TextStyle(color: Colors.white)),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                ),
+              ],
+            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: CRMColors.danger),
-            child: const Text('Discard / Exit', style: TextStyle(color: Colors.white)),
-            onPressed: () => Navigator.of(ctx).pop(true),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  static Future<void> showSuccessDialog(BuildContext context, String message, {VoidCallback? onClose}) async {
+  static Future<void> showSuccessDialog(
+    BuildContext context,
+    String message, {
+    VoidCallback? onClose,
+  }) async {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: CRMColors.cardBgOf(ctx),
+        backgroundColor: CRMColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
+        ),
         title: Row(
           children: [
             const Icon(Icons.check_circle_rounded, color: CRMColors.success, size: 28),
             const SizedBox(width: CRMSpacing.s),
-            Text('Success', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(ctx))),
+            Text('Success', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
           ],
         ),
-        content: Text(message, style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(ctx))),
+        content: Text(message, style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
         actions: [
           TextButton(
             child: const Text('OK'),
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (onClose != null) onClose();
+              onClose?.call();
             },
           ),
         ],
@@ -60,15 +87,18 @@ class CRMDialogs {
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: CRMColors.cardBgOf(ctx),
+        backgroundColor: CRMColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
+        ),
         title: Row(
           children: [
             const Icon(Icons.error_outline_rounded, color: CRMColors.danger, size: 28),
             const SizedBox(width: CRMSpacing.s),
-            Text('Error', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(ctx))),
+            Text('Error', style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
           ],
         ),
-        content: Text(error, style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(ctx))),
+        content: Text(error, style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
         actions: [
           TextButton(
             child: const Text('Close'),
@@ -79,19 +109,28 @@ class CRMDialogs {
     );
   }
 
-  static Future<bool?> showDeleteConfirmation(BuildContext context, {required String title, required String content}) async {
+  static Future<bool?> showDeleteConfirmation(
+    BuildContext context, {
+    required String title,
+    required String content,
+  }) async {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: CRMColors.cardBgOf(ctx),
+        backgroundColor: CRMColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(CRMBorderRadius.r20),
+        ),
         title: Row(
           children: [
             const Icon(Icons.delete_forever_rounded, color: CRMColors.danger, size: 28),
             const SizedBox(width: CRMSpacing.s),
-            Text(title, style: CRMTypography.sectionTitle.copyWith(color: CRMColors.textOf(ctx))),
+            Expanded(
+              child: Text(title, style: CRMTypography.sectionTitle.copyWith(color: CRMColors.text)),
+            ),
           ],
         ),
-        content: Text(content, style: CRMTypography.body.copyWith(color: CRMColors.textSecondaryOf(ctx))),
+        content: Text(content, style: CRMTypography.body.copyWith(color: CRMColors.textSecondary)),
         actions: [
           TextButton(
             child: const Text('Cancel'),

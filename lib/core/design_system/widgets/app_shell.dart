@@ -4,9 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 import '../../../../features/auth/bloc/auth_bloc.dart';
 import '../../theme/theme_manager.dart';
+import '../tokens/app_blur.dart';
 import '../tokens/app_colors.dart';
+import '../tokens/app_motion.dart';
+import '../tokens/app_shadows.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
+import 'crm_glass_surface.dart';
 import '../../api/dio_client.dart';
 import '../../utils/budget_formatter.dart';
 import '../../network/sync_manager.dart';
@@ -21,15 +25,25 @@ class CRMAppShell extends StatefulWidget {
   State<CRMAppShell> createState() => _CRMAppShellState();
 }
 
-class _CRMAppShellState extends State<CRMAppShell> {
+class _CRMAppShellState extends State<CRMAppShell> with SingleTickerProviderStateMixin {
   bool _isSidebarExpanded = true;
   final TextEditingController _searchController = TextEditingController();
   late PersistentTabController _tabController;
   int _previousIndex = 0;
+  late AnimationController _searchFadeController;
+  late Animation<double> _searchFadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _searchFadeController = AnimationController(
+      vsync: this,
+      duration: CRMMotion.medium,
+    );
+    _searchFadeAnimation = CurvedAnimation(
+      parent: _searchFadeController,
+      curve: CRMMotion.easeInOut,
+    );
     _tabController = PersistentTabController(initialIndex: 0);
     _tabController.addListener(() {
       final index = _tabController.index;
@@ -51,6 +65,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
 
   @override
   void dispose() {
+    _searchFadeController.dispose();
     _tabController.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
@@ -97,14 +112,19 @@ class _CRMAppShellState extends State<CRMAppShell> {
   void _showQuickActionsBottomSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: CRMColors.cardBg,
+      backgroundColor: CRMColors.surfaceElevated,
+      isScrollControlled: true,
+      showDragHandle: true,
+      enableDrag: true,
+      elevation: 0,
+      barrierColor: CRMColors.overlay,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.m)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(CRMBorderRadius.r24)),
       ),
       builder: (context) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: CRMSpacing.l, horizontal: CRMSpacing.xl),
+            padding: const EdgeInsets.fromLTRB(CRMSpacing.xl, CRMSpacing.s, CRMSpacing.xl, CRMSpacing.l),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,16 +134,14 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   children: [
                     Text(
                       'Quick Actions',
-                      style: CRMTypography.sectionTitle.copyWith(
+                      style: CRMTypography.navigationTitle.copyWith(
                         color: CRMColors.text,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     IconButton(
                       icon: Icon(Icons.close_rounded, color: CRMColors.textSecondary),
                       onPressed: () => Navigator.pop(context),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                     ),
                   ],
                 ),
@@ -149,7 +167,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                     context.go('/properties?action=add');
                   },
                 ),
-                const Divider(height: CRMSpacing.m),
+                Divider(height: CRMSpacing.m, color: CRMColors.divider, thickness: 0.5),
                 ListTile(
                   leading: CircleAvatar(
                     backgroundColor: CRMColors.primary.withOpacity(0.12),
@@ -290,82 +308,82 @@ class _CRMAppShellState extends State<CRMAppShell> {
 
   void _showSearchOverlay() {
     if (_searchOverlayEntry != null) return;
+    _searchFadeController.forward(from: 0);
     _searchOverlayEntry = OverlayEntry(
       builder: (context) {
-        return Positioned(
-          width: 400,
-          child: CompositedTransformFollower(
-            link: _searchLayerLink,
-            showWhenUnlinked: false,
-            offset: const Offset(0, 50),
-            child: Material(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-              color: CRMColors.cardBg,
-              child: Container(
-                constraints: const BoxConstraints(maxHeight: 400),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                  border: Border.all(color: CRMColors.border, width: 1.5),
-                ),
-                child: _isSearching
-                    ? const Padding(
-                        padding: EdgeInsets.all(CRMSpacing.m),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    : (_propertySuggestions.isEmpty &&
-                            _requirementSuggestions.isEmpty &&
-                            _ownerSuggestions.isEmpty)
-                        ? Padding(
-                            padding: const EdgeInsets.all(CRMSpacing.m),
-                            child: Text(
-                              'No suggestions found.',
-                              style: TextStyle(color: CRMColors.textSecondary),
-                              textAlign: TextAlign.center,
+        return FadeTransition(
+          opacity: _searchFadeAnimation,
+          child: Positioned(
+            width: 400,
+            child: CompositedTransformFollower(
+              link: _searchLayerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0, 50),
+              child: CRMGlassSurface(
+                blur: CRMBlur.search,
+                borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+                enableBlur: true,
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 400),
+                  child: _isSearching
+                      ? const Padding(
+                          padding: EdgeInsets.all(CRMSpacing.m),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      : (_propertySuggestions.isEmpty &&
+                              _requirementSuggestions.isEmpty &&
+                              _ownerSuggestions.isEmpty)
+                          ? Padding(
+                              padding: const EdgeInsets.all(CRMSpacing.m),
+                              child: Text(
+                                'No suggestions found.',
+                                style: TextStyle(color: CRMColors.textSecondary),
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          : ListView(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(vertical: CRMSpacing.s),
+                              children: [
+                                if (_propertySuggestions.isNotEmpty) ...[
+                                  _buildSuggestionSectionHeader('Properties'),
+                                  ..._propertySuggestions.map((p) => _buildSuggestionTile(
+                                        icon: Icons.business_rounded,
+                                        title: p['title'] ?? '',
+                                        subtitle: 'Code: ${p['property_code']} • ₹${BudgetFormatter.format((p['price'] as num?)?.toDouble() ?? 0.0)}',
+                                        onTap: () {
+                                          _hideSearchOverlay();
+                                          context.go('/properties');
+                                        },
+                                      )),
+                                ],
+                                if (_requirementSuggestions.isNotEmpty) ...[
+                                  _buildSuggestionSectionHeader('Requirements'),
+                                  ..._requirementSuggestions.map((r) => _buildSuggestionTile(
+                                        icon: Icons.person_search_rounded,
+                                        title: r['customer_name'] ?? '',
+                                        subtitle: 'Mobile: ${r['mobile']}',
+                                        onTap: () {
+                                          _hideSearchOverlay();
+                                          context.go('/requirements');
+                                        },
+                                      )),
+                                ],
+                                if (_ownerSuggestions.isNotEmpty) ...[
+                                  _buildSuggestionSectionHeader('Owners'),
+                                  ..._ownerSuggestions.map((o) => _buildSuggestionTile(
+                                        icon: Icons.person_rounded,
+                                        title: o['name'] ?? '',
+                                        subtitle: 'Mobile: ${o['mobile']}',
+                                        onTap: () {
+                                          _hideSearchOverlay();
+                                          context.go('/owners');
+                                        },
+                                      )),
+                                ],
+                              ],
                             ),
-                          )
-                        : ListView(
-                            shrinkWrap: true,
-                            padding: const EdgeInsets.symmetric(vertical: CRMSpacing.s),
-                            children: [
-                              if (_propertySuggestions.isNotEmpty) ...[
-                                _buildSuggestionSectionHeader('Properties'),
-                                ..._propertySuggestions.map((p) => _buildSuggestionTile(
-                                      icon: Icons.business_rounded,
-                                      title: p['title'] ?? '',
-                                      subtitle: 'Code: ${p['property_code']} • ₹${BudgetFormatter.format((p['price'] as num?)?.toDouble() ?? 0.0)}',
-                                      onTap: () {
-                                        _hideSearchOverlay();
-                                        context.go('/properties');
-                                      },
-                                    )),
-                              ],
-                              if (_requirementSuggestions.isNotEmpty) ...[
-                                _buildSuggestionSectionHeader('Requirements'),
-                                ..._requirementSuggestions.map((r) => _buildSuggestionTile(
-                                      icon: Icons.person_search_rounded,
-                                      title: r['customer_name'] ?? '',
-                                      subtitle: 'Mobile: ${r['mobile']}',
-                                      onTap: () {
-                                        _hideSearchOverlay();
-                                        context.go('/requirements');
-                                      },
-                                    )),
-                              ],
-                              if (_ownerSuggestions.isNotEmpty) ...[
-                                _buildSuggestionSectionHeader('Owners'),
-                                ..._ownerSuggestions.map((o) => _buildSuggestionTile(
-                                      icon: Icons.person_rounded,
-                                      title: o['name'] ?? '',
-                                      subtitle: 'Mobile: ${o['mobile']}',
-                                      onTap: () {
-                                        _hideSearchOverlay();
-                                        context.go('/owners');
-                                      },
-                                    )),
-                              ],
-                            ],
-                          ),
+                ),
               ),
             ),
           ),
@@ -376,8 +394,11 @@ class _CRMAppShellState extends State<CRMAppShell> {
   }
 
   void _hideSearchOverlay() {
-    _searchOverlayEntry?.remove();
-    _searchOverlayEntry = null;
+    if (_searchOverlayEntry == null) return;
+    _searchFadeController.reverse().then((_) {
+      _searchOverlayEntry?.remove();
+      _searchOverlayEntry = null;
+    });
   }
 
   Widget _buildSuggestionSectionHeader(String title) {
@@ -440,7 +461,19 @@ class _CRMAppShellState extends State<CRMAppShell> {
       children: [
         Scaffold(
           backgroundColor: CRMColors.background,
-          drawer: isMobile ? Drawer(child: _buildSidebarContent(location, isMobile: true)) : null,
+          drawer: isMobile
+              ? Drawer(
+                  backgroundColor: CRMColors.sidebarBg,
+                  elevation: 0,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(CRMBorderRadius.l),
+                      bottomRight: Radius.circular(CRMBorderRadius.l),
+                    ),
+                  ),
+                  child: _buildSidebarContent(location, isMobile: true),
+                )
+              : null,
           bottomNavigationBar: isMobile
               ? Style3BottomNavBar(
                   navBarConfig: NavBarConfig(
@@ -450,31 +483,31 @@ class _CRMAppShellState extends State<CRMAppShell> {
                         icon: const Icon(Icons.dashboard_rounded),
                         title: 'Dashboard',
                         activeForegroundColor: CRMColors.primary,
-                        inactiveForegroundColor: CRMColors.textSecondary,
+                        inactiveForegroundColor: CRMColors.textMuted,
                       ),
                       ItemConfig(
                         icon: const Icon(Icons.home_work_rounded),
                         title: 'Properties',
                         activeForegroundColor: CRMColors.primary,
-                        inactiveForegroundColor: CRMColors.textSecondary,
+                        inactiveForegroundColor: CRMColors.textMuted,
                       ),
                       ItemConfig(
                         icon: const Icon(Icons.add_circle_rounded, size: 36),
                         title: 'Add',
                         activeForegroundColor: CRMColors.primary,
-                        inactiveForegroundColor: CRMColors.textSecondary,
+                        inactiveForegroundColor: CRMColors.textMuted,
                       ),
                       ItemConfig(
                         icon: const Icon(Icons.assignment_rounded),
                         title: 'Requirements',
                         activeForegroundColor: CRMColors.primary,
-                        inactiveForegroundColor: CRMColors.textSecondary,
+                        inactiveForegroundColor: CRMColors.textMuted,
                       ),
                       ItemConfig(
                         icon: const Icon(Icons.person_rounded),
                         title: 'Profile',
                         activeForegroundColor: CRMColors.primary,
-                        inactiveForegroundColor: CRMColors.textSecondary,
+                        inactiveForegroundColor: CRMColors.textMuted,
                       ),
                     ],
                     onItemSelected: (index) {
@@ -482,8 +515,8 @@ class _CRMAppShellState extends State<CRMAppShell> {
                     },
                   ),
                   navBarDecoration: NavBarDecoration(
-                    color: CRMColors.cardBg,
-                    border: Border(top: BorderSide(color: CRMColors.border, width: 1.5)),
+                    color: CRMColors.surfaceElevated,
+                    border: Border(top: BorderSide(color: CRMColors.divider, width: 0.5)),
                   ),
                 )
               : null,
@@ -491,12 +524,13 @@ class _CRMAppShellState extends State<CRMAppShell> {
             children: [
               if (showSidebar)
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                  duration: CRMMotion.medium,
+                  curve: CRMMotion.easeInOut,
                   width: sidebarWidth,
                   child: Container(
                     decoration: BoxDecoration(
                       color: CRMColors.sidebarBg,
-                      border: Border(right: BorderSide(color: CRMColors.border, width: 1.5)),
+                      border: Border(right: BorderSide(color: CRMColors.divider, width: 0.5)),
                     ),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
@@ -523,38 +557,35 @@ class _CRMAppShellState extends State<CRMAppShell> {
           builder: (context, isSyncing, _) {
             if (!isSyncing) return const SizedBox.shrink();
             return Container(
-              color: Colors.black.withOpacity(0.65),
+              color: CRMColors.overlay,
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.all(32),
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.all(CRMSpacing.xl),
+                  margin: const EdgeInsets.symmetric(horizontal: CRMSpacing.l),
                   decoration: BoxDecoration(
-                    color: const Color(0xff090D16),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xff688A75).withOpacity(0.3)),
+                    color: CRMColors.surfaceElevated,
+                    borderRadius: BorderRadius.circular(CRMBorderRadius.l),
+                    border: Border.all(color: CRMColors.border.withOpacity(0.35), width: 0.5),
+                    boxShadow: CRMShadows.modal,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(color: Color(0xff688A75)),
-                      const SizedBox(height: 24),
-                      const Text(
+                      CircularProgressIndicator(color: CRMColors.primary),
+                      const SizedBox(height: CRMSpacing.l),
+                      Text(
                         'Updating lookup lists...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                        style: CRMTypography.navigationTitle.copyWith(
+                          color: CRMColors.text,
                           decoration: TextDecoration.none,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
+                      const SizedBox(height: CRMSpacing.xs),
+                      Text(
                         'Synchronizing database metadata...',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
+                        style: CRMTypography.body.copyWith(
+                          color: CRMColors.textSecondary,
                           decoration: TextDecoration.none,
-                          fontWeight: FontWeight.normal,
                         ),
                       ),
                     ],
@@ -572,8 +603,8 @@ class _CRMAppShellState extends State<CRMAppShell> {
     return Container(
       height: 70,
       decoration: BoxDecoration(
-        color: CRMColors.cardBg,
-        border: Border(bottom: BorderSide(color: CRMColors.border, width: 1.5)),
+        color: CRMColors.surfaceElevated,
+        border: Border(bottom: BorderSide(color: CRMColors.divider, width: 0.5)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: CRMSpacing.l),
       child: Row(
@@ -583,6 +614,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
               builder: (context) => IconButton(
                 icon: Icon(Icons.menu_rounded, color: CRMColors.textSecondary),
                 onPressed: () => Scaffold.of(context).openDrawer(),
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
               ),
             )
           else
@@ -596,6 +628,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   _isSidebarExpanded = !_isSidebarExpanded;
                 });
               },
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             ),
           const SizedBox(width: CRMSpacing.m),
           Expanded(
@@ -608,25 +641,29 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   child: Focus(
                     onFocusChange: (hasFocus) {
                       if (!hasFocus) {
-                        Future.delayed(const Duration(milliseconds: 200), () {
+                        Future.delayed(CRMMotion.medium, () {
                           _hideSearchOverlay();
                         });
                       }
                     },
-                    child: TextField(
-                      controller: _searchController,
-                      style: CRMTypography.body.copyWith(color: CRMColors.text),
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Search in NB Listings (Properties, Clients, Code)...',
-                        hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
-                        prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted, size: 20),
-                        filled: true,
-                        fillColor: CRMColors.background,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.xs),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(CRMBorderRadius.s),
-                          borderSide: BorderSide.none,
+                    child: CRMGlassSurface(
+                      blur: CRMBlur.search,
+                      borderRadius: BorderRadius.circular(CRMBorderRadius.m),
+                      enableBlur: false,
+                      padding: EdgeInsets.zero,
+                      child: TextField(
+                        controller: _searchController,
+                        style: CRMTypography.body.copyWith(color: CRMColors.text),
+                        onChanged: _onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search in NB Listings (Properties, Clients, Code)...',
+                          hintStyle: CRMTypography.body.copyWith(color: CRMColors.textMuted),
+                          prefixIcon: Icon(Icons.search_rounded, color: CRMColors.textMuted, size: 20),
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: CRMSpacing.m, vertical: CRMSpacing.xs),
                         ),
                       ),
                     ),
@@ -661,6 +698,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
         icon: Icon(Icons.notifications_none_rounded, color: CRMColors.textSecondary),
         offset: const Offset(0, 50),
         tooltip: 'Notifications',
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
         itemBuilder: (BuildContext context) {
           List<PopupMenuEntry<dynamic>> items = [];
           
@@ -803,6 +841,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
     return PopupMenuButton<String>(
       icon: Icon(Icons.add_circle_outline_rounded, color: CRMColors.primary),
       tooltip: 'Quick Actions',
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
       onSelected: (value) {
         if (value == 'property') {
           context.go('/properties?action=add');
@@ -840,9 +879,10 @@ class _CRMAppShellState extends State<CRMAppShell> {
     return IconButton(
       icon: Icon(
         isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-        color: isDark ? const Color(0xFFFCD34D) : CRMColors.textSecondary,
+        color: isDark ? CRMColors.warning : CRMColors.textSecondary,
       ),
       tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
       onPressed: () {
         ThemeManager().toggleTheme();
       },
@@ -892,8 +932,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   Flexible(
                     child: Text(
                       'NB Listings',
-                      style: CRMTypography.sectionTitle.copyWith(
-                        fontWeight: FontWeight.w900,
+                      style: CRMTypography.navigationTitle.copyWith(
                         color: CRMColors.textOf(context),
                       ),
                       maxLines: 1,
@@ -905,7 +944,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
               ],
             ),
           ),
-          Divider(color: CRMColors.border, height: 1),
+          Divider(color: CRMColors.divider, height: 0.5, thickness: 0.5),
           Expanded(
             child: ListView(
               padding: EdgeInsets.symmetric(
@@ -923,7 +962,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
               ],
             ),
           ),
-          Divider(color: CRMColors.border, height: 1),
+          Divider(color: CRMColors.divider, height: 0.5, thickness: 0.5),
           Padding(
             padding: EdgeInsets.symmetric(
               vertical: CRMSpacing.m,
@@ -986,6 +1025,7 @@ class _CRMAppShellState extends State<CRMAppShell> {
                   IconButton(
                     icon: Icon(Icons.logout_rounded, color: CRMColors.danger),
                     onPressed: _handleLogout,
+                    constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                   ),
                 ],
               ],
@@ -1063,8 +1103,8 @@ class _SidebarItemState extends State<_SidebarItem> {
         child: GestureDetector(
           onTap: widget.onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
+            duration: CRMMotion.medium,
+            curve: CRMMotion.easeInOut,
             padding: EdgeInsets.symmetric(
               horizontal: isExpanded ? CRMSpacing.m : CRMSpacing.xs,
               vertical: CRMSpacing.s,
@@ -1080,9 +1120,9 @@ class _SidebarItemState extends State<_SidebarItem> {
                 color: isSelected
                     ? CRMColors.primary.withValues(alpha: 0.2)
                     : (_isHovered
-                        ? CRMColors.primary.withValues(alpha: 0.1)
+                        ? CRMColors.divider
                         : Colors.transparent),
-                width: 1,
+                width: 0.5,
               ),
             ),
             child: Row(
@@ -1090,10 +1130,11 @@ class _SidebarItemState extends State<_SidebarItem> {
               children: [
                 AnimatedScale(
                   scale: _isHovered ? 1.1 : 1.0,
-                  duration: const Duration(milliseconds: 200),
+                  duration: CRMMotion.medium,
+                  curve: CRMMotion.easeInOut,
                   child: Icon(
                     widget.icon,
-                    color: isSelected ? CRMColors.primary : CRMColors.textSecondary,
+                    color: isSelected ? CRMColors.primary : CRMColors.textMuted,
                     size: 20,
                   ),
                 ),
@@ -1101,11 +1142,13 @@ class _SidebarItemState extends State<_SidebarItem> {
                   const SizedBox(width: CRMSpacing.m),
                   Expanded(
                     child: AnimatedPadding(
-                      duration: const Duration(milliseconds: 200),
+                      duration: CRMMotion.medium,
+                      curve: CRMMotion.easeInOut,
                       padding: EdgeInsets.only(left: _isHovered ? 4.0 : 0.0),
                       child: Text(
                         widget.label,
-                        style: CRMTypography.bodyMedium.copyWith(
+                        style: CRMTypography.navigationTitle.copyWith(
+                          fontSize: 15,
                           color: isSelected ? CRMColors.primary : CRMColors.text,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                         ),
@@ -1143,7 +1186,7 @@ class PubSubDivider extends PopupMenuEntry<Never> {
 }
 class _PubSubDividerState extends State<PubSubDivider> {
   @override
-  Widget build(BuildContext context) => const Divider(height: 1, thickness: 1);
+  Widget build(BuildContext context) => Divider(height: 0.5, thickness: 0.5, color: CRMColors.divider);
 }
 
 class LiveClockWidget extends StatefulWidget {
@@ -1191,9 +1234,9 @@ class _LiveClockWidgetState extends State<LiveClockWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: CRMColors.cardBgOf(context),
+        color: CRMColors.surfaceElevated,
         borderRadius: BorderRadius.circular(CRMBorderRadius.round),
-        border: Border.all(color: CRMColors.borderOf(context), width: 1),
+        border: Border.all(color: CRMColors.divider, width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

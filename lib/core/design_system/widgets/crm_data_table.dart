@@ -20,7 +20,7 @@ class CRMColumn<T> {
   });
 }
 
-class CRMDataTable<T> extends StatelessWidget {
+class CRMGenericDataTable<T> extends StatelessWidget {
   final List<CRMColumn<T>> columns;
   final List<T> items;
   final bool isLoading;
@@ -34,7 +34,7 @@ class CRMDataTable<T> extends StatelessWidget {
   final int totalPages;
   final Function(int page)? onPageChanged;
 
-  const CRMDataTable({
+  const CRMGenericDataTable({
     super.key,
     required this.columns,
     required this.items,

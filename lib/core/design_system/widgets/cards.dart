@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
+import '../tokens/app_shadows.dart';
 import '../tokens/app_spacing.dart';
 import '../tokens/app_typography.dart';
-import '../tokens/app_shadows.dart';
 
 class CRMCard extends StatelessWidget {
   final String? title;
@@ -26,9 +26,9 @@ class CRMCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: CRMColors.cardBg,
+        color: CRMColors.surfaceElevated,
         borderRadius: BorderRadius.circular(CRMBorderRadius.m),
-        border: Border.all(color: CRMColors.border, width: 1),
+        border: Border.all(color: CRMColors.border.withOpacity(0.55), width: 0.5),
         boxShadow: CRMShadows.soft,
       ),
       child: Column(
@@ -52,13 +52,15 @@ class CRMCard extends StatelessWidget {
                         if (title != null)
                           Text(
                             title!,
-                            style: CRMTypography.cardTitle.copyWith(color: CRMColors.text),
+                            style: CRMTypography.cardTitle
+                                .copyWith(color: CRMColors.text),
                           ),
                         if (subtitle != null) ...[
-                          const SizedBox(height: 2.0),
+                          const SizedBox(height: CRMSpacing.xxs),
                           Text(
                             subtitle!,
-                            style: CRMTypography.caption.copyWith(color: CRMColors.textSecondary),
+                            style: CRMTypography.footnote
+                                .copyWith(color: CRMColors.textSecondary),
                           ),
                         ],
                       ],
@@ -68,14 +70,14 @@ class CRMCard extends StatelessWidget {
                 ],
               ),
             ),
-            Divider(color: CRMColors.border, height: 1),
+            Divider(color: CRMColors.divider, height: 1),
           ],
           Padding(
             padding: padding,
             child: child,
           ),
           if (footer != null) ...[
-            Divider(color: CRMColors.border, height: 1),
+            Divider(color: CRMColors.divider, height: 1),
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: CRMSpacing.m,
@@ -130,7 +132,9 @@ class CRMKPICard extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: (isMobile ? CRMTypography.captionBold.copyWith(fontSize: 11) : CRMTypography.captionBold)
+                  style: (isMobile
+                          ? CRMTypography.captionBold.copyWith(fontSize: 11)
+                          : CRMTypography.sectionHeader)
                       .copyWith(color: CRMColors.textSecondary),
                 ),
               ),
@@ -138,25 +142,27 @@ class CRMKPICard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(isMobile ? 2.0 : CRMSpacing.xxs),
                 decoration: BoxDecoration(
-                  color: activeIconColor.withOpacity(0.08),
+                  color: activeIconColor.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(CRMBorderRadius.s),
                 ),
                 child: Icon(icon, color: activeIconColor, size: isMobile ? 15 : 18),
               ),
             ],
           ),
-          SizedBox(height: isMobile ? 2.0 : CRMSpacing.s),
+          SizedBox(height: isMobile ? CRMSpacing.xxs : CRMSpacing.s),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: (isMobile ? CRMTypography.sectionTitle.copyWith(fontSize: 22, fontWeight: FontWeight.bold) : CRMTypography.display)
+              style: (isMobile
+                      ? CRMTypography.statistics.copyWith(fontSize: 22)
+                      : CRMTypography.statistics)
                   .copyWith(color: CRMColors.text),
             ),
           ),
           if (showGrowth || lastUpdated != null) ...[
-            SizedBox(height: isMobile ? 2.0 : CRMSpacing.xs),
+            SizedBox(height: isMobile ? CRMSpacing.xxs : CRMSpacing.xs),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -164,22 +170,30 @@ class CRMKPICard extends StatelessWidget {
                   Row(
                     children: [
                       Icon(
-                        isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                        isPositive
+                            ? Icons.trending_up_rounded
+                            : Icons.trending_down_rounded,
                         color: isPositive ? CRMColors.success : CRMColors.danger,
                         size: isMobile ? 12 : 14,
                       ),
-                      const SizedBox(width: 2.0),
+                      const SizedBox(width: CRMSpacing.xxs),
                       Text(
                         '${isPositive ? "+" : ""}${growthPercent!.toStringAsFixed(1)}%',
-                        style: (isMobile ? CRMTypography.captionBold.copyWith(fontSize: 10) : CRMTypography.captionBold)
-                            .copyWith(color: isPositive ? CRMColors.success : CRMColors.danger),
+                        style: (isMobile
+                                ? CRMTypography.captionBold.copyWith(fontSize: 10)
+                                : CRMTypography.captionBold)
+                            .copyWith(
+                          color: isPositive ? CRMColors.success : CRMColors.danger,
+                        ),
                       ),
                     ],
                   ),
                 if (lastUpdated != null)
                   Text(
                     lastUpdated!,
-                    style: (isMobile ? CRMTypography.caption.copyWith(fontSize: 10) : CRMTypography.caption)
+                    style: (isMobile
+                            ? CRMTypography.caption.copyWith(fontSize: 10)
+                            : CRMTypography.caption)
                         .copyWith(color: CRMColors.textMuted),
                   ),
               ],

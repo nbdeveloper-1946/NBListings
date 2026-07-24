@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../tokens/app_colors.dart';
+import '../tokens/app_motion.dart';
 import '../tokens/app_spacing.dart';
 
 class CRMSkeleton extends StatefulWidget {
@@ -18,7 +19,8 @@ class CRMSkeleton extends StatefulWidget {
   State<CRMSkeleton> createState() => _CRMSkeletonState();
 }
 
-class _CRMSkeletonState extends State<CRMSkeleton> with SingleTickerProviderStateMixin {
+class _CRMSkeletonState extends State<CRMSkeleton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -27,7 +29,7 @@ class _CRMSkeletonState extends State<CRMSkeleton> with SingleTickerProviderStat
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: CRMMotion.slow * 4,
     )..repeat();
     _animation = Tween<double>(begin: -2.0, end: 2.0).animate(_controller);
   }
@@ -40,6 +42,13 @@ class _CRMSkeletonState extends State<CRMSkeleton> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    final base = CRMColors.isDark
+        ? const Color(0xFF2C2C2E)
+        : const Color(0xFFE5E5EA);
+    final highlight = CRMColors.isDark
+        ? const Color(0xFF3A3A3C)
+        : const Color(0xFFF2F2F7);
+
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
@@ -51,11 +60,7 @@ class _CRMSkeletonState extends State<CRMSkeleton> with SingleTickerProviderStat
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: const [
-                Color(0xFFE5E7EB),
-                Color(0xFFF3F4F6),
-                Color(0xFFE5E7EB),
-              ],
+              colors: [base, highlight, base],
               stops: [
                 0.3 + (_animation.value - 2.0) * 0.15,
                 0.5 + (_animation.value - 2.0) * 0.15,
@@ -77,9 +82,9 @@ class CRMCardSkeleton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(CRMSpacing.m),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: CRMColors.surfaceElevated,
         borderRadius: BorderRadius.circular(CRMBorderRadius.m),
-        border: Border.all(color: CRMColors.border),
+        border: Border.all(color: CRMColors.border.withOpacity(0.5), width: 0.5),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,16 +110,16 @@ class CRMListSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: List.generate(count, (index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: CRMSpacing.m),
+        return const Padding(
+          padding: EdgeInsets.only(bottom: CRMSpacing.m),
           child: Row(
             children: [
-              const CRMSkeleton(width: 48, height: 48, borderRadius: 24),
-              const SizedBox(width: CRMSpacing.m),
+              CRMSkeleton(width: 48, height: 48, borderRadius: 24),
+              SizedBox(width: CRMSpacing.m),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     CRMSkeleton(width: 120, height: 14),
                     SizedBox(height: CRMSpacing.xs),
                     CRMSkeleton(width: 200, height: 12),
