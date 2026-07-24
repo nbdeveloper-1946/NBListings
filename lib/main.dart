@@ -15,8 +15,7 @@ import 'features/clients/bloc/clients_bloc.dart';
 import 'features/owners/bloc/owners_bloc.dart';
 import 'features/builders/bloc/builders_bloc.dart';
 import 'core/navigation/app_router.dart';
-import 'core/design_system/tokens/app_colors.dart';
-import 'core/design_system/tokens/app_typography.dart';
+import 'core/theme/crm_theme.dart';
 import 'core/theme/theme_manager.dart';
 
 import 'core/storage/isar_service.dart';
@@ -30,7 +29,9 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 void main() async {
   usePathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  await ThemeManager().initialize();
+
   try {
     await IsarService().initialize();
     await PerformanceLogger().initialize();
@@ -123,26 +124,8 @@ class _MyAppState extends State<MyApp> {
               debugShowCheckedModeBanner: false,
               title: 'NB Listings',
               themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-              theme: ThemeData(
-                useMaterial3: true,
-                brightness: Brightness.light,
-                fontFamily: CRMTypography.fontFamily,
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: CRMColors.primary,
-                  brightness: Brightness.light,
-                ),
-                scaffoldBackgroundColor: CRMColors.background,
-              ),
-              darkTheme: ThemeData(
-                useMaterial3: true,
-                brightness: Brightness.dark,
-                fontFamily: CRMTypography.fontFamily,
-                colorScheme: ColorScheme.fromSeed(
-                  seedColor: CRMColors.primary,
-                  brightness: Brightness.dark,
-                ),
-                scaffoldBackgroundColor: CRMColors.background,
-              ),
+              theme: CRMTheme.light(),
+              darkTheme: CRMTheme.dark(),
               routerConfig: _appRouter.router,
             );
           },

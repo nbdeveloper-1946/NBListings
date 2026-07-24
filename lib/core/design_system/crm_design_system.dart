@@ -1,6 +1,10 @@
 export 'tokens/app_colors.dart';
 export 'tokens/app_spacing.dart';
 export 'tokens/app_typography.dart';
+export 'tokens/app_shadows.dart';
+export 'tokens/app_blur.dart';
+export 'tokens/app_motion.dart';
+export 'tokens/app_gradients.dart';
 export 'widgets/buttons.dart';
 export 'widgets/cards.dart';
 export 'widgets/inputs.dart';
@@ -29,3 +33,4 @@ export '../utils/formatters.dart';
 export '../utils/currency.dart';
 export '../utils/phone.dart';
 export '../utils/dates.dart';
+export '../theme/crm_theme.dart';
