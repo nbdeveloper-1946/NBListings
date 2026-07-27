@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'core/network/sync_manager.dart';
 import 'core/storage/repository_coordinator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -25,7 +26,16 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _checkAuthAndStartSync() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Intercept for brand migration announcement
+      final prefs = await SharedPreferences.getInstance();
+      final force = const bool.fromEnvironment('FORCE_MIGRATION', defaultValue: false);
+      final seen = prefs.getBool('migration_animation_seen') ?? false;
+      if ((force || !seen) && mounted) {
+        context.go('/migration');
+        return;
+      }
+
       final authState = context.read<AuthBloc>().state;
       if (authState is Authenticated) {
         if (SyncManager().isSyncCompleted) {

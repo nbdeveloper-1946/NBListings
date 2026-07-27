@@ -29,4 +29,8 @@ class AppConstants {
   static const String timeFormat = 'hh:mm a';
   static const String dateTimeFormat = 'dd-MM-yyyy hh:mm a';
   static const String currencyLocale = 'en_IN';
+
+  // Brand Migration Config
+  static const String migrationUrl = 'https://propkart.vercel.app';
+  static const String deepLink = 'propkart://home';
 }

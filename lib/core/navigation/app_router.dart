@@ -23,6 +23,7 @@ import '../../features/properties/screens/recycle_bin_screen.dart';
 import '../network/sync_manager.dart';
 import '../../features/requirements/screens/share_properties_page.dart';
 import '../../features/requirements/screens/public_property_detail_screen.dart';
+import '../../features/migration/screens/migration_screen.dart';
 
 
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -58,6 +59,10 @@ class AppRouter {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/migration',
+        builder: (context, state) => const MigrationScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => CRMAppShell(child: child),
